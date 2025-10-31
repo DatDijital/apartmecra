@@ -13,7 +13,8 @@ import {
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '../config/firebase';
 import { encryptObject, decryptObject, SENSITIVE_FIELDS } from '../utils/crypto';
 
 /**
@@ -22,7 +23,39 @@ import { encryptObject, decryptObject, SENSITIVE_FIELDS } from '../utils/crypto'
  */
 class FirebaseService {
   /**
+   * Authentication durumunu kontrol eder
+   * @returns {Promise<boolean>} Kullanıcı authenticated mı?
+   */
+  static async checkAuth() {
+    return new Promise((resolve) => {
+      if (auth.currentUser) {
+        console.log('✅ User is authenticated:', auth.currentUser.uid);
+        resolve(true);
+      } else {
+        // onAuthStateChanged ile kısa bir süre bekle
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          unsubscribe();
+          if (user) {
+            console.log('✅ User authenticated:', user.uid);
+            resolve(true);
+          } else {
+            console.warn('⚠️ User is NOT authenticated');
+            resolve(false);
+          }
+        });
+        
+        // 1 saniye sonra timeout
+        setTimeout(() => {
+          unsubscribe();
+          resolve(false);
+        }, 1000);
+      }
+    });
+  }
+
+  /**
    * Veriyi Firestore'a şifrelenmiş olarak kaydeder
+   * Collection otomatik oluşturulur (Firestore özelliği)
    * @param {string} collectionName - Koleksiyon adı
    * @param {string} docId - Doküman ID (opsiyonel, yoksa otomatik oluşturulur)
    * @param {object} data - Kaydedilecek veri
@@ -31,24 +64,49 @@ class FirebaseService {
    */
   static async create(collectionName, docId, data, encrypt = true) {
     try {
-      const docRef = doc(db, collectionName, docId || Date.now().toString());
+      // Authentication kontrolü
+      const isAuthenticated = await this.checkAuth();
+      if (!isAuthenticated) {
+        throw new Error('Kullanıcı giriş yapmamış. Lütfen önce giriş yapın.');
+      }
+      
+      console.log('🔐 Current user:', auth.currentUser?.uid || 'No user');
+      
+      // Collection referansı oluştur (collection yoksa otomatik oluşturulur)
+      const collectionRef = collection(db, collectionName);
+      
+      // Doküman ID'si yoksa otomatik oluştur (timestamp + random)
+      const autoId = docId || `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const docRef = doc(collectionRef, autoId);
       
       // Şifreleme yapılıyorsa hassas alanları şifrele
       const dataToSave = encrypt 
         ? encryptObject(data, SENSITIVE_FIELDS)
         : data;
       
-      // Timestamp ekle
+      // Timestamp ve metadata ekle
       const finalData = {
         ...dataToSave,
+        id: autoId, // ID'yi veri içinde de sakla
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        _collection: collectionName, // Hangi collection'da olduğunu işaretle
+        _createdBy: auth.currentUser?.uid || null // Kim oluşturdu
       };
       
+      // Dokümanı kaydet (collection yoksa otomatik oluşturulur)
       await setDoc(docRef, finalData);
-      return docRef.id;
+      
+      console.log(`✅ Document created in collection "${collectionName}" with ID: ${autoId}`);
+      return autoId;
     } catch (error) {
-      console.error(`Error creating document in ${collectionName}:`, error);
+      console.error(`❌ Error creating document in collection "${collectionName}":`, error);
+      
+      // Permission hatası için daha açıklayıcı mesaj
+      if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+        throw new Error('Firebase Security Rules hatası. Lütfen Firebase Console\'da Firestore Rules\'u güncelleyin. Detaylar için FIREBASE_SECURITY_RULES.md dosyasına bakın.');
+      }
+      
       throw error;
     }
   }
@@ -70,14 +128,17 @@ class FirebaseService {
         ? encryptObject(data, SENSITIVE_FIELDS)
         : data;
       
+      // ID ve collection bilgisini koru
       const finalData = {
         ...dataToUpdate,
+        id: docId, // ID'yi koru
         updatedAt: serverTimestamp()
       };
       
       await updateDoc(docRef, finalData);
+      console.log(`✅ Document updated in collection "${collectionName}" with ID: ${docId}`);
     } catch (error) {
-      console.error(`Error updating document in ${collectionName}:`, error);
+      console.error(`❌ Error updating document in collection "${collectionName}":`, error);
       throw error;
     }
   }
@@ -123,6 +184,7 @@ class FirebaseService {
 
   /**
    * Koleksiyondaki tüm dokümanları okur ve çözer
+   * Collection yoksa boş array döner
    * @param {string} collectionName - Koleksiyon adı
    * @param {object} options - Query seçenekleri (where, orderBy, limit)
    * @param {boolean} decrypt - Çözme yapılsın mı
@@ -131,12 +193,12 @@ class FirebaseService {
   static async getAll(collectionName, options = {}, decrypt = true) {
     try {
       const collectionRef = collection(db, collectionName);
-      let q = collectionRef;
+      let q = query(collectionRef);
       
       // Where clauses
-      if (options.where) {
+      if (options.where && Array.isArray(options.where)) {
         options.where.forEach(w => {
-          q = query(q, where(w.field, w.operator, w.value));
+          q = query(q, where(w.field, w.operator || '==', w.value));
         });
       }
       
@@ -174,9 +236,15 @@ class FirebaseService {
         );
       });
       
+      console.log(`📖 Retrieved ${docs.length} documents from collection "${collectionName}"`);
       return docs;
     } catch (error) {
-      console.error(`Error getting documents from ${collectionName}:`, error);
+      // Collection yoksa boş array döner (hata değil)
+      if (error.code === 'not-found' || error.code === 'permission-denied') {
+        console.warn(`⚠️ Collection "${collectionName}" not found or empty, returning empty array`);
+        return [];
+      }
+      console.error(`❌ Error getting documents from collection "${collectionName}":`, error);
       throw error;
     }
   }
@@ -206,13 +274,33 @@ class FirebaseService {
    * @returns {Promise<Array>} Doküman listesi
    */
   static async findByField(collectionName, field, value, decrypt = true) {
-    return this.getAll(
-      collectionName, 
-      { 
-        where: [{ field, operator: '==', value }] 
-      }, 
-      decrypt
-    );
+    try {
+      return await this.getAll(
+        collectionName, 
+        { 
+          where: [{ field, operator: '==', value }] 
+        }, 
+        decrypt
+      );
+    } catch (error) {
+      console.error(`❌ Error finding documents by field "${field}" in collection "${collectionName}":`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Collection'ın var olup olmadığını kontrol eder
+   * @param {string} collectionName - Koleksiyon adı
+   * @returns {Promise<boolean>} Collection var mı?
+   */
+  static async collectionExists(collectionName) {
+    try {
+      const collectionRef = collection(db, collectionName);
+      const snapshot = await getDocs(query(collectionRef, limit(1)));
+      return !snapshot.empty;
+    } catch (error) {
+      return false;
+    }
   }
 }
 

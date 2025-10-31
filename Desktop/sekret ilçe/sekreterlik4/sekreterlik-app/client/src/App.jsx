@@ -26,6 +26,8 @@ import DistrictPresidentDashboardPage from './pages/DistrictPresidentDashboardPa
 import TownPresidentDashboardPage from './pages/TownPresidentDashboardPage';
 import CalendarPage from './pages/CalendarPage';
 import CreateAdminPage from './pages/CreateAdminPage';
+import CheckAdminPage from './pages/CheckAdminPage';
+import DebugFirebasePage from './pages/DebugFirebasePage';
 import Sidebar from './components/Sidebar';
 import PWANotification from './components/PWANotification';
 import AppInstallBanner from './components/AppInstallBanner';
@@ -130,6 +132,14 @@ function AppContent() {
           <Route 
             path="/create-admin" 
             element={<CreateAdminPage />} 
+          />
+          <Route 
+            path="/check-admin" 
+            element={<CheckAdminPage />} 
+          />
+          <Route 
+            path="/debug-firebase" 
+            element={<DebugFirebasePage />} 
           />
           {/* Member Dashboard Route */}
           <Route 

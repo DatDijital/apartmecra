@@ -180,6 +180,10 @@ class ApiService {
   }
 
   static async updateMember(id, memberData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateMember(id, memberData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/members/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -195,6 +199,10 @@ class ApiService {
   }
 
   static async archiveMember(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.archiveMember(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/members/${id}/archive`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
@@ -209,6 +217,10 @@ class ApiService {
   }
 
   static async restoreMember(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.restoreMember(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/members/${id}/restore`, {
       method: 'POST',
       headers: this.getAuthHeaders(false),
@@ -260,11 +272,19 @@ class ApiService {
   }
 
   static async getMeetingById(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getMeetingById(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/meetings/${id}`);
     return response.json();
   }
 
   static async createMeeting(meetingData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createMeeting(meetingData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/meetings`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -280,6 +300,10 @@ class ApiService {
   }
 
   static async updateMeeting(id, meetingData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateMeeting(id, meetingData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/meetings/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -289,6 +313,10 @@ class ApiService {
   }
 
   static async archiveMeeting(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.archiveMeeting(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/meetings/${id}/archive`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
@@ -297,6 +325,10 @@ class ApiService {
   }
 
   static async updateAttendance(meetingId, memberId, attended) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateAttendance(meetingId, memberId, attended);
+    }
+
     const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/attendance`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -307,6 +339,10 @@ class ApiService {
 
   // Add the new excuse update method
   static async updateExcuse(meetingId, memberId, hasExcuse, reason) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateExcuse(meetingId, memberId, hasExcuse, reason);
+    }
+
     const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/excuse`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -323,6 +359,10 @@ class ApiService {
   }
 
   static async createRegion(regionData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createRegion(regionData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/regions`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -336,6 +376,10 @@ class ApiService {
   }
 
   static async updateRegion(id, regionData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateRegion(id, regionData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/regions/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -349,6 +393,10 @@ class ApiService {
   }
 
   static async deleteRegion(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteRegion(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/regions/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
@@ -366,6 +414,10 @@ class ApiService {
   }
 
   static async createPosition(positionData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createPosition(positionData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/positions`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -375,6 +427,10 @@ class ApiService {
   }
 
   static async updatePosition(id, positionData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updatePosition(id, positionData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/positions/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -384,6 +440,10 @@ class ApiService {
   }
 
   static async deletePosition(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deletePosition(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/positions/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
@@ -401,6 +461,10 @@ class ApiService {
   }
 
   static async createMemberRegistration(registrationData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createMemberRegistration(registrationData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/member-registrations`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -417,6 +481,10 @@ class ApiService {
   }
 
   static async updateMemberRegistration(id, registrationData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateMemberRegistration(id, registrationData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/member-registrations/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -433,6 +501,10 @@ class ApiService {
   }
 
   static async deleteMemberRegistration(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteMemberRegistration(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/member-registrations/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
@@ -604,11 +676,19 @@ class ApiService {
   }
 
   static async getEventById(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getEventById(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/events/${id}`);
     return response.json();
   }
 
   static async createEvent(eventData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createEvent(eventData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/events`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -624,6 +704,10 @@ class ApiService {
   }
 
   static async updateEvent(id, eventData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateEvent(id, eventData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/events/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -633,6 +717,10 @@ class ApiService {
   }
 
   static async archiveEvent(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.archiveEvent(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/events/${id}/archive`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -641,6 +729,10 @@ class ApiService {
   }
 
   static async deleteEvent(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteEvent(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/events/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -717,6 +809,10 @@ class ApiService {
 
   // Districts API
   static async getDistricts() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getDistricts();
+    }
+
     // Add cache-busting parameter to ensure fresh data
     const timestamp = Date.now();
     const response = await fetch(`${API_BASE_URL}/districts?_t=${timestamp}`);
@@ -724,6 +820,10 @@ class ApiService {
   }
 
   static async createDistrict(districtData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createDistrict(districtData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/districts`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -733,6 +833,10 @@ class ApiService {
   }
 
   static async updateDistrict(id, districtData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateDistrict(id, districtData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/districts/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -742,6 +846,10 @@ class ApiService {
   }
 
   static async deleteDistrict(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteDistrict(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/districts/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -755,6 +863,10 @@ class ApiService {
 
   // Towns API
   static async getTowns() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getTowns();
+    }
+
     // Add cache-busting parameter to ensure fresh data
     const timestamp = Date.now();
     const response = await fetch(`${API_BASE_URL}/towns?_t=${timestamp}`);
@@ -762,6 +874,10 @@ class ApiService {
   }
 
   static async getTownById(townId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getTownById ? FirebaseApiService.getTownById(townId) : FirebaseService.getById('towns', townId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/towns/${townId}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -770,11 +886,20 @@ class ApiService {
   }
 
   static async getTownsByDistrict(districtId) {
+    if (USE_FIREBASE) {
+      const towns = await FirebaseApiService.getTowns();
+      return towns ? towns.filter(t => t.district_id === districtId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/towns/district/${districtId}`);
     return response.json();
   }
 
   static async createTown(townData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createTown(townData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/towns`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -784,6 +909,10 @@ class ApiService {
   }
 
   static async updateTown(id, townData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateTown(id, townData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/towns/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -793,6 +922,10 @@ class ApiService {
   }
 
   static async deleteTown(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteTown(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/towns/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -806,16 +939,29 @@ class ApiService {
 
   // Neighborhoods API
   static async getNeighborhoods() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getNeighborhoods();
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhoods`);
     return response.json();
   }
 
   static async getNeighborhoodsByDistrict(districtId) {
+    if (USE_FIREBASE) {
+      const neighborhoods = await FirebaseApiService.getNeighborhoods();
+      return neighborhoods ? neighborhoods.filter(n => n.district_id === districtId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhoods/district/${districtId}`);
     return response.json();
   }
 
   static async createNeighborhood(neighborhoodData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createNeighborhood(neighborhoodData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhoods`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -825,6 +971,10 @@ class ApiService {
   }
 
   static async updateNeighborhood(id, neighborhoodData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateNeighborhood(id, neighborhoodData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhoods/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -834,6 +984,10 @@ class ApiService {
   }
 
   static async deleteNeighborhood(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteNeighborhood(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhoods/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -843,16 +997,29 @@ class ApiService {
 
   // Villages API
   static async getVillages() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getVillages();
+    }
+
     const response = await fetch(`${API_BASE_URL}/villages`);
     return response.json();
   }
 
   static async getVillagesByDistrict(districtId) {
+    if (USE_FIREBASE) {
+      const villages = await FirebaseApiService.getVillages();
+      return villages ? villages.filter(v => v.district_id === districtId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/villages/district/${districtId}`);
     return response.json();
   }
 
   static async createVillage(villageData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createVillage(villageData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/villages`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -862,6 +1029,10 @@ class ApiService {
   }
 
   static async updateVillage(id, villageData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateVillage(id, villageData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/villages/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -871,6 +1042,10 @@ class ApiService {
   }
 
   static async deleteVillage(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteVillage(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/villages/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -880,11 +1055,19 @@ class ApiService {
 
   // STKs API
   static async getSTKs() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getSTKs();
+    }
+
     const response = await fetch(`${API_BASE_URL}/stks`);
     return response.json();
   }
 
   static async createSTK(stkData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createSTK(stkData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/stks`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -894,6 +1077,10 @@ class ApiService {
   }
 
   static async updateSTK(id, stkData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateSTK(id, stkData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/stks/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -903,6 +1090,10 @@ class ApiService {
   }
 
   static async deleteSTK(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteSTK(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/stks/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -912,16 +1103,29 @@ class ApiService {
 
   // Mosques API
   static async getMosques() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getMosques();
+    }
+
     const response = await fetch(`${API_BASE_URL}/mosques`);
     return response.json();
   }
 
   static async getMosquesByDistrict(districtId) {
+    if (USE_FIREBASE) {
+      const mosques = await FirebaseApiService.getMosques();
+      return mosques ? mosques.filter(m => m.district_id === districtId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/mosques/district/${districtId}`);
     return response.json();
   }
 
   static async createMosque(mosqueData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createMosque(mosqueData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/mosques`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -931,6 +1135,10 @@ class ApiService {
   }
 
   static async updateMosque(id, mosqueData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateMosque(id, mosqueData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/mosques/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -940,6 +1148,10 @@ class ApiService {
   }
 
   static async deleteMosque(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteMosque(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/mosques/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -949,11 +1161,19 @@ class ApiService {
 
   // Event Categories API
   static async getEventCategories() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getEventCategories();
+    }
+
     const response = await fetch(`${API_BASE_URL}/event-categories`);
     return response.json();
   }
 
   static async createEventCategory(categoryData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createEventCategory(categoryData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/event-categories`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -963,6 +1183,10 @@ class ApiService {
   }
 
   static async updateEventCategory(id, categoryData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateEventCategory(id, categoryData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/event-categories/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -972,6 +1196,10 @@ class ApiService {
   }
 
   static async deleteEventCategory(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteEventCategory(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/event-categories/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -981,16 +1209,29 @@ class ApiService {
 
   // Neighborhood Representatives API
   static async getNeighborhoodRepresentatives() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getNeighborhoodRepresentatives();
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-representatives`);
     return response.json();
   }
 
   static async getNeighborhoodRepresentativesByNeighborhood(neighborhoodId) {
+    if (USE_FIREBASE) {
+      const representatives = await FirebaseApiService.getNeighborhoodRepresentatives();
+      return representatives ? representatives.filter(r => r.neighborhood_id === neighborhoodId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-representatives/neighborhood/${neighborhoodId}`);
     return response.json();
   }
 
   static async createNeighborhoodRepresentative(representativeData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createNeighborhoodRepresentative(representativeData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-representatives`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -1000,6 +1241,10 @@ class ApiService {
   }
 
   static async updateNeighborhoodRepresentative(id, representativeData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateNeighborhoodRepresentative(id, representativeData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-representatives/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1009,6 +1254,10 @@ class ApiService {
   }
 
   static async deleteNeighborhoodRepresentative(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteNeighborhoodRepresentative(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-representatives/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1018,16 +1267,29 @@ class ApiService {
 
   // Village Representatives API
   static async getVillageRepresentatives() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getVillageRepresentatives();
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-representatives`);
     return response.json();
   }
 
   static async getVillageRepresentativesByVillage(villageId) {
+    if (USE_FIREBASE) {
+      const representatives = await FirebaseApiService.getVillageRepresentatives();
+      return representatives ? representatives.filter(r => r.village_id === villageId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-representatives/village/${villageId}`);
     return response.json();
   }
 
   static async createVillageRepresentative(representativeData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createVillageRepresentative(representativeData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-representatives`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -1037,6 +1299,10 @@ class ApiService {
   }
 
   static async updateVillageRepresentative(id, representativeData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateVillageRepresentative(id, representativeData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-representatives/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1046,6 +1312,10 @@ class ApiService {
   }
 
   static async deleteVillageRepresentative(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteVillageRepresentative(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-representatives/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1055,16 +1325,29 @@ class ApiService {
 
   // Neighborhood Supervisors API
   static async getNeighborhoodSupervisors() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getNeighborhoodSupervisors();
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-supervisors`);
     return response.json();
   }
 
   static async getNeighborhoodSupervisorsByNeighborhood(neighborhoodId) {
+    if (USE_FIREBASE) {
+      const supervisors = await FirebaseApiService.getNeighborhoodSupervisors();
+      return supervisors ? supervisors.filter(s => s.neighborhood_id === neighborhoodId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-supervisors/neighborhood/${neighborhoodId}`);
     return response.json();
   }
 
   static async createNeighborhoodSupervisor(supervisorData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createNeighborhoodSupervisor(supervisorData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-supervisors`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -1074,6 +1357,10 @@ class ApiService {
   }
 
   static async updateNeighborhoodSupervisor(id, supervisorData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateNeighborhoodSupervisor(id, supervisorData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-supervisors/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1083,6 +1370,10 @@ class ApiService {
   }
 
   static async deleteNeighborhoodSupervisor(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteNeighborhoodSupervisor(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/neighborhood-supervisors/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1092,16 +1383,29 @@ class ApiService {
 
   // Village Supervisors API
   static async getVillageSupervisors() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getVillageSupervisors();
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-supervisors`);
     return response.json();
   }
 
   static async getVillageSupervisorsByVillage(villageId) {
+    if (USE_FIREBASE) {
+      const supervisors = await FirebaseApiService.getVillageSupervisors();
+      return supervisors ? supervisors.filter(s => s.village_id === villageId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-supervisors/village/${villageId}`);
     return response.json();
   }
 
   static async createVillageSupervisor(supervisorData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createVillageSupervisor(supervisorData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-supervisors`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -1111,6 +1415,10 @@ class ApiService {
   }
 
   static async updateVillageSupervisor(id, supervisorData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateVillageSupervisor(id, supervisorData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-supervisors/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1120,6 +1428,10 @@ class ApiService {
   }
 
   static async deleteVillageSupervisor(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteVillageSupervisor(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/village-supervisors/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1134,11 +1446,19 @@ class ApiService {
   }
 
   static async getDistrictOfficialsByDistrict(districtId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getDistrictOfficials(districtId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/district-officials/district/${districtId}`);
     return response.json();
   }
 
   static async createOrUpdateDistrictOfficials(officialsData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createOrUpdateDistrictOfficials(officialsData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/districts/officials`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -1148,6 +1468,10 @@ class ApiService {
   }
 
   static async deleteDistrictOfficials(districtId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteDistrictOfficials(districtId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/district-officials/district/${districtId}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1172,11 +1496,19 @@ class ApiService {
   }
 
   static async getTownOfficialsByTown(townId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getTownOfficials(townId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/town-officials/town/${townId}`);
     return response.json();
   }
 
   static async createOrUpdateTownOfficials(officialsData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createOrUpdateTownOfficials(officialsData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/town-officials`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -1186,6 +1518,10 @@ class ApiService {
   }
 
   static async deleteTownOfficials(townId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteTownOfficials(townId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/town-officials/town/${townId}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1205,11 +1541,19 @@ class ApiService {
 
   // District Management Members API
   static async getDistrictManagementMembers(districtId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getDistrictManagementMembers(districtId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/district-management-members/district/${districtId}`);
     return response.json();
   }
 
   static async createDistrictManagementMember(memberData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createDistrictManagementMember(memberData);
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/district-management-members`, {
         method: 'POST',
@@ -1231,6 +1575,10 @@ class ApiService {
   }
 
   static async updateDistrictManagementMember(id, memberData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateDistrictManagementMember(id, memberData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/district-management-members/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1247,6 +1595,10 @@ class ApiService {
   }
 
   static async deleteDistrictManagementMember(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteDistrictManagementMember(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/district-management-members/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1263,11 +1615,19 @@ class ApiService {
 
   // Town Management Members API
   static async getTownManagementMembers(townId) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getTownManagementMembers(townId);
+    }
+
     const response = await fetch(`${API_BASE_URL}/town-management-members/town/${townId}`);
     return response.json();
   }
 
   static async createTownManagementMember(memberData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createTownManagementMember(memberData);
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/town-management-members`, {
         method: 'POST',
@@ -1294,6 +1654,10 @@ class ApiService {
   }
 
   static async updateTownManagementMember(id, memberData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateTownManagementMember(id, memberData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/town-management-members/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1310,6 +1674,10 @@ class ApiService {
   }
 
   static async deleteTownManagementMember(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteTownManagementMember(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/town-management-members/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1326,26 +1694,48 @@ class ApiService {
 
   // Ballot Boxes API
   static async getBallotBoxes() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getBallotBoxes();
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes`);
     return response.json();
   }
 
   static async getBallotBoxesByNeighborhood(neighborhoodId) {
+    if (USE_FIREBASE) {
+      const ballotBoxes = await FirebaseApiService.getBallotBoxes();
+      return ballotBoxes ? ballotBoxes.filter(b => b.neighborhood_id === neighborhoodId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes/neighborhood/${neighborhoodId}`);
     return response.json();
   }
 
   static async getBallotBoxesByVillage(villageId) {
+    if (USE_FIREBASE) {
+      const ballotBoxes = await FirebaseApiService.getBallotBoxes();
+      return ballotBoxes ? ballotBoxes.filter(b => b.village_id === villageId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes/village/${villageId}`);
     return response.json();
   }
 
   static async getBallotBox(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getBallotBoxById(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes/${id}`);
     return response.json();
   }
 
   static async getBallotBoxById(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getBallotBoxById(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes/${id}`);
     return response.json();
   }
@@ -1524,6 +1914,10 @@ class ApiService {
   }
 
   static async createBallotBox(ballotBoxData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createBallotBox(ballotBoxData);
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/ballot-boxes`, {
         method: 'POST',
@@ -1545,6 +1939,10 @@ class ApiService {
   }
 
   static async updateBallotBox(id, ballotBoxData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateBallotBox(id, ballotBoxData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1561,6 +1959,10 @@ class ApiService {
   }
 
   static async deleteBallotBox(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteBallotBox(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-boxes/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -1577,21 +1979,39 @@ class ApiService {
 
   // Ballot Box Observers API
   static async getBallotBoxObservers() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getBallotBoxObservers();
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-box-observers`);
     return response.json();
   }
 
   static async getBallotBoxObserversByBallotBox(ballotBoxId) {
+    if (USE_FIREBASE) {
+      const observers = await FirebaseApiService.getBallotBoxObservers();
+      return observers ? observers.filter(o => o.ballot_box_id === ballotBoxId) : [];
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-box-observers/ballot-box/${ballotBoxId}`);
     return response.json();
   }
 
   static async getBallotBoxObserver(id) {
+    if (USE_FIREBASE) {
+      const observers = await FirebaseApiService.getBallotBoxObservers();
+      return observers ? observers.find(o => o.id === id) : null;
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-box-observers/${id}`);
     return response.json();
   }
 
   static async createBallotBoxObserver(observerData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createBallotBoxObserver(observerData);
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/ballot-box-observers`, {
         method: 'POST',
@@ -1613,6 +2033,10 @@ class ApiService {
   }
 
   static async updateBallotBoxObserver(id, observerData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateBallotBoxObserver(id, observerData);
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-box-observers/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -1629,6 +2053,10 @@ class ApiService {
   }
 
   static async deleteBallotBoxObserver(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteBallotBoxObserver(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/ballot-box-observers/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),

@@ -93,7 +93,8 @@ export const SENSITIVE_FIELDS = [
   'password',
   'phone',
   'email',
-  'tcNo',
+  'tc',      // TC kimlik numarası
+  'tcNo',    // Alternatif TC alan adı
   'address',
   'notes',
   'description',

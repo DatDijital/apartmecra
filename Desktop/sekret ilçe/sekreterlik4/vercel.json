@@ -1,31 +1,23 @@
 {
-  "buildCommand": "cd sekreterlik-app/client && npm install && npm run build",
-  "outputDirectory": "sekreterlik-app/client/dist",
-  "framework": null,
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "sekreterlik-app/client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
-  "headers": [
+  "routes": [
     {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
+      "handle": "filesystem"
     },
     {
-      "source": "/(.*)\\.(js|css|ico|png|jpg|jpeg|svg|gif|woff|woff2|ttf|eot)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
-  ]
+  ],
+  "buildCommand": "cd sekreterlik-app/client && npm install && npm run build",
+  "outputDirectory": "sekreterlik-app/client/dist"
 }

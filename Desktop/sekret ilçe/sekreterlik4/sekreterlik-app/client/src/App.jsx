@@ -25,6 +25,7 @@ import VillagesPage from './pages/VillagesPage';
 import DistrictPresidentDashboardPage from './pages/DistrictPresidentDashboardPage';
 import TownPresidentDashboardPage from './pages/TownPresidentDashboardPage';
 import CalendarPage from './pages/CalendarPage';
+import CreateAdminPage from './pages/CreateAdminPage';
 import Sidebar from './components/Sidebar';
 import PWANotification from './components/PWANotification';
 import AppInstallBanner from './components/AppInstallBanner';
@@ -125,6 +126,10 @@ function AppContent() {
                 <LoginPage />
               </PublicRoute>
             } 
+          />
+          <Route 
+            path="/create-admin" 
+            element={<CreateAdminPage />} 
           />
           {/* Member Dashboard Route */}
           <Route 

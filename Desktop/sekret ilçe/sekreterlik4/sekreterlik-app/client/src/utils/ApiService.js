@@ -1,6 +1,16 @@
+import FirebaseApiService from './FirebaseApiService';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
+// Firebase kullanımı kontrolü - Environment variable ile kontrol edilir
+const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
+
 class ApiService {
+  // Firebase kullanılıyorsa FirebaseApiService'i kullan
+  static getService() {
+    return USE_FIREBASE ? FirebaseApiService : ApiService;
+  }
+
   static async fetchJsonWithRetry(url, options = {}, retryOnce = true) {
     try {
       const res = await fetch(url, options);
@@ -35,6 +45,11 @@ class ApiService {
 
   // Auth API
   static async login(username, password) {
+    // Firebase kullanılıyorsa FirebaseApiService'i kullan
+    if (USE_FIREBASE) {
+      return FirebaseApiService.login(username, password);
+    }
+
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -49,6 +64,10 @@ class ApiService {
   }
 
   static async logout() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.logout();
+    }
+
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -113,16 +132,28 @@ class ApiService {
 
   // Members API
   static async getMembers(archived = false) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getMembers();
+    }
+    
     const timestamp = Date.now();
     return this.fetchJsonWithRetry(`${API_BASE_URL}/members?archived=${archived}&_t=${timestamp}`);
   }
 
   static async getMemberById(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getMemberById(id);
+    }
+
     const response = await fetch(`${API_BASE_URL}/members/${id}`);
     return response.json();
   }
 
   static async createMember(memberData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createMember(memberData);
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/members`, {
         method: 'POST',
@@ -219,6 +250,10 @@ class ApiService {
 
   // Meetings API
   static async getMeetings(archived = false) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getMeetings();
+    }
+
     // Add cache-busting parameter to ensure fresh data
     const timestamp = Date.now();
     return this.fetchJsonWithRetry(`${API_BASE_URL}/meetings?archived=${archived}&_t=${timestamp}`);
@@ -358,6 +393,10 @@ class ApiService {
 
   // Member Registrations API
   static async getMemberRegistrations() {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getMemberRegistrations();
+    }
+    
     return this.fetchJsonWithRetry(`${API_BASE_URL}/member-registrations`);
   }
 
@@ -555,6 +594,10 @@ class ApiService {
 
   // Events API
   static async getEvents(archived = false) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.getEvents();
+    }
+
     // Add cache-busting parameter to ensure fresh data
     const timestamp = Date.now();
     return this.fetchJsonWithRetry(`${API_BASE_URL}/events?archived=${archived}&_t=${timestamp}`);

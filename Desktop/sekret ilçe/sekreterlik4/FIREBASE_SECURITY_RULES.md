@@ -18,14 +18,7 @@ Bu hatayı alıyorsanız Firebase Console'da Firestore Security Rules'u güncell
 **Tüm mevcut kuralları silin** ve şunu **YAPIŞTIRIN**:
 
 ```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+git push origin version1
 ```
 
 ### 3️⃣ Yayınla

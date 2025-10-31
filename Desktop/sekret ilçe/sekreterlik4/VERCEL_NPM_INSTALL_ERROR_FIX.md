@@ -62,11 +62,21 @@ Install Command: (boş bırakın)
 
 ### Çözüm 3: Build Cache Temizle
 
-**Vercel Dashboard → Settings → General:**
+**Yöntem 1: Redeploy ile Cache Temizleme (ÖNERİLEN)**
 
-1. **"Clear Build Cache"** butonuna tıklayın
-2. Onaylayın
-3. Redeploy yapın
+1. **Deployments** → Son deployment'a tıklayın
+2. **"Redeploy"** butonuna tıklayın
+3. **"Use existing Build Cache"** seçeneğini **KALDIRIN** ⚠️
+4. **"Redeploy"** butonuna tıklayın
+
+**Yöntem 2: Clear Build Cache Butonu (Eğer varsa)**
+
+1. **Deployments** → Son deployment'a tıklayın
+2. Deployment detay sayfasında **"..."** menüsüne tıklayın
+3. **"Clear Build Cache"** seçeneğini seçin
+4. Onaylayın
+
+**Not:** Bazı Vercel versiyonlarında "Clear Build Cache" butonu olmayabilir. Bu durumda **Yöntem 1**'i kullanın.
 
 ## 🔄 REDEPLOY
 

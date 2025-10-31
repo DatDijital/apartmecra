@@ -1,23 +1,12 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "cd sekreterlik-app/client && npm ci && npm run build",
+  "outputDirectory": "sekreterlik-app/client/dist",
+  "framework": null,
+  "installCommand": "cd sekreterlik-app/client && npm ci",
+  "rewrites": [
     {
-      "src": "sekreterlik-app/client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "buildCommand": "cd sekreterlik-app/client && npm install && npm run build",
-  "outputDirectory": "sekreterlik-app/client/dist"
+  ]
 }

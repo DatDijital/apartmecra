@@ -38,7 +38,8 @@ export default defineConfig({
         clientsClaim: true,
         runtimeCaching: [
           {
-            urlPattern: /^http:\/\/localhost:5000\/api\//,
+            // API isteklerini cache'le (/api path'li tüm istekler)
+            urlPattern: ({ url }) => url.pathname.startsWith('/api'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',

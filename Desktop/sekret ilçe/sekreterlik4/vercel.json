@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd sekreterlik-app/client && npm install && npm run build",
+  "outputDirectory": "sekreterlik-app/client/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+

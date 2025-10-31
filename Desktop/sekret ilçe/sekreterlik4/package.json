@@ -1,4 +1,13 @@
 {
+  "name": "ilce-sekreterlik",
+  "version": "1.0.0",
+  "description": "İlçe Sekreterlik Uygulaması",
+  "scripts": {
+    "build": "cd sekreterlik-app/client && npm install && npm run build",
+    "dev:client": "cd sekreterlik-app/client && npm run dev",
+    "dev:server": "cd sekreterlik-app/server && npm run dev",
+    "install:all": "cd sekreterlik-app/client && npm install && cd ../server && npm install"
+  },
   "dependencies": {
     "express": "^5.1.0",
     "form-data": "^4.0.4",

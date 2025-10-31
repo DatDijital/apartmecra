@@ -44,6 +44,7 @@ Thumbs.db
 dist/
 build/
 *.map
+.vercel/
 
 # Uploads (optional - buradaki dosyaları da commit etmek isteyebilirsiniz)
 # sekreterlik-app/server/uploads/*

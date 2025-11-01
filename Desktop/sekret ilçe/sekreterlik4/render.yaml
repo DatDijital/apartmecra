@@ -1,7 +1,6 @@
 services:
-  - type: web
+  - type: static
     name: ilce-sekreterlik
-    env: static
     buildCommand: cd sekreterlik-app/client && npm install && npm run build
     staticPublishPath: sekreterlik-app/client/dist
     envVars:

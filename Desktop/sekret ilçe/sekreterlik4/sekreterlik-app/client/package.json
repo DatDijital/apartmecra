@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@babel/traverse": "^7.28.5",
     "@sentry/react": "^10.22.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
@@ -30,7 +31,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
-    "@babel/traverse": "^7.28.5",
     "@vitejs/plugin-react": "^3.1.0",
     "autoprefixer": "^10.4.21",
     "browserslist": "^4.27.0",

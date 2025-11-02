@@ -4,17 +4,32 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 // Firebase kullanımı kontrolü - Environment variable ile kontrol edilir
 // Render.com'da bu değer 'true' (string) olarak set edilmeli
-const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true' || 
-                     import.meta.env.VITE_USE_FIREBASE === true ||
-                     String(import.meta.env.VITE_USE_FIREBASE).toLowerCase() === 'true';
+const VITE_USE_FIREBASE_ENV = import.meta.env.VITE_USE_FIREBASE;
+const USE_FIREBASE = 
+  VITE_USE_FIREBASE_ENV === 'true' || 
+  VITE_USE_FIREBASE_ENV === true ||
+  String(VITE_USE_FIREBASE_ENV).toLowerCase() === 'true' ||
+  // Production'da Render.com'da genellikle 'true' string olarak gelir
+  (typeof window !== 'undefined' && window.location.hostname.includes('render.com') && VITE_USE_FIREBASE_ENV !== undefined);
 
-// Debug log (production'da kaldırılabilir)
+// Debug log - ZORUNLU (production debug için)
 if (typeof window !== 'undefined') {
   console.log('[ApiService] Firebase check:', {
-    VITE_USE_FIREBASE: import.meta.env.VITE_USE_FIREBASE,
+    VITE_USE_FIREBASE: VITE_USE_FIREBASE_ENV,
+    VITE_USE_FIREBASE_TYPE: typeof VITE_USE_FIREBASE_ENV,
     USE_FIREBASE,
-    MODE: import.meta.env.MODE
+    MODE: import.meta.env.MODE,
+    HOSTNAME: window.location.hostname,
+    WILL_USE_FIREBASE: USE_FIREBASE
   });
+  
+  // Uyarı: Eğer Firebase kullanılması gerekiyorsa ama kullanılmıyorsa
+  if (VITE_USE_FIREBASE_ENV && !USE_FIREBASE) {
+    console.warn('[ApiService] WARNING: VITE_USE_FIREBASE is set but USE_FIREBASE is false!', {
+      env: VITE_USE_FIREBASE_ENV,
+      type: typeof VITE_USE_FIREBASE_ENV
+    });
+  }
 }
 
 class ApiService {
@@ -649,38 +664,47 @@ class ApiService {
   }
 
   static async deleteArchivedMember(id) {
-    // Debug: Firebase kontrolü
-    console.log('[ApiService.deleteArchivedMember] Called:', { 
-      id, 
-      USE_FIREBASE, 
-      VITE_USE_FIREBASE: import.meta.env.VITE_USE_FIREBASE,
+    // Debug: Firebase kontrolü - ZORUNLU
+    const firebaseCheck = {
+      id,
+      USE_FIREBASE,
+      VITE_USE_FIREBASE: VITE_USE_FIREBASE_ENV,
+      VITE_USE_FIREBASE_TYPE: typeof VITE_USE_FIREBASE_ENV,
       API_BASE_URL,
-      MODE: import.meta.env.MODE
-    });
+      MODE: import.meta.env.MODE,
+      HOSTNAME: typeof window !== 'undefined' ? window.location.hostname : 'server'
+    };
     
+    console.log('[ApiService.deleteArchivedMember] Called with:', firebaseCheck);
+
     // Firebase kullanılıyorsa KESİNLİKLE FirebaseApiService'i kullan
     if (USE_FIREBASE) {
-      console.log('[ApiService.deleteArchivedMember] Using FirebaseApiService');
+      console.log('[ApiService.deleteArchivedMember] ✅ Using FirebaseApiService');
       try {
-        return await FirebaseApiService.deleteArchivedMember(id);
+        const result = await FirebaseApiService.deleteArchivedMember(id);
+        console.log('[ApiService.deleteArchivedMember] ✅ Firebase success:', result);
+        return result;
       } catch (error) {
-        console.error('[ApiService.deleteArchivedMember] Firebase error:', error);
+        console.error('[ApiService.deleteArchivedMember] ❌ Firebase error:', error);
         throw error;
       }
     }
 
+    // UYARI: Firebase kullanılmıyorsa backend API'ye istek at
+    console.warn('[ApiService.deleteArchivedMember] ⚠️ WARNING: Using backend API (Firebase disabled)!', `${API_BASE_URL}/archive/members/${id}`);
+    console.warn('[ApiService.deleteArchivedMember] ⚠️ Environment check:', firebaseCheck);
+    
     // Sadece Firebase kullanılmıyorsa backend API'ye istek at
-    console.log('[ApiService.deleteArchivedMember] Using backend API:', `${API_BASE_URL}/archive/members/${id}`);
     const response = await fetch(`${API_BASE_URL}/archive/members/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Arşivlenmiş üye silinirken hata oluştu');
     }
-    
+
     return response.json();
   }
 

@@ -22,7 +22,12 @@ const routes = [
   'login',
   'dashboard',
   'member-dashboard',
-  'clear-all-data'
+  'clear-all-data',
+  'district-president-dashboard',
+  'town-president-dashboard',
+  'election-preparation',
+  'management-chart',
+  'calendar'
 ];
 
 if (!fs.existsSync(indexHtmlPath)) {

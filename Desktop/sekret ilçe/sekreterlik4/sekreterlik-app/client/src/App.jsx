@@ -28,6 +28,7 @@ import CalendarPage from './pages/CalendarPage';
 import CreateAdminPage from './pages/CreateAdminPage';
 import CheckAdminPage from './pages/CheckAdminPage';
 import DebugFirebasePage from './pages/DebugFirebasePage';
+import ClearAllDataPage from './pages/ClearAllDataPage';
 import Sidebar from './components/Sidebar';
 import PWANotification from './components/PWANotification';
 import AppInstallBanner from './components/AppInstallBanner';
@@ -140,6 +141,14 @@ function AppContent() {
           <Route 
             path="/debug-firebase" 
             element={<DebugFirebasePage />} 
+          />
+          <Route 
+            path="/clear-all-data" 
+            element={
+              <AdminRoute>
+                <ClearAllDataPage />
+              </AdminRoute>
+            } 
           />
           {/* Member Dashboard Route */}
           <Route 

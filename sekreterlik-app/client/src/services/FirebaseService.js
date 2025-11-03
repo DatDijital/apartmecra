@@ -329,7 +329,8 @@ class FirebaseService {
         throw new Error(`Firebase db instance geçersiz! Type: ${typeof db}`);
       }
       
-      console.log(`🔍 DELETE - Final params:`, {
+      // Use console.error so it's never minified out
+      console.error(`[FIREBASE DELETE] Final params:`, {
         collection: stringCollectionName,
         collectionType: typeof stringCollectionName,
         id: stringId,
@@ -369,7 +370,8 @@ class FirebaseService {
         throw new Error(`Final params empty: collection length=${finalCollectionName.length}, id length=${finalDocId.length}`);
       }
       
-      console.log(`🔍 Calling Firebase doc() with (TRIPLE CHECKED):`, {
+      // Use console.error so it's never minified out
+      console.error(`[FIREBASE DELETE] Calling doc() with (VALIDATED):`, {
         dbType: typeof db,
         dbValid: !!db && typeof db === 'object',
         collection: finalCollectionName,
@@ -413,16 +415,22 @@ class FirebaseService {
         try {
           const collectionRef = collection(db, validatedCollectionName);
           docRef = doc(collectionRef, validatedDocId);
-          console.log('✅ doc() created using collection() + doc() pattern');
+          console.error('[FIREBASE DELETE] ✅ doc() created using collection() + doc() pattern');
         } catch (method1Error) {
-          console.warn('⚠️ Method 1 failed, trying direct doc() call:', method1Error.message);
+          console.error('[FIREBASE DELETE] ⚠️ Method 1 failed:', method1Error.message, method1Error);
           // Method 2: Direct doc() call (fallback)
           // One more validation before direct call
           if (typeof validatedCollectionName !== 'string' || typeof validatedDocId !== 'string') {
             throw new Error(`Method 2 validation failed: collection type=${typeof validatedCollectionName}, id type=${typeof validatedDocId}`);
           }
+          console.error('[FIREBASE DELETE] Trying direct doc() call with:', {
+            collection: validatedCollectionName,
+            collectionType: typeof validatedCollectionName,
+            id: validatedDocId,
+            idType: typeof validatedDocId
+          });
           docRef = doc(db, validatedCollectionName, validatedDocId);
-          console.log('✅ doc() created using direct doc() call');
+          console.error('[FIREBASE DELETE] ✅ doc() created using direct doc() call');
         }
         
         if (!docRef) {

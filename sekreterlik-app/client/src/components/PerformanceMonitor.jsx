@@ -38,29 +38,11 @@ const PerformanceMonitor = () => {
         setMetrics(prev => ({ ...prev, memoryUsage }));
       }
 
-      // Network latency - Firebase kullanılıyorsa SKIP ET (backend API yok)
-      // Production'da (Render.com) backend API yok, sadece Firebase var
-      if (useFirebase) {
-        // Firebase kullanılıyorsa health check yapma - backend API yok
-        setMetrics(prev => ({ ...prev, networkLatency: -1 }));
-        return; // ERKEN RETURN - fetch çağrısı yapma
-      }
-
-      // Sadece backend API kullanılıyorsa (development) health check yap
-      const startTime = performance.now();
-      fetch('http://localhost:5000/api/health')
-        .then(response => {
-          if (response.ok) {
-            const latency = Math.round(performance.now() - startTime);
-            setMetrics(prev => ({ ...prev, networkLatency: latency }));
-          } else {
-            setMetrics(prev => ({ ...prev, networkLatency: -1 }));
-          }
-        })
-        .catch((error) => {
-          // Silently handle connection errors - don't log them
-          setMetrics(prev => ({ ...prev, networkLatency: -1 }));
-        });
+      // Network latency - Production'da backend API yok, sadece Firebase var
+      // ALWAYS skip health check - backend API production'da yok
+      // Development'ta da skip ediyoruz çünkü backend API genellikle çalışmıyor
+      setMetrics(prev => ({ ...prev, networkLatency: -1 }));
+      // REMOVED: fetch('http://localhost:5000/api/health') - Never call this
     };
 
     // Initial measurement

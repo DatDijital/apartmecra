@@ -218,7 +218,7 @@ const RegionsSettings = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 transition duration-300 hover:shadow-xl">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Bölgeler</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">BÖLGELER - TEST {Date.now()}</h2>
       
       <div className="flex mb-4">
         <input
@@ -264,7 +264,7 @@ const RegionsSettings = () => {
                 </div>
               ) : (
                 <>
-                  <span className="text-red-600 font-semibold" style={{color: '#dc2626'}}>{region.name}</span>
+                  <span className="text-red-600 font-semibold" style={{color: '#dc2626', fontSize: '20px', fontWeight: 'bold'}}>🔴 {region.name} 🔴</span>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleEditRegion(region)}

@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Firebase kullanımı kontrolü
-const USE_FIREBASE = 
-  import.meta.env.VITE_USE_FIREBASE === 'true' || 
-  import.meta.env.VITE_USE_FIREBASE === true ||
-  String(import.meta.env.VITE_USE_FIREBASE).toLowerCase() === 'true' ||
-  (typeof window !== 'undefined' && window.location.hostname.includes('render.com') && import.meta.env.VITE_USE_FIREBASE !== undefined);
-
 const PerformanceMonitor = () => {
   const [metrics, setMetrics] = useState({
     loadTime: 0,
@@ -18,6 +11,17 @@ const PerformanceMonitor = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // Firebase kullanımı kontrolü - Runtime'da kontrol et
+    const checkFirebase = () => {
+      const VITE_USE_FIREBASE_ENV = import.meta.env.VITE_USE_FIREBASE;
+      return (
+        VITE_USE_FIREBASE_ENV === 'true' || 
+        VITE_USE_FIREBASE_ENV === true ||
+        String(VITE_USE_FIREBASE_ENV).toLowerCase() === 'true' ||
+        (typeof window !== 'undefined' && window.location.hostname.includes('render.com') && VITE_USE_FIREBASE_ENV !== undefined)
+      );
+    };
+
     // Monitor performance metrics
     const monitorPerformance = () => {
       // Page load time
@@ -33,7 +37,8 @@ const PerformanceMonitor = () => {
       }
 
       // Network latency - Firebase kullanılıyorsa skip et (backend API yok)
-      if (USE_FIREBASE) {
+      const useFirebase = checkFirebase();
+      if (useFirebase) {
         setMetrics(prev => ({ ...prev, networkLatency: -1 }));
         return;
       }

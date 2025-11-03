@@ -363,15 +363,45 @@ class FirebaseService {
         
         console.log(`🔍 Calling doc() with validated params:`, {
           dbType: typeof db,
+          dbIsValid: db !== null && db !== undefined && typeof db === 'object',
           collection: safeCollectionName,
           collectionType: typeof safeCollectionName,
+          collectionIsString: typeof safeCollectionName === 'string',
           id: safeDocId,
-          idType: typeof safeDocId
+          idType: typeof safeDocId,
+          idIsString: typeof safeDocId === 'string',
+          collectionLength: safeCollectionName.length,
+          idLength: safeDocId.length
         });
+        
+        // Firebase doc() fonksiyonunu çağırmadan önce TÜM parametreleri son kez kontrol et
+        if (typeof safeCollectionName !== 'string' || safeCollectionName === '') {
+          throw new Error(`Collection name geçersiz: "${safeCollectionName}" (type: ${typeof safeCollectionName})`);
+        }
+        if (typeof safeDocId !== 'string' || safeDocId === '') {
+          throw new Error(`Document ID geçersiz: "${safeDocId}" (type: ${typeof safeDocId})`);
+        }
+        if (!db || typeof db !== 'object') {
+          throw new Error(`Firestore db instance geçersiz: ${typeof db}`);
+        }
         
         // Firebase doc() fonksiyonunu çağır
         // doc(db, collectionPath, documentPath) formatında
-        docRef = doc(db, safeCollectionName, safeDocId);
+        // Eğer hala hata verirse, path'i manuel oluştur
+        try {
+          // Önce collection referansı oluştur
+          const collectionRef = collection(db, safeCollectionName);
+          
+          // Sonra doc referansı oluştur
+          docRef = doc(collectionRef, safeDocId);
+          
+          console.log(`✅ doc() başarılı (alternatif yöntem), docRef:`, docRef);
+        } catch (altError) {
+          console.error('❌ Alternatif doc() yöntemi de başarısız:', altError);
+          
+          // Son çare: doc() fonksiyonunu direkt çağır
+          docRef = doc(db, safeCollectionName, safeDocId);
+        }
         
         // docRef'in geçerli olduğunu kontrol et
         if (!docRef) {

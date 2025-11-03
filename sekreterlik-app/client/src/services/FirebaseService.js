@@ -247,13 +247,36 @@ class FirebaseService {
         }
         
         // Çözme yapılıyorsa hassas alanları çöz
-        const decryptedData = decrypt 
+        let decryptedData = decrypt 
           ? decryptObject(data, SENSITIVE_FIELDS)
           : data;
         
-        // Decrypt sonrası da ID'yi string'e çevir (decryptObject ID'yi değiştirebilir)
+        // CRITICAL: After decrypt, ensure ID is ALWAYS a string
+        // decryptObject might change the ID format
         if (decryptedData) {
-          decryptedData.id = String(decryptedData.id || docSnap.id);
+          // Use docSnap.id as the source of truth (it's always a string from Firestore)
+          decryptedData.id = String(docSnap.id);
+          
+          // Double check: if decryptedData.id exists, ensure it's also a string
+          if (decryptedData.id && typeof decryptedData.id !== 'string') {
+            decryptedData.id = String(decryptedData.id);
+          }
+          
+          // Final validation: ID must be string and not empty
+          if (!decryptedData.id || typeof decryptedData.id !== 'string' || decryptedData.id.trim() === '') {
+            console.error(`⚠️ Invalid ID after decrypt:`, {
+              docSnapId: docSnap.id,
+              docSnapIdType: typeof docSnap.id,
+              decryptedDataId: decryptedData.id,
+              decryptedDataIdType: typeof decryptedData.id
+            });
+            // Use docSnap.id as fallback (it's always valid)
+            decryptedData.id = String(docSnap.id);
+          }
+        } else {
+          // If decrypt failed, use original data
+          decryptedData = data;
+          decryptedData.id = String(docSnap.id);
         }
         
         docs.push(decryptedData);

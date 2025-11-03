@@ -2,24 +2,9 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import ApiService from '../utils/ApiService';
 
 // Firebase kullanımı kontrolü
-const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
-
-// Firebase'i conditional import et
-let auth = null;
-let onAuthStateChangedFn = null;
-if (USE_FIREBASE) {
-  try {
-    // Dynamic import kullan
-    import('firebase/auth').then(({ onAuthStateChanged }) => {
-      onAuthStateChangedFn = onAuthStateChanged;
-    });
-    import('../config/firebase').then(({ auth: authInstance }) => {
-      auth = authInstance;
-    });
-  } catch (e) {
-    console.warn('Firebase auth not available:', e);
-  }
-}
+const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true' || 
+                     import.meta.env.VITE_USE_FIREBASE === true ||
+                     String(import.meta.env.VITE_USE_FIREBASE).toLowerCase() === 'true';
 
 const AuthContext = createContext();
 
@@ -43,18 +28,22 @@ export const AuthProvider = ({ children }) => {
     
     // Firebase kullanılıyorsa, Firebase auth state'ini dinle
     if (USE_FIREBASE) {
-      // Dynamic import ile Firebase'i yükle
+      // Dynamic import ile Firebase'i yükle - browser-safe
       Promise.all([
         import('firebase/auth'),
         import('../config/firebase')
-      ]).then(([{ onAuthStateChanged }, { auth: authInstance }]) => {
+      ]).then((modules) => {
+        const { onAuthStateChanged } = modules[0];
+        const { auth: authInstance } = modules[1];
+        
         if (!authInstance || !onAuthStateChanged) {
           console.warn('Firebase auth not available');
           setLoading(false);
           return;
         }
         
-        unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
+        try {
+          unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
           if (firebaseUser) {
             // Firebase user varsa, kullanıcı bilgilerini localStorage'dan al
             const savedUser = localStorage.getItem('user');

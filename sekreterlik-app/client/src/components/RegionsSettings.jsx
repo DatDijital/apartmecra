@@ -242,17 +242,55 @@ const RegionsSettings = () => {
                       Düzenle
                     </button>
                     <button
-                      onClick={() => {
-                        console.log('🔴 Delete button clicked:', {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Region objesinin tam yapısını logla
+                        const debugInfo = {
                           region: region,
                           regionId: region.id,
                           regionIdType: typeof region.id,
                           regionIdValue: region.id,
-                          regionIdString: String(region.id),
-                          regionKeys: Object.keys(region),
-                          fullRegion: JSON.stringify(region, null, 2)
+                          regionIdString: String(region.id || ''),
+                          regionKeys: Object.keys(region || {}),
+                          regionStringified: JSON.stringify(region || {}, null, 2),
+                          regionIdIsNull: region.id === null,
+                          regionIdIsUndefined: region.id === undefined,
+                          regionIdIsString: typeof region.id === 'string',
+                          regionIdIsNumber: typeof region.id === 'number',
+                          regionIdIsObject: typeof region.id === 'object'
+                        };
+                        
+                        console.log('🔴 DELETE BUTTON CLICKED - FULL DEBUG:', debugInfo);
+                        
+                        // ID'yi manuel olarak string'e çevir
+                        let safeId;
+                        if (!region || !region.id) {
+                          console.error('❌ Region veya region.id yok!', region);
+                          alert('Region ID bulunamadı! Console loglarına bakın.');
+                          return;
+                        }
+                        
+                        if (typeof region.id === 'object') {
+                          if (region.id.id) {
+                            safeId = String(region.id.id);
+                          } else {
+                            console.error('❌ Region.id object ama id property yok!', region.id);
+                            safeId = String(region.id);
+                          }
+                        } else {
+                          safeId = String(region.id);
+                        }
+                        
+                        console.log('🔴 Calling handleDeleteRegion with safeId:', {
+                          originalId: region.id,
+                          safeId: safeId,
+                          safeIdType: typeof safeId,
+                          safeIdLength: safeId.length
                         });
-                        handleDeleteRegion(region.id);
+                        
+                        handleDeleteRegion(safeId);
                       }}
                       className="text-red-600 hover:text-red-900 text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition duration-200"
                     >

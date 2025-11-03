@@ -2,7 +2,7 @@ services:
   - type: static
     name: ilce-sekreterlik
     branch: version1
-    rootDir: "Desktop/sekret-ilce/sekreterlik4/sekreterlik-app/client"
+    rootDir: "sekreterlik-app/client"
     buildCommand: npm install && npm run build && node scripts/fix-spa-routing.js
     staticPublishPath: "dist"
     envVars:

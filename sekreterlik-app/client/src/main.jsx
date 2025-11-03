@@ -13,6 +13,10 @@ const USE_FIREBASE =
 
 // Filter out connection refused errors from console and window errors
 const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+const originalConsoleLog = console.log;
+
+// Filter console.error
 console.error = (...args) => {
   const message = args.join(' ');
   // Don't log connection refused errors to localhost:5182 (dev server)
@@ -20,10 +24,26 @@ console.error = (...args) => {
     return; // Silently ignore
   }
   // Don't log connection refused errors to localhost:5000 if Firebase is enabled
-  if (USE_FIREBASE && message.includes('ERR_CONNECTION_REFUSED') && message.includes('localhost:5000')) {
+  if (USE_FIREBASE && (
+    message.includes('ERR_CONNECTION_REFUSED') && message.includes('localhost:5000') ||
+    message.includes('Failed to fetch') && message.includes('localhost:5000') ||
+    message.includes('GET http://localhost:5000')
+  )) {
     return; // Silently ignore
   }
   originalConsoleError.apply(console, args);
+};
+
+// Filter console.warn for localhost:5000 errors
+console.warn = (...args) => {
+  const message = args.join(' ');
+  if (USE_FIREBASE && (
+    message.includes('localhost:5000') ||
+    message.includes('ERR_CONNECTION_REFUSED')
+  )) {
+    return; // Silently ignore
+  }
+  originalConsoleWarn.apply(console, args);
 };
 
 // Filter window error events for localhost connection errors

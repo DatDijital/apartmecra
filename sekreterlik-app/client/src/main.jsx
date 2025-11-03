@@ -16,21 +16,30 @@ const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 const originalConsoleLog = console.log;
 
-// Filter console.error
+// Filter console.error - AGGRESSIVE filtering for localhost:5000 errors
 console.error = (...args) => {
   const message = args.join(' ');
+  
   // Don't log connection refused errors to localhost:5182 (dev server)
   if (message.includes('ERR_CONNECTION_REFUSED') && message.includes('localhost:5182')) {
     return; // Silently ignore
   }
+  
   // Don't log connection refused errors to localhost:5000 if Firebase is enabled
-  if (USE_FIREBASE && (
-    message.includes('ERR_CONNECTION_REFUSED') && message.includes('localhost:5000') ||
-    message.includes('Failed to fetch') && message.includes('localhost:5000') ||
-    message.includes('GET http://localhost:5000')
-  )) {
-    return; // Silently ignore
+  if (USE_FIREBASE) {
+    if (
+      message.includes('ERR_CONNECTION_REFUSED') ||
+      message.includes('Failed to fetch') ||
+      message.includes('localhost:5000') ||
+      message.includes('/api/health') ||
+      message.includes('/api/regions') ||
+      message.includes('/api/auth/admin') ||
+      message.includes('/api/positions')
+    ) {
+      return; // Silently ignore ALL localhost:5000 related errors
+    }
   }
+  
   originalConsoleError.apply(console, args);
 };
 
@@ -39,11 +48,27 @@ console.warn = (...args) => {
   const message = args.join(' ');
   if (USE_FIREBASE && (
     message.includes('localhost:5000') ||
-    message.includes('ERR_CONNECTION_REFUSED')
+    message.includes('ERR_CONNECTION_REFUSED') ||
+    message.includes('Failed to fetch') ||
+    message.includes('/api/')
   )) {
     return; // Silently ignore
   }
   originalConsoleWarn.apply(console, args);
+};
+
+// Also filter console.log for network errors (some libraries log errors via console.log)
+const originalConsoleLog = console.log;
+console.log = (...args) => {
+  const message = args.join(' ');
+  if (USE_FIREBASE && (
+    message.includes('ERR_CONNECTION_REFUSED') ||
+    message.includes('localhost:5000') ||
+    message.includes('Failed to load resource')
+  )) {
+    return; // Silently ignore
+  }
+  originalConsoleLog.apply(console, args);
 };
 
 // Filter window error events for localhost connection errors

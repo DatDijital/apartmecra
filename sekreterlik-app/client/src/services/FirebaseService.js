@@ -330,32 +330,76 @@ class FirebaseService {
       // Bu Firebase'in resmi API'si ve path parsing sorunlarını önler
       
       // Son kontrol: Tüm parametreler kesinlikle string ve geçerli mi?
-      const finalCollectionName = String(stringCollectionName).trim();
-      const finalDocId = String(stringId).trim();
+      // Triple-check: Her parametreyi 3 kez string'e çevir
+      let finalCollectionName = stringCollectionName;
+      let finalDocId = stringId;
       
+      // İlk dönüşüm
+      finalCollectionName = String(finalCollectionName || '').trim();
+      finalDocId = String(finalDocId || '').trim();
+      
+      // İkinci dönüşüm (güvenlik için)
+      finalCollectionName = String(finalCollectionName).trim();
+      finalDocId = String(finalDocId).trim();
+      
+      // Üçüncü kontrol
       if (!finalCollectionName || !finalDocId) {
         throw new Error(`Final params invalid: collection="${finalCollectionName}", id="${finalDocId}"`);
       }
       
+      // Type kontrolü
       if (typeof finalCollectionName !== 'string' || typeof finalDocId !== 'string') {
         throw new Error(`Final params not strings: collection type=${typeof finalCollectionName}, id type=${typeof finalDocId}`);
       }
       
-      console.log(`🔍 Calling Firebase doc() with:`, {
+      // Boş string kontrolü
+      if (finalCollectionName.length === 0 || finalDocId.length === 0) {
+        throw new Error(`Final params empty: collection length=${finalCollectionName.length}, id length=${finalDocId.length}`);
+      }
+      
+      console.log(`🔍 Calling Firebase doc() with (TRIPLE CHECKED):`, {
         dbType: typeof db,
+        dbValid: !!db && typeof db === 'object',
         collection: finalCollectionName,
         collectionType: typeof finalCollectionName,
+        collectionLength: finalCollectionName.length,
         id: finalDocId,
-        idType: typeof finalDocId
+        idType: typeof finalDocId,
+        idLength: finalDocId.length,
+        collectionIsString: typeof finalCollectionName === 'string',
+        idIsString: typeof finalDocId === 'string'
       });
       
       // Firebase doc() fonksiyonunu 3 parametre ile çağır
       // Format: doc(db, collectionPath, documentPath)
-      const docRef = doc(db, finalCollectionName, finalDocId);
-      
-      // docRef kontrolü
-      if (!docRef) {
-        throw new Error('DocumentReference oluşturulamadı');
+      // WRAPPER: doc() çağrısını try-catch ile sar ve hata mesajını iyileştir
+      let docRef;
+      try {
+        // Son kontrol: Parametreler kesinlikle string mi?
+        if (typeof finalCollectionName !== 'string' || typeof finalDocId !== 'string') {
+          throw new Error(`Params not strings before doc() call: collection=${typeof finalCollectionName}, id=${typeof finalDocId}`);
+        }
+        
+        docRef = doc(db, finalCollectionName, finalDocId);
+        
+        if (!docRef) {
+          throw new Error('DocumentReference oluşturulamadı - docRef null/undefined');
+        }
+      } catch (docError) {
+        console.error('❌ Firebase doc() CALL FAILED:', docError);
+        console.error('❌ doc() error details:', {
+          db: !!db,
+          dbType: typeof db,
+          collection: finalCollectionName,
+          collectionType: typeof finalCollectionName,
+          collectionValue: finalCollectionName,
+          id: finalDocId,
+          idType: typeof finalDocId,
+          idValue: finalDocId,
+          errorMessage: docError.message,
+          errorStack: docError.stack?.substring(0, 300)
+        });
+        throw new Error(`Firebase doc() hatası: ${docError.message}. Collection: "${finalCollectionName}", ID: "${finalDocId}"`);
       }
       
       // Dokümanı sil

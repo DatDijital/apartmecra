@@ -283,15 +283,13 @@ class FirebaseService {
       
       // ID'nin tipine göre string'e çevir
       if (typeof docId === 'object') {
-        // Eğer ID bir object/array ise, JSON.stringify kullan
         if (Array.isArray(docId)) {
           throw new Error(`Doküman ID array olamaz: ${JSON.stringify(docId)}`);
         }
-        // Eğer DocumentReference ise, id property'sini al
         if (docId.id) {
           stringId = String(docId.id);
-        } else if (docId.toString) {
-          stringId = docId.toString();
+        } else if (docId.toString && typeof docId.toString === 'function') {
+          stringId = String(docId.toString());
         } else {
           stringId = JSON.stringify(docId);
         }
@@ -306,151 +304,31 @@ class FirebaseService {
         throw new Error(`Geçersiz doküman ID: ${docId} (stringId: ${stringId}, type: ${typeof docId})`);
       }
       
-      // Trim yap ve kontrol et
+      // Trim yap
       stringId = stringId.trim();
       
-      // Son kontrol: Her iki parametre de kesinlikle string olmalı
-      if (typeof stringCollectionName !== 'string') {
-        throw new Error(`Collection name string değil! Type: ${typeof stringCollectionName}, Value: ${stringCollectionName}`);
-      }
-      if (typeof stringId !== 'string') {
-        throw new Error(`Document ID string değil! Type: ${typeof stringId}, Value: ${stringId}`);
+      // Final validation: Kesinlikle string olmalılar
+      if (typeof stringCollectionName !== 'string' || typeof stringId !== 'string') {
+        throw new Error(`Parametreler string değil! Collection: ${typeof stringCollectionName}, ID: ${typeof stringId}`);
       }
       
       // db instance kontrolü
-      if (!db) {
-        throw new Error('Firebase db instance bulunamadı! db:', db);
-      }
-      if (typeof db !== 'object') {
-        throw new Error(`Firebase db instance geçersiz! Type: ${typeof db}, Value: ${db}`);
+      if (!db || typeof db !== 'object') {
+        throw new Error(`Firebase db instance geçersiz! Type: ${typeof db}`);
       }
       
-      // Firebase DocumentReference oluştur - collection name ve docId mutlaka string olmalı
-      console.log(`🔍 Creating doc reference:`, {
-        db: db,
-        dbType: typeof db,
-        dbIsNull: db === null,
-        dbIsUndefined: db === undefined,
+      console.log(`🔍 DELETE - Final params:`, {
         collection: stringCollectionName,
         collectionType: typeof stringCollectionName,
-        collectionValue: stringCollectionName,
         id: stringId,
         idType: typeof stringId,
-        idValue: stringId,
-        idLength: stringId.length,
-        collectionIsString: typeof stringCollectionName === 'string',
-        idIsString: typeof stringId === 'string',
-        allParamsValid: typeof db === 'object' && db !== null && typeof stringCollectionName === 'string' && typeof stringId === 'string'
+        dbValid: !!db && typeof db === 'object'
       });
       
-      // Firebase'in doc() fonksiyonunu çağırmadan önce TÜM parametreleri kontrol et
-      // Eğer hala sorun varsa, alternatif yöntem kullan
-      let docRef;
-      try {
-        // Parametreleri tek tek kontrol et ve string'e çevir
-        const safeCollectionName = String(stringCollectionName).trim();
-        const safeDocId = String(stringId).trim();
-        
-        // Son kontrol: Tüm parametreler string ve geçerli mi?
-        if (!safeCollectionName || !safeDocId) {
-          throw new Error(`Parametreler geçersiz: collection="${safeCollectionName}", id="${safeDocId}"`);
-        }
-        
-        // db kontrolü
-        if (!db || typeof db !== 'object') {
-          throw new Error(`db instance geçersiz: ${typeof db}`);
-        }
-        
-        console.log(`🔍 Calling doc() with validated params:`, {
-          dbType: typeof db,
-          dbIsValid: db !== null && db !== undefined && typeof db === 'object',
-          collection: safeCollectionName,
-          collectionType: typeof safeCollectionName,
-          collectionIsString: typeof safeCollectionName === 'string',
-          id: safeDocId,
-          idType: typeof safeDocId,
-          idIsString: typeof safeDocId === 'string',
-          collectionLength: safeCollectionName.length,
-          idLength: safeDocId.length
-        });
-        
-        // Firebase doc() fonksiyonunu çağırmadan önce TÜM parametreleri son kez kontrol et
-        if (typeof safeCollectionName !== 'string' || safeCollectionName === '') {
-          throw new Error(`Collection name geçersiz: "${safeCollectionName}" (type: ${typeof safeCollectionName})`);
-        }
-        if (typeof safeDocId !== 'string' || safeDocId === '') {
-          throw new Error(`Document ID geçersiz: "${safeDocId}" (type: ${typeof safeDocId})`);
-        }
-        if (!db || typeof db !== 'object') {
-          throw new Error(`Firestore db instance geçersiz: ${typeof db}`);
-        }
-        
-        // Firebase doc() fonksiyonunu çağır
-        // Firebase'in doc() fonksiyonu: doc(db, collectionPath, documentPath)
-        // TÜM parametreler string olmalı ve db object olmalı
-        
-        // Path segmentlerini manuel kontrol et
-        const pathSegments = [safeCollectionName, safeDocId];
-        const invalidSegment = pathSegments.find(seg => typeof seg !== 'string' || seg === '');
-        if (invalidSegment) {
-          throw new Error(`Path segment geçersiz: ${JSON.stringify(invalidSegment)} (type: ${typeof invalidSegment})`);
-        }
-        
-        console.log(`🔍 Final doc() call params:`, {
-          db: !!db,
-          dbType: typeof db,
-          dbIsNull: db === null,
-          dbIsUndefined: db === undefined,
-          dbHasApp: db?.app,
-          dbHasType: db?.type,
-          collectionPath: safeCollectionName,
-          collectionPathType: typeof safeCollectionName,
-          collectionPathValue: safeCollectionName,
-          documentPath: safeDocId,
-          documentPathType: typeof safeDocId,
-          documentPathValue: safeDocId,
-          allAreStrings: typeof safeCollectionName === 'string' && typeof safeDocId === 'string',
-          pathSegmentsValid: [safeCollectionName, safeDocId].every(s => typeof s === 'string' && s.length > 0)
-        });
-        
-        // Eğer db null/undefined ise, import'u yeniden yükle
-        if (!db || db === null || db === undefined) {
-          console.error('❌ db instance null/undefined! Re-importing...');
-          const { db: newDb } = await import('../config/firebase');
-          if (!newDb || newDb === null || newDb === undefined) {
-            throw new Error('Firestore db instance bulunamadı! Firebase config kontrol edilmeli.');
-          }
-          console.log('✅ New db instance loaded:', typeof newDb);
-          docRef = doc(newDb, safeCollectionName, safeDocId);
-        } else {
-          // Firebase doc() fonksiyonunu çağır - doc(db, collectionPath, documentPath)
-          docRef = doc(db, safeCollectionName, safeDocId);
-        }
-        
-        // docRef'in geçerli olduğunu kontrol et
-        if (!docRef) {
-          throw new Error('DocumentReference oluşturulamadı - docRef null/undefined');
-        }
-        
-        console.log(`✅ doc() başarılı, docRef:`, docRef);
-      } catch (docError) {
-        console.error('❌ doc() hatası:', docError);
-        console.error('❌ doc() hatası detayları:', {
-          db: db,
-          dbType: typeof db,
-          dbIsNull: db === null,
-          dbIsUndefined: db === undefined,
-          collectionName: stringCollectionName,
-          collectionNameType: typeof stringCollectionName,
-          collectionNameValue: stringCollectionName,
-          docId: stringId,
-          docIdType: typeof stringId,
-          docIdValue: stringId,
-          errorMessage: docError.message,
-          errorStack: docError.stack?.substring(0, 500)
-        });
-        throw new Error(`Firebase doc() hatası: ${docError.message}. Collection: "${stringCollectionName}", ID: "${stringId}"`);
-      }
+      // ALTERNATİF YÖNTEM: collection() ve doc() kombinasyonu kullan
+      // Bu yöntem Firebase'in önerdiği ve daha güvenli yöntem
+      const collectionRef = collection(db, stringCollectionName);
+      const docRef = doc(collectionRef, stringId);
       
       // Dokümanı sil
       await deleteDoc(docRef);
@@ -460,11 +338,8 @@ class FirebaseService {
       console.error(`❌ Delete error details:`, {
         collectionName,
         collectionNameType: typeof collectionName,
-        collectionNameString: String(collectionName),
         docId,
         docIdType: typeof docId,
-        docIdValue: docId,
-        docIdString: String(docId),
         errorMessage: error.message,
         errorCode: error.code,
         errorStack: error.stack?.substring(0, 500)

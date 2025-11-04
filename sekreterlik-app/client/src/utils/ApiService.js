@@ -576,19 +576,11 @@ class ApiService {
 
   // Document Archive API
   static async getDocuments() {
-    // Debug: Firebase kontrolü - ZORUNLU
-    console.error('[getDocuments] Firebase check:', {
-      USE_FIREBASE,
-      VITE_USE_FIREBASE: import.meta.env.VITE_USE_FIREBASE,
-      HOSTNAME: typeof window !== 'undefined' ? window.location.hostname : 'unknown'
-    });
-    
+    // CRITICAL: Firebase kontrolü - Eğer Firebase kullanılıyorsa localhost:5000'e istek ATMA
     if (USE_FIREBASE) {
       try {
-        console.error('[getDocuments] Using Firebase - fetching from ARCHIVE collection');
         // Firebase'de arşiv belgeleri için ARCHIVE collection'ını kullan
         const documents = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.ARCHIVE);
-        console.error('[getDocuments] Firebase documents retrieved:', documents?.length || 0);
         return documents || [];
       } catch (error) {
         console.error('[getDocuments] Firebase error:', error);
@@ -596,7 +588,13 @@ class ApiService {
       }
     }
     
-    console.error('[getDocuments] WARNING: Using localhost:5000 (USE_FIREBASE is false)');
+    // Eğer Firebase kullanılmıyorsa (development mode) localhost:5000'e istek at
+    // Ama production'da buraya asla gelmemeli
+    if (typeof window !== 'undefined' && window.location.hostname.includes('render.com')) {
+      console.error('[getDocuments] CRITICAL ERROR: Firebase should be enabled in production!');
+      return [];
+    }
+    
     const response = await fetch(`${API_BASE_URL}/archive/documents`);
     if (!response.ok) {
       throw new Error('Belgeler getirilirken hata oluştu');

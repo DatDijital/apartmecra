@@ -530,12 +530,18 @@ class FirebaseApiService {
         if (!existingUsers || existingUsers.length === 0) {
           // Kullanıcı yoksa otomatik oluştur (sadece Firestore'a kaydet)
           // Username: TC numarası (zorunlu alan)
-          const username = memberData.tc;
+          const username = String(memberData.tc || '').trim();
           // Şifre: Telefon numarası (zorunlu alan)
-          const password = memberData.phone;
+          const password = String(memberData.phone || '').trim();
           
           // TC ve telefon zorunlu alanlar olduğu için her zaman olmalı
           if (!username || !password) {
+            console.error('❌ TC veya telefon numarası eksik!', {
+              tc: memberData.tc,
+              phone: memberData.phone,
+              tcEmpty: !username,
+              phoneEmpty: !password
+            });
             console.warn('⚠️ TC veya telefon numarası eksik, kullanıcı oluşturulamadı');
           } else {
             // Kullanıcı bilgilerini kaydet (response'a eklenecek)
@@ -549,8 +555,20 @@ class FirebaseApiService {
               username: username,
               password: password,
               memberDataTc: memberData.tc,
-              memberDataPhone: memberData.phone
+              memberDataPhone: memberData.phone,
+              usernameIsTc: username === memberData.tc,
+              passwordIsPhone: password === memberData.phone,
+              passwordIsTc: password === memberData.tc
             });
+            
+            // Eğer şifre TC ile aynıysa, bu bir hata!
+            if (password === memberData.tc) {
+              console.error('❌ HATA: Şifre TC ile aynı! Bu yanlış!', {
+                password,
+                tc: memberData.tc,
+                phone: memberData.phone
+              });
+            }
             
             // Sadece Firestore'a kaydet, Firebase Auth'a kaydetme
             // (Firebase Auth'a kaydetme mevcut kullanıcıyı logout eder)

@@ -460,6 +460,12 @@ class FirebaseApiService {
   static async createMember(memberData) {
     try {
       console.log('🔥 Firebase createMember called with data:', memberData);
+      console.log('📞 Member data details:', {
+        tc: memberData.tc,
+        phone: memberData.phone,
+        tcType: typeof memberData.tc,
+        phoneType: typeof memberData.phone
+      });
       
       // Firebase Authentication kontrolü
       const currentUser = auth.currentUser;

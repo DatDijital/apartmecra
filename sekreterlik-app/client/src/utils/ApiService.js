@@ -679,6 +679,27 @@ class ApiService {
 
   // Clear archived data API
   static async clearArchivedMembers() {
+    if (USE_FIREBASE) {
+      try {
+        // Tüm arşivlenmiş üyeleri al ve sil
+        const members = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.MEMBERS);
+        const archivedMembers = members.filter(m => {
+          const isArchived = m.archived === true || m.archived === 'true' || m.archived === 1 || m.archived === '1';
+          return isArchived;
+        });
+        
+        let deletedCount = 0;
+        for (const member of archivedMembers) {
+          await FirebaseService.delete(FirebaseApiService.COLLECTIONS.MEMBERS, member.id);
+          deletedCount++;
+        }
+        
+        return { success: true, message: `${deletedCount} arşivlenmiş üye temizlendi` };
+      } catch (error) {
+        console.error('Clear archived members error:', error);
+        return { success: false, message: 'Arşivlenmiş üyeler temizlenirken hata oluştu' };
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/archive/members/clear`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -693,6 +714,27 @@ class ApiService {
   }
 
   static async clearArchivedMeetings() {
+    if (USE_FIREBASE) {
+      try {
+        // Tüm arşivlenmiş toplantıları al ve sil
+        const meetings = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.MEETINGS);
+        const archivedMeetings = meetings.filter(m => {
+          const isArchived = m.archived === true || m.archived === 'true' || m.archived === 1 || m.archived === '1';
+          return isArchived;
+        });
+        
+        let deletedCount = 0;
+        for (const meeting of archivedMeetings) {
+          await FirebaseService.delete(FirebaseApiService.COLLECTIONS.MEETINGS, meeting.id);
+          deletedCount++;
+        }
+        
+        return { success: true, message: `${deletedCount} arşivlenmiş toplantı temizlendi` };
+      } catch (error) {
+        console.error('Clear archived meetings error:', error);
+        return { success: false, message: 'Arşivlenmiş toplantılar temizlenirken hata oluştu' };
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/archive/meetings/clear`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -707,6 +749,27 @@ class ApiService {
   }
 
   static async clearArchivedEvents() {
+    if (USE_FIREBASE) {
+      try {
+        // Tüm arşivlenmiş etkinlikleri al ve sil
+        const events = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.EVENTS);
+        const archivedEvents = events.filter(e => {
+          const isArchived = e.archived === true || e.archived === 'true' || e.archived === 1 || e.archived === '1';
+          return isArchived;
+        });
+        
+        let deletedCount = 0;
+        for (const event of archivedEvents) {
+          await FirebaseService.delete(FirebaseApiService.COLLECTIONS.EVENTS, event.id);
+          deletedCount++;
+        }
+        
+        return { success: true, message: `${deletedCount} arşivlenmiş etkinlik temizlendi` };
+      } catch (error) {
+        console.error('Clear archived events error:', error);
+        return { success: false, message: 'Arşivlenmiş etkinlikler temizlenirken hata oluştu' };
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/archive/events/clear`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),

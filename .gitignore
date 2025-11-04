@@ -16,6 +16,10 @@ sekreterlik-app/server/backups/*.sqlite
 .env.production
 .env.development
 
+# Firebase Admin SDK keys (güvenlik için commit edilmemeli)
+firebase-admin-key.json
+**/firebase-admin-key.json
+
 # Logs
 logs/
 *.log

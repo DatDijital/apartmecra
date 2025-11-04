@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sekreterlik-v4-archive-fix-2025';
+const CACHE_NAME = 'sekreterlik-v5-force-clear-47361d7';
 // Vite geliştirme ortamında sabit bundle yolları yok; yalnızca güvenli, mevcut dosyaları önbelleğe al
 const urlsToCache = [
   '/',

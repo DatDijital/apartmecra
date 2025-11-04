@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ApiService from '../utils/ApiService';
+import * as XLSX from 'xlsx';
 
 const NeighborhoodsPage = () => {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -67,7 +68,45 @@ const NeighborhoodsPage = () => {
       : true;
     
     return matchesSearch && matchesGroup;
+  }).sort((a, b) => {
+    // Sort by group_no first (nulls last)
+    const groupA = a.group_no ? parseInt(a.group_no) : 999999;
+    const groupB = b.group_no ? parseInt(b.group_no) : 999999;
+    if (groupA !== groupB) {
+      return groupA - groupB;
+    }
+    // Then sort by name
+    return (a.name || '').localeCompare(b.name || '');
   });
+
+  const exportToExcel = () => {
+    const excelData = [
+      ['Mahalle Adı', 'İlçe', 'Belde', 'Grup No', 'Temsilci', 'Temsilci Telefon', 'Müfettiş', 'Müfettiş Telefon']
+    ];
+
+    filteredNeighborhoods.forEach(neighborhood => {
+      const representative = neighborhoodRepresentatives.find(rep => String(rep.neighborhood_id) === String(neighborhood.id));
+      const supervisor = neighborhoodSupervisors.find(sup => String(sup.neighborhood_id) === String(neighborhood.id));
+      
+      excelData.push([
+        neighborhood.name || '',
+        neighborhood.district_name || '',
+        neighborhood.town_name || '',
+        neighborhood.group_no || '',
+        representative?.name || '',
+        representative?.phone || '',
+        supervisor?.name || '',
+        supervisor?.phone || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Mahalleler');
+    
+    const fileName = `mahalleler_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
 
   if (loading) {
     return (
@@ -101,6 +140,15 @@ const NeighborhoodsPage = () => {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Mahalleler</h1>
         </div>
+        <button
+          onClick={exportToExcel}
+          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Excel'e Aktar
+        </button>
       </div>
 
       {/* Info Card */}

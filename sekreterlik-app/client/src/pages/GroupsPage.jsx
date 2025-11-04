@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ApiService from '../utils/ApiService';
+import * as XLSX from 'xlsx';
 
 const GroupsPage = () => {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -9,6 +10,10 @@ const GroupsPage = () => {
   const [members, setMembers] = useState([]);
   const [neighborhoodRepresentatives, setNeighborhoodRepresentatives] = useState([]);
   const [villageRepresentatives, setVillageRepresentatives] = useState([]);
+  const [neighborhoodSupervisors, setNeighborhoodSupervisors] = useState([]);
+  const [villageSupervisors, setVillageSupervisors] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [towns, setTowns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingGroupNo, setEditingGroupNo] = useState(null);
   const [groupLeaderIds, setGroupLeaderIds] = useState({});
@@ -20,13 +25,17 @@ const GroupsPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [neighborhoodsData, villagesData, groupsData, membersData, neighborhoodRepsData, villageRepsData] = await Promise.all([
+      const [neighborhoodsData, villagesData, groupsData, membersData, neighborhoodRepsData, villageRepsData, neighborhoodSupsData, villageSupsData, districtsData, townsData] = await Promise.all([
         ApiService.getNeighborhoods(),
         ApiService.getVillages(),
         ApiService.getGroups(),
         ApiService.getMembers(),
         ApiService.getNeighborhoodRepresentatives(),
-        ApiService.getVillageRepresentatives()
+        ApiService.getVillageRepresentatives(),
+        ApiService.getNeighborhoodSupervisors(),
+        ApiService.getVillageSupervisors(),
+        ApiService.getDistricts(),
+        ApiService.getTowns()
       ]);
 
       setNeighborhoods(neighborhoodsData);
@@ -34,6 +43,10 @@ const GroupsPage = () => {
       setMembers(membersData);
       setNeighborhoodRepresentatives(neighborhoodRepsData);
       setVillageRepresentatives(villageRepsData);
+      setNeighborhoodSupervisors(neighborhoodSupsData);
+      setVillageSupervisors(villageSupsData);
+      setDistricts(districtsData);
+      setTowns(townsData);
 
       // Groups data - eğer yoksa boş array
       if (groupsData && Array.isArray(groupsData)) {
@@ -153,7 +166,7 @@ const GroupsPage = () => {
           <p className="text-gray-500">Henüz grup oluşturulmamış. Grup numarası atanmış mahalle ve köyler burada görünecektir.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-8">
           {sortedGroupNos.map(groupNo => {
             const groupData = groupedData[groupNo];
             const groupLeader = getGroupLeader(groupNo);
@@ -162,76 +175,124 @@ const GroupsPage = () => {
             return (
               <div key={groupNo} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 {/* Group Header */}
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-900">Grup {groupNo}</h2>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
-                    {groupData.neighborhoods.length + groupData.villages.length} Toplam
-                  </span>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center space-x-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Grup {groupNo}</h2>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                      {groupData.neighborhoods.length + groupData.villages.length} Toplam
+                    </span>
+                  </div>
+                  
+                  {/* Group Leader Selection */}
+                  <div className="flex items-center space-x-4">
+                    <label htmlFor={`group-leader-${groupNo}`} className="text-sm font-medium text-gray-700">
+                      Grup Lideri:
+                    </label>
+                    <select
+                      id={`group-leader-${groupNo}`}
+                      value={currentLeaderId}
+                      onChange={(e) => handleGroupLeaderChange(groupNo, e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Grup lideri seçin</option>
+                      {members.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
+                    {groupLeader && (
+                      <span className="text-sm text-gray-600">
+                        Seçili: <span className="font-medium">{groupLeader.name}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Group Leader Selection */}
-                <div className="mb-4">
-                  <label htmlFor={`group-leader-${groupNo}`} className="block text-sm font-medium text-gray-700 mb-2">
-                    Grup Lideri
-                  </label>
-                  <select
-                    id={`group-leader-${groupNo}`}
-                    value={currentLeaderId}
-                    onChange={(e) => handleGroupLeaderChange(groupNo, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Grup lideri seçin</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                  {groupLeader && (
-                    <p className="mt-1 text-sm text-gray-600">
-                      Seçili lider: <span className="font-medium">{groupLeader.name}</span>
-                    </p>
-                  )}
-                </div>
-
-                {/* Neighborhoods */}
+                {/* Neighborhoods Table */}
                 {groupData.neighborhoods.length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Mahalleler ({groupData.neighborhoods.length})
                     </h3>
-                    <div className="space-y-1">
-                      {groupData.neighborhoods.map(neighborhood => {
-                        const representative = neighborhoodRepresentatives.find(rep => String(rep.neighborhood_id) === String(neighborhood.id));
-                        const repName = representative ? representative.name : '-';
-                        return (
-                          <div key={neighborhood.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm text-gray-900">{neighborhood.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">Temsilci: {repName}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mahalle Adı</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İlçe</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Belde</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Temsilci</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Temsilci Telefon</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Müfettiş</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Müfettiş Telefon</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {groupData.neighborhoods.map(neighborhood => {
+                            const representative = neighborhoodRepresentatives.find(rep => String(rep.neighborhood_id) === String(neighborhood.id));
+                            const supervisor = neighborhoodSupervisors.find(sup => String(sup.neighborhood_id) === String(neighborhood.id));
+                            const district = districts.find(d => String(d.id) === String(neighborhood.district_id));
+                            const town = neighborhood.town_id ? towns.find(t => String(t.id) === String(neighborhood.town_id)) : null;
+                            
+                            return (
+                              <tr key={neighborhood.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{neighborhood.name}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{district?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{town?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{representative?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{representative?.phone || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{supervisor?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{supervisor?.phone || '-'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
 
-                {/* Villages */}
+                {/* Villages Table */}
                 {groupData.villages.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Köyler ({groupData.villages.length})
                     </h3>
-                    <div className="space-y-1">
-                      {groupData.villages.map(village => {
-                        const representative = villageRepresentatives.find(rep => String(rep.village_id) === String(village.id));
-                        const repName = representative ? representative.name : '-';
-                        return (
-                          <div key={village.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm text-gray-900">{village.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">Temsilci: {repName}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Köy Adı</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İlçe</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Belde</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Temsilci</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Temsilci Telefon</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Müfettiş</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Müfettiş Telefon</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {groupData.villages.map(village => {
+                            const representative = villageRepresentatives.find(rep => String(rep.village_id) === String(village.id));
+                            const supervisor = villageSupervisors.find(sup => String(sup.village_id) === String(village.id));
+                            const district = districts.find(d => String(d.id) === String(village.district_id));
+                            const town = village.town_id ? towns.find(t => String(t.id) === String(village.town_id)) : null;
+                            
+                            return (
+                              <tr key={village.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{village.name}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{district?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{town?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{representative?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{representative?.phone || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{supervisor?.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{supervisor?.phone || '-'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}

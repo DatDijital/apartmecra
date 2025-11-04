@@ -34,11 +34,24 @@ self.addEventListener('install', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
+  
+  // Skip localhost:5000 requests - backend API is not available in production
+  if (url.includes('localhost:5000') || url.includes('/api/health')) {
+    // Don't intercept these requests - let them fail silently
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
         // Return cached version or fetch from network
-        return response || fetch(event.request);
+        return response || fetch(event.request).catch((error) => {
+          // Silently handle fetch errors (especially for localhost:5000)
+          console.warn('Fetch error (silently ignored):', error);
+          // Return a dummy response to prevent error
+          return new Response('', { status: 503, statusText: 'Service Unavailable' });
+        });
       })
   );
 });

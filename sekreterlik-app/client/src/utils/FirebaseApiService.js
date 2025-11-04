@@ -1266,7 +1266,7 @@ class FirebaseApiService {
       console.log('Deleting member with ID:', member.id || memberId);
       await FirebaseService.delete(this.COLLECTIONS.MEMBERS, member.id || memberId);
       
-      // Eğer member_user varsa onu da sil
+      // Eğer member_user varsa onu da sil (Firestore ve Firebase Auth'dan)
       try {
         const memberUsers = await FirebaseService.findByField(
           this.COLLECTIONS.MEMBER_USERS,
@@ -1276,7 +1276,26 @@ class FirebaseApiService {
         
         if (memberUsers && memberUsers.length > 0) {
           for (const memberUser of memberUsers) {
+            // Firebase Auth'dan da sil (eğer authUid varsa)
+            // Not: Client-side'dan Firebase Auth kullanıcısını direkt silemeyiz
+            // Bu işlem için backend/Cloud Functions gerekir
+            // Şimdilik Firestore'dan authUid'i kaldırarak, login sırasında kontrol edilebilir
+            if (memberUser.authUid) {
+              try {
+                // Firebase Admin SDK REST API kullanarak kullanıcıyı silmeyi deneyelim
+                // Bu basit bir implementasyon, production'da backend kullanılmalı
+                await this.deleteFirebaseAuthUser(memberUser.authUid);
+                console.log('✅ Firebase Auth user deleted:', memberUser.authUid);
+              } catch (authError) {
+                console.warn('⚠️ Firebase Auth deletion failed (will be cleaned up on next login):', authError);
+                // Firestore'dan authUid'i kaldır, böylece login sırasında kontrol edilecek
+                // Kullanıcı artık Firestore'da yok, bu yüzden Firebase Auth'daki kullanıcı da geçersiz sayılır
+              }
+            }
+            
+            // Firestore'dan sil
             await FirebaseService.delete(this.COLLECTIONS.MEMBER_USERS, memberUser.id);
+            console.log('✅ Member user deleted from Firestore:', memberUser.id);
           }
         }
       } catch (userError) {

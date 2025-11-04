@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
@@ -272,14 +273,16 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-      <PWANotification />
-      <AppInstallBanner />
-      <OfflineStatus />
-      {/* PerformanceMonitor temporarily disabled - causes localhost:5000 errors */}
-      {/* <PerformanceMonitor /> */}
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+        <PWANotification />
+        <AppInstallBanner />
+        <OfflineStatus />
+        {/* PerformanceMonitor temporarily disabled - causes localhost:5000 errors */}
+        {/* <PerformanceMonitor /> */}
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

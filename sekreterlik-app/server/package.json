@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "dev": "nodemon index.js",
     "backup:db": "node scripts/backup-sqlite.js",
     "test:smoke": "node scripts/smoke-tests.js"
   },
@@ -20,7 +21,6 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
-    "firebase-admin": "^12.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
     "multer": "^2.0.2",

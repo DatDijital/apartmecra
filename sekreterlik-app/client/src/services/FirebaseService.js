@@ -516,7 +516,7 @@ class FirebaseService {
           id: finalDocId
         });
         
-        await deleteDoc(docRef);
+      await deleteDoc(docRef);
         console.log(`✅ Document deleted from collection "${finalCollectionName}" with ID: ${finalDocId}`);
       } catch (deleteError) {
         console.error('❌ deleteDoc() CALL FAILED:', deleteError);

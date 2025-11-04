@@ -17,6 +17,7 @@ const VillagesSettings = () => {
     name: '', 
     district_id: '', 
     town_id: '',
+    group_no: '',
     representative_name: '',
     representative_tc: '',
     representative_phone: '',
@@ -26,6 +27,7 @@ const VillagesSettings = () => {
     supervisor_phone: '',
     supervisor_member_id: ''
   });
+  const [filterGroupNo, setFilterGroupNo] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('success');
   const [showExcelForm, setShowExcelForm] = useState(false);
@@ -156,7 +158,8 @@ const VillagesSettings = () => {
       const submitData = {
         name: formData.name,
         district_id: formData.district_id,
-        town_id: formData.town_id || null
+        town_id: formData.town_id || null,
+        group_no: formData.group_no || null
       };
 
       if (editingVillage) {
@@ -208,6 +211,7 @@ const VillagesSettings = () => {
         name: '', 
         district_id: '', 
         town_id: '',
+        group_no: '',
         representative_name: '',
         representative_tc: '',
         representative_phone: '',
@@ -236,6 +240,7 @@ const VillagesSettings = () => {
       name: village.name, 
       district_id: village.district_id, 
       town_id: village.town_id || '',
+      group_no: village.group_no || '',
       representative_name: '',
       representative_tc: '',
       representative_phone: '',
@@ -303,6 +308,7 @@ const VillagesSettings = () => {
       name: '', 
       district_id: '', 
       town_id: '',
+      group_no: '',
       representative_name: '',
       representative_tc: '',
       representative_phone: '',
@@ -459,6 +465,11 @@ const VillagesSettings = () => {
     formData.district_id ? town.district_id === parseInt(formData.district_id) : true
   );
 
+  // Filter villages by group_no
+  const filteredVillages = filterGroupNo 
+    ? villages.filter(v => String(v.group_no || '') === String(filterGroupNo))
+    : villages;
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -530,7 +541,7 @@ const VillagesSettings = () => {
             {/* Köy Bilgileri */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
               <h4 className="text-md font-medium text-gray-900 mb-4">Köy Bilgileri</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label htmlFor="district_id" className="block text-sm font-medium text-gray-700 mb-2">
                     İlçe Seçimi *
@@ -584,6 +595,21 @@ const VillagesSettings = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Köy adını girin"
                     required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="group_no" className="block text-sm font-medium text-gray-700 mb-2">
+                    Grup No
+                  </label>
+                  <input
+                    type="number"
+                    id="group_no"
+                    name="group_no"
+                    value={formData.group_no}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Grup numarası (örn: 1, 2, 3)"
+                    min="1"
                   />
                 </div>
               </div>
@@ -841,11 +867,31 @@ const VillagesSettings = () => {
 
       {/* Villages List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">Mevcut Köyler</h3>
+          <div className="flex items-center space-x-2">
+            <label htmlFor="filterGroupNo" className="text-sm text-gray-700">Grup No Filtrele:</label>
+            <input
+              type="number"
+              id="filterGroupNo"
+              value={filterGroupNo}
+              onChange={(e) => setFilterGroupNo(e.target.value)}
+              className="w-24 px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Tümü"
+              min="1"
+            />
+            {filterGroupNo && (
+              <button
+                onClick={() => setFilterGroupNo('')}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                Temizle
+              </button>
+            )}
+          </div>
         </div>
         <div className="divide-y divide-gray-200">
-          {villages.length === 0 ? (
+          {filteredVillages.length === 0 ? (
             <div className="px-6 py-8 text-center text-gray-500">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -853,7 +899,7 @@ const VillagesSettings = () => {
               <p className="mt-2">Henüz köy eklenmemiş</p>
             </div>
           ) : (
-            villages.map((village) => {
+            filteredVillages.map((village) => {
               const representatives = villageRepresentatives.filter(rep => rep.village_id === village.id);
               const supervisors = villageSupervisors.filter(sup => sup.village_id === village.id);
               console.log(`Village ${village.name} (ID: ${village.id}):`, {
@@ -869,6 +915,11 @@ const VillagesSettings = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <h4 className="text-sm font-medium text-gray-900">{village.name}</h4>
+                        {village.group_no && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            Grup {village.group_no}
+                          </span>
+                        )}
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -878,37 +929,33 @@ const VillagesSettings = () => {
                         </span>
                       </div>
                       <p className="text-sm text-gray-500">
-                        İlçe: {village.district_name}
+                        İlçe: {village.district_name || '-'}
                         {village.town_name && ` • Belde: ${village.town_name}`}
-                        <br />
-                        Eklenme: {new Date(village.created_at).toLocaleDateString('tr-TR')}
                       </p>
                       
-                      {/* Temsilci Bilgileri */}
-                      {representatives.length > 0 && (
-                        <div className="mt-3">
+                      {/* Temsilci ve Müfettiş Bilgileri */}
+                      <div className="mt-3 space-y-2">
+                        {representatives.length > 0 && (
                           <div className="flex flex-wrap gap-2">
+                            <span className="text-xs font-medium text-gray-700">Temsilci:</span>
                             {representatives.map((rep, index) => (
-                              <div key={index} className="bg-blue-50 text-blue-800 px-2 py-1 rounded-md text-xs">
-                                <span className="font-medium">Temsilci:</span> {rep.name} {rep.phone && `(${rep.phone})`}
-                              </div>
+                              <span key={index} className="bg-blue-50 text-blue-800 px-2 py-1 rounded-md text-xs">
+                                {rep.name || '-'}
+                              </span>
                             ))}
                           </div>
-                        </div>
-                      )}
-                      
-                      {/* Sorumlu Bilgileri */}
-                      {supervisors.length > 0 && (
-                        <div className="mt-2">
+                        )}
+                        {supervisors.length > 0 && (
                           <div className="flex flex-wrap gap-2">
+                            <span className="text-xs font-medium text-gray-700">Müfettiş:</span>
                             {supervisors.map((sup, index) => (
-                              <div key={index} className="bg-green-50 text-green-800 px-2 py-1 rounded-md text-xs">
-                                <span className="font-medium">Sorumlu:</span> {sup.name} {sup.phone && `(${sup.phone})`}
-                              </div>
+                              <span key={index} className="bg-green-50 text-green-800 px-2 py-1 rounded-md text-xs">
+                                {sup.name || '-'}
+                              </span>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       
                       {/* Atanmamış durumlar */}
                       {representatives.length === 0 && supervisors.length === 0 && (

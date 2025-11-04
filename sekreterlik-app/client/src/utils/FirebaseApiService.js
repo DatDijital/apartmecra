@@ -1172,7 +1172,20 @@ class FirebaseApiService {
   // Neighborhoods CRUD
   static async getNeighborhoods() {
     try {
-      return await FirebaseService.getAll(this.COLLECTIONS.NEIGHBORHOODS);
+      const neighborhoods = await FirebaseService.getAll(this.COLLECTIONS.NEIGHBORHOODS);
+      const districts = await FirebaseService.getAll(this.COLLECTIONS.DISTRICTS);
+      const towns = await FirebaseService.getAll(this.COLLECTIONS.TOWNS);
+      
+      // Populate district_name and town_name
+      return neighborhoods.map(neighborhood => {
+        const district = districts.find(d => String(d.id) === String(neighborhood.district_id));
+        const town = neighborhood.town_id ? towns.find(t => String(t.id) === String(neighborhood.town_id)) : null;
+        return {
+          ...neighborhood,
+          district_name: district?.name || '',
+          town_name: town?.name || ''
+        };
+      });
     } catch (error) {
       console.error('Get neighborhoods error:', error);
       return [];
@@ -1212,7 +1225,20 @@ class FirebaseApiService {
   // Villages CRUD
   static async getVillages() {
     try {
-      return await FirebaseService.getAll(this.COLLECTIONS.VILLAGES);
+      const villages = await FirebaseService.getAll(this.COLLECTIONS.VILLAGES);
+      const districts = await FirebaseService.getAll(this.COLLECTIONS.DISTRICTS);
+      const towns = await FirebaseService.getAll(this.COLLECTIONS.TOWNS);
+      
+      // Populate district_name and town_name
+      return villages.map(village => {
+        const district = districts.find(d => String(d.id) === String(village.district_id));
+        const town = village.town_id ? towns.find(t => String(t.id) === String(village.town_id)) : null;
+        return {
+          ...village,
+          district_name: district?.name || '',
+          town_name: town?.name || ''
+        };
+      });
     } catch (error) {
       console.error('Get villages error:', error);
       return [];

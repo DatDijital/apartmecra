@@ -1908,6 +1908,19 @@ class ApiService {
 
   // Update all user credentials
   static async updateAllCredentials() {
+    if (USE_FIREBASE) {
+      // Firebase'de otomatik kullanıcı oluşturma zaten createMember içinde yapılıyor
+      // Bu metod Firebase'de kullanılmıyor, boş response döndür
+      return { 
+        success: true, 
+        message: 'Firebase\'de otomatik kullanıcı oluşturma aktif',
+        results: {
+          memberUsers: { updated: 0, errors: [] },
+          districtPresidents: { updated: 0, errors: [] },
+          townPresidents: { updated: 0, errors: [] }
+        }
+      };
+    }
     const response = await fetch(`${API_BASE_URL}/auth/update-all-credentials`, {
       method: 'POST',
       headers: {

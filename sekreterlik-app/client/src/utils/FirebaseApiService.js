@@ -125,7 +125,16 @@ class FirebaseApiService {
             // Şifre doğru mu kontrol et (decrypt edilmiş password veya orijinal password ile karşılaştır)
             if (decryptedPassword === password || memberUser.password === password) {
               // Şifre doğru, Firebase Auth ile senkronize et
+              // ÖNEMLİ: Firebase Auth'a kaydederken Firestore'daki şifreyi (telefon numarası) kullan
+              // Kullanıcının girdiği password değil, Firestore'daki decryptedPassword kullan
+              const firestorePassword = decryptedPassword || memberUser.password;
+              
               console.log('Password correct, syncing with Firebase Auth for member:', memberUser.id);
+              console.log('🔑 Using Firestore password for Firebase Auth:', {
+                firestorePassword,
+                inputPassword: password,
+                passwordsMatch: firestorePassword === password
+              });
               
               // Eğer authUid varsa ama email/username değişmişse, yeni email ile giriş yapmayı dene
               // Eğer authUid yoksa, yeni kullanıcı oluştur
@@ -134,9 +143,9 @@ class FirebaseApiService {
                 // Önce mevcut email ile giriş yapmayı dene (eğer authUid varsa)
                 if (memberUser.authUid) {
                   try {
-                    // Eski email ile giriş yapmayı dene
+                    // Eski email ile giriş yapmayı dene (Firestore'daki şifre ile)
                     const oldEmail = memberUser.username.includes('@') ? memberUser.username : `${memberUser.username}@ilsekreterlik.local`;
-                    userCredential = await signInWithEmailAndPassword(auth, oldEmail, password);
+                    userCredential = await signInWithEmailAndPassword(auth, oldEmail, firestorePassword);
                     user = userCredential.user;
                     console.log('✅ Firebase Auth login successful with existing user:', user.uid);
                     
@@ -151,7 +160,7 @@ class FirebaseApiService {
                     // Eski email ile giriş yapılamadı, yeni email ile dene
                     console.log('⚠️ Old email login failed, trying with new email:', email);
                     try {
-                      userCredential = await signInWithEmailAndPassword(auth, email, password);
+                      userCredential = await signInWithEmailAndPassword(auth, email, firestorePassword);
                       user = userCredential.user;
                       console.log('✅ Firebase Auth login successful with new email:', user.uid);
                       
@@ -163,9 +172,9 @@ class FirebaseApiService {
                       
                       console.log('✅ Firestore synced with Firebase Auth (new email)');
                     } catch (newEmailError) {
-                      // Yeni email ile de giriş yapılamadı, yeni kullanıcı oluştur
-                      console.log('⚠️ New email login failed, creating new user:', newEmailError.code);
-                      userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                      // Yeni email ile de giriş yapılamadı, yeni kullanıcı oluştur (Firestore'daki şifre ile)
+                      console.log('⚠️ New email login failed, creating new user with Firestore password:', newEmailError.code);
+                      userCredential = await createUserWithEmailAndPassword(auth, email, firestorePassword);
                       user = userCredential.user;
                       
                       // Firestore'daki kullanıcıyı güncelle
@@ -174,13 +183,13 @@ class FirebaseApiService {
                         username: username
                       }, false);
                       
-                      console.log('✅ Firebase Auth user created for member:', user.uid);
+                      console.log('✅ Firebase Auth user created for member with Firestore password (phone):', user.uid);
                     }
                   }
                 } else {
-                  // AuthUid yok, yeni kullanıcı oluştur
-                  console.log('Creating new Firebase Auth user for member:', memberUser.id);
-                  userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                  // AuthUid yok, yeni kullanıcı oluştur (Firestore'daki şifre ile - telefon numarası)
+                  console.log('Creating new Firebase Auth user for member with Firestore password (phone):', memberUser.id);
+                  userCredential = await createUserWithEmailAndPassword(auth, email, firestorePassword);
                   user = userCredential.user;
                   
                   // Firestore'daki kullanıcıyı güncelle (authUid ekle)
@@ -189,14 +198,14 @@ class FirebaseApiService {
                     username: username
                   }, false);
                   
-                  console.log('✅ Firebase Auth user created for member:', user.uid);
+                  console.log('✅ Firebase Auth user created for member with Firestore password (phone):', user.uid);
                 }
               } catch (createError) {
                 // Email zaten kullanılıyorsa (başka bir kullanıcı tarafından)
                 if (createError.code === 'auth/email-already-in-use') {
                   console.log('⚠️ Email already in use by another user, trying to sign in:', email);
                   try {
-                    userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    userCredential = await signInWithEmailAndPassword(auth, email, firestorePassword);
                     user = userCredential.user;
                     
                     // Firestore'daki kullanıcıyı güncelle (authUid ekle)
@@ -503,60 +512,13 @@ class FirebaseApiService {
         updateData.password = password;
       }
       
-      // Eğer Firebase Auth'da kullanıcı varsa (authUid varsa), backend üzerinden güncelle
+      // Eğer Firebase Auth'da kullanıcı varsa (authUid varsa)
       if (memberUser.authUid) {
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-          const token = localStorage.getItem('token') || '';
-          
-          // Username değiştiyse, email'i güncelle
-          if (usernameChanged) {
-            try {
-              const emailResponse = await fetch(`${API_BASE_URL}/firebase-admin/users/${memberUser.authUid}/email`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ email })
-              });
-              
-              if (emailResponse.ok) {
-                console.log('✅ Firebase Auth email updated via Admin SDK:', email);
-              } else {
-                console.warn('⚠️ Firebase Auth email update failed (non-critical):', await emailResponse.text());
-                // Email güncellenemezse, authUid'i temizle ki login sırasında yeniden oluşturulsun
-                updateData.authUid = null;
-              }
-            } catch (emailError) {
-              console.warn('⚠️ Firebase Auth email update skipped (non-critical):', emailError);
-              updateData.authUid = null;
-            }
-          }
-          
-          // Şifre güncelleniyorsa, Firebase Auth'da da güncelle
-          if (password && password.trim()) {
-            try {
-              const passwordResponse = await fetch(`${API_BASE_URL}/firebase-admin/users/${memberUser.authUid}/password`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ password })
-              });
-              
-              if (passwordResponse.ok) {
-                console.log('✅ Firebase Auth password updated via Admin SDK');
-              } else {
-                console.warn('⚠️ Firebase Auth password update failed (non-critical):', await passwordResponse.text());
-              }
-            } catch (passwordError) {
-              console.warn('⚠️ Firebase Auth password update skipped (non-critical):', passwordError);
-            }
-          }
-          
-          console.log('🔄 Updated member user:', {
+          // Client-side'dan başka bir kullanıcının şifresini/email'ini direkt güncelleyemeyiz
+          // Bu yüzden şimdilik sadece Firestore'u güncelliyoruz
+          // Login sırasında şifre/username kontrolü yapılıp, Firebase Auth'da güncelleme yapılacak
+          console.log('🔄 Updating member user in Firestore:', {
             id,
             oldUsername,
             newUsername: username,
@@ -564,6 +526,13 @@ class FirebaseApiService {
             passwordUpdated: !!(password && password.trim()),
             authUid: memberUser.authUid
           });
+          console.log('⚠️ Note: Firebase Auth will be updated on next login if password/username changed');
+          
+          // Eğer username değiştiyse, authUid'i temizle ki login sırasında yeni email ile oluşturulsun
+          if (usernameChanged) {
+            console.log('⚠️ Username changed, clearing authUid to force re-creation on next login');
+            updateData.authUid = null; // Login sırasında yeni email ile oluşturulacak
+          }
         } catch (authError) {
           console.warn('⚠️ Firebase Auth update preparation failed (non-critical):', authError);
           // Firestore güncellemesi devam edecek
@@ -708,15 +677,16 @@ class FirebaseApiService {
         if (!existingUsers || existingUsers.length === 0) {
           // Kullanıcı yoksa otomatik oluştur (sadece Firestore'a kaydet)
           // Username: TC numarası (zorunlu alan)
-          // TC decrypt edilmiş olarak gelir (FirebaseService.getAll içinde decrypt edilir)
+          // memberData form'dan geldiği için şifrelenmemiş olmalı
           let username = String(memberData.tc || '').trim();
           
-          // Şifre: Telefon numarası (zorunlu alan)
-          // Telefon decrypt edilmiş olarak gelir (FirebaseService.getAll içinde decrypt edilir)
-          // Ama eğer şifrelenmişse decrypt et
+          // Şifre: Telefon numarası (zorunlu alan) - ÖNEMLİ: TC DEĞİL, TELEFON!
+          // memberData form'dan geldiği için şifrelenmemiş olmalı
+          // Eğer phone boşsa veya TC ile aynıysa, hata ver
           let password = String(memberData.phone || '').trim();
           
           // Eğer phone şifrelenmiş görünüyorsa (U2FsdGVkX1 ile başlıyorsa), decrypt et
+          // (Bu durum teorik olarak olmamalı çünkü form'dan geliyor, ama güvenlik için kontrol ediyoruz)
           if (password && typeof password === 'string' && password.startsWith('U2FsdGVkX1')) {
             try {
               password = decryptData(password);
@@ -736,6 +706,20 @@ class FirebaseApiService {
             }
           }
           
+          // ÖNEMLİ: Şifre TC ile aynıysa veya boşsa, hata ver
+          if (!password || password.trim() === '' || password === username || password === memberData.tc) {
+            console.error('❌ ŞİFRE HATASI!', {
+              password,
+              username,
+              memberDataTc: memberData.tc,
+              memberDataPhone: memberData.phone,
+              passwordIsEmpty: !password || password.trim() === '',
+              passwordIsTc: password === username || password === memberData.tc,
+              passwordIsPhone: password === memberData.phone
+            });
+            throw new Error('Şifre telefon numarası olmalı ve TC ile aynı olamaz!');
+          }
+          
           console.log('📋 Final username and password values:', {
             username,
             password,
@@ -743,7 +727,8 @@ class FirebaseApiService {
             passwordLength: password?.length,
             usernameIsTc: username === memberData.tc,
             passwordIsPhone: password === memberData.phone,
-            passwordIsTc: password === memberData.tc
+            passwordIsTc: password === memberData.tc,
+            passwordIsNotTc: password !== memberData.tc && password !== username
           });
           
           // TC ve telefon zorunlu alanlar olduğu için her zaman olmalı
@@ -2367,27 +2352,18 @@ class FirebaseApiService {
         return { success: false, message: 'Kullanıcı bulunamadı' };
       }
 
-      // Eğer Firebase Auth'da kullanıcı varsa (authUid varsa), backend üzerinden sil
+      // Eğer Firebase Auth'da kullanıcı varsa (authUid varsa), sil
       if (memberUser.authUid) {
         try {
-          // Backend'deki Firebase Admin SDK endpoint'ini kullan
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-          const token = localStorage.getItem('token') || '';
+          // Firebase Auth REST API kullanarak kullanıcıyı sil
+          // Admin SDK key'i kullanarak ID token alıp, kullanıcıyı silebiliriz
+          // Ama client-side'da bu mümkün değil, bu yüzden şimdilik Firestore'dan siliyoruz
+          // Login sırasında authUid kontrolü yapılıp, eğer Firestore'da yoksa Auth'dan da silinebilir
+          console.log('⚠️ User has authUid, but cannot delete from Firebase Auth (client-side limitation)');
+          console.log('⚠️ Firebase Auth user will remain. Consider manual cleanup or use Admin SDK on server-side.');
           
-          const response = await fetch(`${API_BASE_URL}/firebase-admin/users/${memberUser.authUid}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('✅ Firebase Auth user deleted via Admin SDK:', memberUser.authUid);
-          } else {
-            console.warn('⚠️ Firebase Auth deletion failed (non-critical):', await response.text());
-          }
+          // Alternatif: Firestore'dan authUid'i kaldır, böylece login sırasında kontrol edilecek
+          // Ama zaten siliyoruz, bu yüzden gerek yok
         } catch (authError) {
           console.warn('⚠️ Firebase Auth deletion skipped (non-critical):', authError);
         }

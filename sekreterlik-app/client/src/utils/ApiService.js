@@ -123,11 +123,23 @@ class ApiService {
 
   // Member Users API
   static async getMemberUsers() {
+    if (USE_FIREBASE) {
+      try {
+        const users = await FirebaseApiService.getMemberUsers();
+        return { success: true, users: users || [] };
+      } catch (error) {
+        console.error('Get member users error:', error);
+        return { success: false, users: [], message: 'Üye kullanıcıları alınırken hata oluştu' };
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/auth/member-users`);
     return response.json();
   }
 
   static async createMemberUser(memberId, username, password) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.createMemberUser(memberId, username, password);
+    }
     const response = await fetch(`${API_BASE_URL}/auth/member-users`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -137,6 +149,9 @@ class ApiService {
   }
 
   static async updateMemberUser(id, username, password) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateMemberUser(id, username, password);
+    }
     const response = await fetch(`${API_BASE_URL}/auth/member-users/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -146,6 +161,9 @@ class ApiService {
   }
 
   static async toggleMemberUserStatus(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.toggleMemberUserStatus(id);
+    }
     const response = await fetch(`${API_BASE_URL}/auth/member-users/${id}/toggle`, {
       method: 'PATCH',
       headers: this.getAuthHeaders(),
@@ -154,6 +172,9 @@ class ApiService {
   }
 
   static async deleteMemberUser(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteMemberUser(id);
+    }
     const response = await fetch(`${API_BASE_URL}/auth/member-users/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),

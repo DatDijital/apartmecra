@@ -275,7 +275,8 @@ function App() {
       <PWANotification />
       <AppInstallBanner />
       <OfflineStatus />
-      <PerformanceMonitor />
+      {/* PerformanceMonitor temporarily disabled - causes localhost:5000 errors */}
+      {/* <PerformanceMonitor /> */}
     </AuthProvider>
   );
 }

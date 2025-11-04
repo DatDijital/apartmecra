@@ -77,6 +77,8 @@ const mongoMessagesRouter = require('./routes/mongoMessages');
 console.log('MongoDB messages router imported');
 const permissionsRouter = require('./routes/permissions');
 console.log('Permissions router imported');
+const firebaseAdminRouter = require('./routes/firebase-admin');
+console.log('Firebase Admin router imported');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -251,6 +253,7 @@ app.use('/api/ballot-box-observers', ballotBoxObserversRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/mongo-messages', mongoMessagesRouter);
 app.use('/api/permissions', permissionsRouter);
+app.use('/api/firebase-admin', firebaseAdminRouter);
 
 console.log('API routes registered');
 

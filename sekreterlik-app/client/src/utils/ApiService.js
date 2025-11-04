@@ -576,6 +576,16 @@ class ApiService {
 
   // Document Archive API
   static async getDocuments() {
+    if (USE_FIREBASE) {
+      try {
+        // Firebase'de arşiv belgeleri için ARCHIVE collection'ını kullan
+        const documents = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.ARCHIVE);
+        return documents || [];
+      } catch (error) {
+        console.error('Get documents error:', error);
+        return [];
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/archive/documents`);
     if (!response.ok) {
       throw new Error('Belgeler getirilirken hata oluştu');
@@ -584,6 +594,11 @@ class ApiService {
   }
 
   static async uploadDocument(formData) {
+    if (USE_FIREBASE) {
+      // Firebase Storage kullanılabilir ama şimdilik basit bir response döndür
+      // TODO: Firebase Storage ile document upload implementasyonu
+      return { success: false, message: 'Firebase Storage ile belge yükleme henüz implement edilmedi' };
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/archive/documents`, {
         method: 'POST',
@@ -618,6 +633,11 @@ class ApiService {
   }
 
   static async downloadDocument(id) {
+    if (USE_FIREBASE) {
+      // Firebase Storage kullanılabilir ama şimdilik hata döndür
+      // TODO: Firebase Storage ile document download implementasyonu
+      throw new Error('Firebase Storage ile belge indirme henüz implement edilmedi');
+    }
     const response = await fetch(`${API_BASE_URL}/archive/documents/${id}/download`);
     if (!response.ok) {
       throw new Error('Belge indirilemedi');
@@ -626,6 +646,15 @@ class ApiService {
   }
 
   static async deleteDocument(id) {
+    if (USE_FIREBASE) {
+      try {
+        await FirebaseService.delete(FirebaseApiService.COLLECTIONS.ARCHIVE, id);
+        return { success: true, message: 'Belge silindi' };
+      } catch (error) {
+        console.error('Delete document error:', error);
+        return { success: false, message: 'Belge silinirken hata oluştu' };
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/archive/documents/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(false),
@@ -681,6 +710,21 @@ class ApiService {
   }
 
   static async clearDocuments() {
+    if (USE_FIREBASE) {
+      try {
+        // Tüm belgeleri sil
+        const documents = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.ARCHIVE);
+        if (documents && documents.length > 0) {
+          for (const doc of documents) {
+            await FirebaseService.delete(FirebaseApiService.COLLECTIONS.ARCHIVE, doc.id);
+          }
+        }
+        return { success: true, message: 'Tüm belgeler temizlendi' };
+      } catch (error) {
+        console.error('Clear documents error:', error);
+        return { success: false, message: 'Belgeler temizlenirken hata oluştu' };
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/archive/documents/clear`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),

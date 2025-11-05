@@ -266,11 +266,11 @@ const CreateMeetingForm = ({ regions, onClose, onMeetingCreated }) => {
                                   />
                                   <span className="ml-1">Mazeretli</span>
                                 </label>
-                                {excuse[member.id] === true && (
+                                {excuse[String(member.id)] === true && (
                                   <input
                                     type="text"
                                     placeholder="Mazeret sebebi"
-                                    value={excuseReasons[member.id] || ''}
+                                    value={excuseReasons[String(member.id)] || ''}
                                     onChange={(e) => handleExcuseReasonChange(member.id, e.target.value)}
                                     className="mt-1 w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-500"
                                   />

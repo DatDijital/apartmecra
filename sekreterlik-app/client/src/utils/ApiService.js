@@ -1553,7 +1553,8 @@ class ApiService {
   static async getNeighborhoodSupervisorsByNeighborhood(neighborhoodId) {
     if (USE_FIREBASE) {
       const supervisors = await FirebaseApiService.getNeighborhoodSupervisors();
-      return supervisors ? supervisors.filter(s => s.neighborhood_id === neighborhoodId) : [];
+      // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+      return supervisors ? supervisors.filter(s => String(s.neighborhood_id) === String(neighborhoodId)) : [];
     }
 
     const response = await fetch(`${API_BASE_URL}/neighborhood-supervisors/neighborhood/${neighborhoodId}`);
@@ -1611,7 +1612,8 @@ class ApiService {
   static async getVillageSupervisorsByVillage(villageId) {
     if (USE_FIREBASE) {
       const supervisors = await FirebaseApiService.getVillageSupervisors();
-      return supervisors ? supervisors.filter(s => s.village_id === villageId) : [];
+      // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+      return supervisors ? supervisors.filter(s => String(s.village_id) === String(villageId)) : [];
     }
 
     const response = await fetch(`${API_BASE_URL}/village-supervisors/village/${villageId}`);

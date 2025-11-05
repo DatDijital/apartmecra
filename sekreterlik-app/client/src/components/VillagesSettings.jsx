@@ -197,12 +197,33 @@ const VillagesSettings = () => {
         await ApiService.createVillageRepresentative(representativeData);
       }
 
-      // Sorumlu bilgilerini kaydet
-      if (formData.supervisor_name || formData.supervisor_tc || formData.supervisor_phone) {
+      // Sorumlu bilgilerini kaydet - sadece member_id seçilmişse bile kaydet
+      if (formData.supervisor_member_id || formData.supervisor_name || formData.supervisor_tc || formData.supervisor_phone) {
+        // Eğer member_id seçilmişse ama name/tc/phone boşsa, member bilgilerini kullan
+        let supervisorName = formData.supervisor_name;
+        let supervisorTc = formData.supervisor_tc;
+        let supervisorPhone = formData.supervisor_phone;
+        
+        if (formData.supervisor_member_id && (!supervisorName || !supervisorTc)) {
+          const selectedMember = members.find(m => String(m.id) === String(formData.supervisor_member_id));
+          if (selectedMember) {
+            supervisorName = supervisorName || selectedMember.name;
+            supervisorTc = supervisorTc || selectedMember.tc;
+            supervisorPhone = supervisorPhone || selectedMember.phone || '';
+          }
+        }
+        
+        // TC zorunlu, eğer yoksa bir hata mesajı göster
+        if (!supervisorTc) {
+          setMessage('Sorumlu TC kimlik numarası gereklidir');
+          setMessageType('error');
+          return;
+        }
+        
         const supervisorData = {
-          name: formData.supervisor_name,
-          tc: formData.supervisor_tc,
-          phone: formData.supervisor_phone,
+          name: supervisorName || 'Bilinmeyen',
+          tc: supervisorTc,
+          phone: supervisorPhone || '',
           village_id: villageId,
           member_id: formData.supervisor_member_id || null
         };

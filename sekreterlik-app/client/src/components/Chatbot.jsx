@@ -26,7 +26,7 @@ const Chatbot = ({ isOpen, onClose }) => {
       setMessages([{
         id: Date.now(),
         role: 'assistant',
-        content: 'Merhaba! Ben İlçe Sekreterlik Asistanı. Size nasıl yardımcı olabilirim? Site içi bilgiler ve tüzük hakkında sorular sorabilirsiniz.'
+        content: 'Merhaba! Ben Yeniden Refah Partisi Elazığ Merkez İlçe Sekreteri. Size nasıl yardımcı olabilirim? Site içi bilgiler (üyeler, toplantılar, etkinlikler) ve tüzük hakkında sorular sorabilirsiniz.'
       }]);
     }
   }, [isOpen]);
@@ -80,11 +80,31 @@ const Chatbot = ({ isOpen, onClose }) => {
             else if (bylawsData.url) {
               try {
                 // Backend API'den URL'den içeriği çek
-                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-                const response = await fetch(`${API_BASE_URL}/bylaws/fetch?url=${encodeURIComponent(bylawsData.url)}`);
+                const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
+                let API_BASE_URL;
+                
+                if (USE_FIREBASE) {
+                  // Render.com'da backend URL'i environment variable'dan al
+                  API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sekreterlik-backend.onrender.com/api';
+                } else {
+                  API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+                }
+                
+                console.log('Loading bylaws from URL:', bylawsData.url, 'API:', API_BASE_URL);
+                
+                const response = await fetch(`${API_BASE_URL}/bylaws/fetch?url=${encodeURIComponent(bylawsData.url)}`, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                console.log('Bylaws load response status:', response.status);
                 
                 if (response.ok) {
                   const data = await response.json();
+                  console.log('Bylaws load success:', data.success, 'Text length:', data.text?.length);
+                  
                   if (data.success && data.text) {
                     setBylawsText(data.text);
                   } else {
@@ -92,6 +112,8 @@ const Chatbot = ({ isOpen, onClose }) => {
                     setBylawsText(`TÜZÜK_LINK:${bylawsData.url}`);
                   }
                 } else {
+                  const errorText = await response.text();
+                  console.error('Bylaws load error:', response.status, errorText);
                   // Backend hatası olursa, URL'yi kaydet
                   setBylawsText(`TÜZÜK_LINK:${bylawsData.url}`);
                 }
@@ -138,8 +160,12 @@ const Chatbot = ({ isOpen, onClose }) => {
         const siteContext = GroqService.buildSiteContext(siteData);
         context.push(...siteContext);
         
-        // Check if user is asking about a specific member
-        const memberContext = GroqService.buildMemberContext(siteData.members, userMessage);
+        // Check if user is asking about a specific member (with meetings for attendance)
+        const memberContext = GroqService.buildMemberContext(
+          siteData.members, 
+          userMessage,
+          siteData.meetings
+        );
         context.push(...memberContext);
       }
       
@@ -150,20 +176,43 @@ const Chatbot = ({ isOpen, onClose }) => {
           const url = bylawsText.replace('TÜZÜK_LINK:', '');
           try {
             // Backend API'den URL'den içeriği çek
-            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-            const response = await fetch(`${API_BASE_URL}/bylaws/fetch?url=${encodeURIComponent(url)}`);
+            // Firebase kullanılıyorsa backend URL'i kontrol et
+            const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
+            let API_BASE_URL;
+            
+            if (USE_FIREBASE) {
+              // Render.com'da backend URL'i environment variable'dan al
+              API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sekreterlik-backend.onrender.com/api';
+            } else {
+              API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+            }
+            
+            console.log('Fetching bylaws from URL:', url, 'API:', API_BASE_URL);
+            
+            const response = await fetch(`${API_BASE_URL}/bylaws/fetch?url=${encodeURIComponent(url)}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            console.log('Bylaws fetch response status:', response.status);
             
             if (response.ok) {
               const data = await response.json();
+              console.log('Bylaws fetch success:', data.success, 'Text length:', data.text?.length);
+              
               if (data.success && data.text) {
-                // Tüzük metnini context'e ekle (ilk 10000 karakter)
-                const text = data.text.substring(0, 10000);
-                context.push(`TÜZÜK BİLGİLERİ:\n${text}${data.text.length > 10000 ? '... (devamı var)' : ''}`);
+                // Tüzük metnini context'e ekle (ilk 15000 karakter - daha fazla context)
+                const text = data.text.substring(0, 15000);
+                context.push(`TÜZÜK BİLGİLERİ:\n${text}${data.text.length > 15000 ? '... (devamı var)' : ''}`);
               } else {
                 // Backend başarısız olursa, URL'yi kullan
                 context.push(`TÜZÜK BİLGİLERİ: Parti tüzüğü şu web linkinde bulunmaktadır: ${url}. Tüzük hakkında sorular için bu linki ziyaret edebilirsiniz.`);
               }
             } else {
+              const errorText = await response.text();
+              console.error('Bylaws fetch error:', response.status, errorText);
               // Backend hatası olursa, URL'yi kullan
               context.push(`TÜZÜK BİLGİLERİ: Parti tüzüğü şu web linkinde bulunmaktadır: ${url}. Tüzük hakkında sorular için bu linki ziyaret edebilirsiniz.`);
             }
@@ -173,8 +222,8 @@ const Chatbot = ({ isOpen, onClose }) => {
             context.push(`TÜZÜK BİLGİLERİ: Parti tüzüğü şu web linkinde bulunmaktadır: ${url}. Tüzük hakkında sorular için bu linki ziyaret edebilirsiniz.`);
           }
         } else {
-          // Normal metin ise, ilk 10000 karakteri kullan
-          context.push(`TÜZÜK BİLGİLERİ:\n${bylawsText.substring(0, 10000)}${bylawsText.length > 10000 ? '... (devamı var)' : ''}`);
+          // Normal metin ise, ilk 15000 karakteri kullan
+          context.push(`TÜZÜK BİLGİLERİ:\n${bylawsText.substring(0, 15000)}${bylawsText.length > 15000 ? '... (devamı var)' : ''}`);
         }
       }
       
@@ -214,7 +263,7 @@ const Chatbot = ({ isOpen, onClose }) => {
     setMessages([{
       id: Date.now(),
       role: 'assistant',
-      content: 'Merhaba! Ben İlçe Sekreterlik Asistanı. Size nasıl yardımcı olabilirim? Site içi bilgiler ve tüzük hakkında sorular sorabilirsiniz.'
+      content: 'Merhaba! Ben Yeniden Refah Partisi Elazığ Merkez İlçe Sekreteri. Size nasıl yardımcı olabilirim? Site içi bilgiler (üyeler, toplantılar, etkinlikler) ve tüzük hakkında sorular sorabilirsiniz.'
     }]);
   };
 
@@ -232,8 +281,8 @@ const Chatbot = ({ isOpen, onClose }) => {
               </svg>
             </div>
             <div>
-              <h2 className="text-white font-semibold text-lg">İlçe Sekreterlik Asistanı</h2>
-              <p className="text-indigo-100 text-xs">Site içi bilgiler ve tüzük hakkında sorular sorabilirsiniz</p>
+              <h2 className="text-white font-semibold text-lg">Yeniden Refah Partisi Elazığ Merkez İlçe Sekreteri</h2>
+              <p className="text-indigo-100 text-xs">Site içi bilgiler (üyeler, toplantılar, etkinlikler) ve tüzük hakkında sorular sorabilirsiniz</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">

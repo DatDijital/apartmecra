@@ -83,7 +83,8 @@ const Chatbot = ({ isOpen, onClose }) => {
         ApiService.getAllDistrictDeputyInspectors().catch(() => []),
         ApiService.getAllTownDeputyInspectors().catch(() => []),
         ApiService.getAllVisitCounts('neighborhood').catch(() => []),
-        ApiService.getAllVisitCounts('village').catch(() => [])
+        ApiService.getAllVisitCounts('village').catch(() => []),
+        ApiService.getMemberRegistrations().catch(() => [])
       ]).then(([
         ballotBoxes,
         observers,
@@ -96,7 +97,8 @@ const Chatbot = ({ isOpen, onClose }) => {
         districtDeputyInspectors,
         townDeputyInspectors,
         neighborhoodVisitCounts,
-        villageVisitCounts
+        villageVisitCounts,
+        memberRegistrations
       ]) => {
 
         // Update with additional data
@@ -113,7 +115,8 @@ const Chatbot = ({ isOpen, onClose }) => {
           districtDeputyInspectors,
           townDeputyInspectors,
           neighborhoodVisitCounts,
-          villageVisitCounts
+          villageVisitCounts,
+          memberRegistrations
         }));
       }).catch(error => {
         console.error('Error loading additional site data:', error);

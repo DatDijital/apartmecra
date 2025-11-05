@@ -107,6 +107,64 @@ ${context.length > 0 ? context.map((item, index) => `${index + 1}. ${item}`).joi
       context.push(`ÜYE LİSTESİ:\n${membersList}`);
     }
     
+    // ÜYE KAYITLARI (Üyelerin kaydettiği üye sayıları ve tarihleri)
+    if (siteData.memberRegistrations && siteData.memberRegistrations.length > 0) {
+      context.push(`\n=== ÜYE KAYITLARI ===`);
+      context.push(`Toplam ${siteData.memberRegistrations.length} üye kayıt kaydı var.`);
+      
+      // Her üye kaydının detayları
+      const registrationsList = siteData.memberRegistrations.map(reg => {
+        const member = siteData.members?.find(m => String(m.id) === String(reg.memberId));
+        const info = [];
+        if (member) info.push(`Kaydeden Üye: ${member.name || 'Bilinmeyen üye'}`);
+        if (reg.count) info.push(`Kayıt Sayısı: ${reg.count}`);
+        if (reg.date) info.push(`Tarih: ${reg.date}`);
+        if (reg.createdAt) {
+          const date = new Date(reg.createdAt);
+          info.push(`Kayıt Tarihi: ${date.toLocaleDateString('tr-TR')}`);
+        }
+        return info.join(' | ');
+      }).join('\n');
+      
+      context.push(`ÜYE KAYIT LİSTESİ:\n${registrationsList}`);
+      
+      // Üye bazında toplam kayıt sayıları
+      const memberRegistrationTotals = {};
+      siteData.memberRegistrations.forEach(reg => {
+        const memberId = String(reg.memberId);
+        if (!memberRegistrationTotals[memberId]) {
+          memberRegistrationTotals[memberId] = {
+            memberId: memberId,
+            totalCount: 0,
+            registrations: []
+          };
+        }
+        memberRegistrationTotals[memberId].totalCount += (reg.count || 0);
+        memberRegistrationTotals[memberId].registrations.push({
+          count: reg.count,
+          date: reg.date,
+          createdAt: reg.createdAt
+        });
+      });
+      
+      // Üye bazında özet bilgiler
+      context.push(`\n=== ÜYE BAZINDA KAYIT ÖZETLERİ ===`);
+      Object.values(memberRegistrationTotals).forEach(total => {
+        const member = siteData.members?.find(m => String(m.id) === String(total.memberId));
+        if (member) {
+          context.push(`${member.name}: Toplam ${total.totalCount} üye kaydetti (${total.registrations.length} kayıt)`);
+          total.registrations.forEach(reg => {
+            const regInfo = [];
+            if (reg.count) regInfo.push(`${reg.count} üye`);
+            if (reg.date) regInfo.push(`Tarih: ${reg.date}`);
+            if (regInfo.length > 0) {
+              context.push(`  - ${regInfo.join(' | ')}`);
+            }
+          });
+        }
+      });
+    }
+    
     // TOPLANTI BİLGİLERİ
     if (siteData.meetings && siteData.meetings.length > 0) {
       const activeMeetings = siteData.meetings.filter(m => !m.archived);
@@ -821,6 +879,29 @@ ${context.length > 0 ? context.map((item, index) => `${index + 1}. ${item}`).joi
             if (district) obsInfo.push(`İlçe: ${district.name}`);
             if (observer.observer_phone) obsInfo.push(`Telefon: ${observer.observer_phone}`);
             context.push(obsInfo.join(' | '));
+          });
+        }
+        
+        // ÜYE KAYITLARI BİLGİSİ (Bu üyenin kaydettiği üye sayıları ve tarihleri)
+        const memberRegistrations = siteData.memberRegistrations || [];
+        const memberRegs = memberRegistrations.filter(reg => String(reg.memberId) === memberId);
+        
+        if (memberRegs.length > 0) {
+          context.push(`\n=== ÜYE KAYITLARI ===`);
+          const totalCount = memberRegs.reduce((sum, reg) => sum + (reg.count || 0), 0);
+          context.push(`${member.name} toplam ${totalCount} üye kaydetti (${memberRegs.length} kayıt)`);
+          
+          memberRegs.forEach(reg => {
+            const regInfo = [];
+            if (reg.count) regInfo.push(`${reg.count} üye`);
+            if (reg.date) regInfo.push(`Tarih: ${reg.date}`);
+            if (reg.createdAt) {
+              const date = new Date(reg.createdAt);
+              regInfo.push(`Kayıt Tarihi: ${date.toLocaleDateString('tr-TR')}`);
+            }
+            if (regInfo.length > 0) {
+              context.push(`  - ${regInfo.join(' | ')}`);
+            }
           });
         }
         

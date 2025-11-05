@@ -518,6 +518,7 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
       // Create event
       const eventData = {
         name: finalEventName,
+        category_id: selectedCategoryId, // Store category ID for reference
         date: eventDate,
         location: finalLocation,
         description: eventDescription,

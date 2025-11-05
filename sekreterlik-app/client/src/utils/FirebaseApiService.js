@@ -1012,9 +1012,14 @@ class FirebaseApiService {
         return [];
       }
       
+      // Get event categories to populate event names
+      const eventCategories = await this.getEventCategories();
+      
       // description alanını decrypt etmeye çalışma (artık şifrelenmeden saklanıyor)
       // Eğer şifrelenmişse (eski kayıtlar için), decrypt etmeye çalış
+      // Ayrıca name alanı boşsa, category_id'den kategori adını al
       const processedEvents = events.map(event => {
+        // description decrypt
         if (event.description && typeof event.description === 'string' && event.description.startsWith('U2FsdGVkX1')) {
           // Şifrelenmiş görünüyor, decrypt etmeye çalış
           try {
@@ -1028,6 +1033,15 @@ class FirebaseApiService {
             console.warn('⚠️ Failed to decrypt event description, keeping as is:', error);
           }
         }
+        
+        // name alanı boşsa ve category_id varsa, kategori adını al
+        if ((!event.name || event.name.trim() === '') && event.category_id) {
+          const category = eventCategories.find(cat => String(cat.id) === String(event.category_id));
+          if (category && category.name) {
+            event.name = category.name;
+          }
+        }
+        
         // description zaten şifrelenmemişse (yeni kayıtlar), olduğu gibi bırak
         return event;
       });

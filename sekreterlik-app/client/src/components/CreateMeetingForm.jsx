@@ -61,36 +61,42 @@ const CreateMeetingForm = ({ regions, onClose, onMeetingCreated }) => {
   };
 
   const handleAttendanceChange = (memberId, attended) => {
+    // ID'yi string'e çevirerek tutarlılık sağla
+    const stringId = String(memberId);
     setAttendance(prev => ({
       ...prev,
-      [memberId]: attended
+      [stringId]: attended
     }));
     
     // Reset excuse status when attendance is changed
     setExcuse(prev => ({
       ...prev,
-      [memberId]: false
+      [stringId]: false
     }));
   };
 
   const handleExcuseChange = (memberId, excused) => {
+    // ID'yi string'e çevirerek tutarlılık sağla
+    const stringId = String(memberId);
     setExcuse(prev => ({
       ...prev,
-      [memberId]: excused
+      [stringId]: excused
     }));
     
     // Reset attendance status when excuse is changed
     setAttendance(prev => ({
       ...prev,
-      [memberId]: false
+      [stringId]: false
     }));
   };
 
   // Added function to handle excuse reason changes
   const handleExcuseReasonChange = (memberId, reason) => {
+    // ID'yi string'e çevirerek tutarlılık sağla
+    const stringId = String(memberId);
     setExcuseReasons(prev => ({
       ...prev,
-      [memberId]: reason
+      [stringId]: reason
     }));
   };
 

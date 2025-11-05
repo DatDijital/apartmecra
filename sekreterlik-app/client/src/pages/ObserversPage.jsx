@@ -193,16 +193,27 @@ const ObserversPage = () => {
 
   const handleEdit = (observer) => {
     setEditingObserver(observer);
+    // Debug log
+    console.log('🔍 Editing observer:', {
+      id: observer.id,
+      ballot_box_id: observer.ballot_box_id,
+      ballot_box_id_type: typeof observer.ballot_box_id,
+      district_id: observer.district_id,
+      neighborhood_id: observer.neighborhood_id,
+      village_id: observer.village_id
+    });
+    
     setFormData({
       tc: observer.tc,
       name: observer.name,
       phone: observer.phone,
-      ballot_box_id: observer.ballot_box_id ? observer.ballot_box_id.toString() : '',
-      district_id: observer.district_id ? observer.district_id.toString() : '',
-      town_id: observer.town_id ? observer.town_id.toString() : '',
-      neighborhood_id: observer.neighborhood_id ? observer.neighborhood_id.toString() : '',
-      village_id: observer.village_id ? observer.village_id.toString() : '',
-      is_chief_observer: observer.is_chief_observer
+      // ID'leri string'e çevir (form select'ler string değer bekliyor)
+      ballot_box_id: observer.ballot_box_id ? String(observer.ballot_box_id) : '',
+      district_id: observer.district_id ? String(observer.district_id) : '',
+      town_id: observer.town_id ? String(observer.town_id) : '',
+      neighborhood_id: observer.neighborhood_id ? String(observer.neighborhood_id) : '',
+      village_id: observer.village_id ? String(observer.village_id) : '',
+      is_chief_observer: observer.is_chief_observer || false
     });
     setShowAddForm(true);
   };

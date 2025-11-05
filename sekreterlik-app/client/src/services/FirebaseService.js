@@ -304,7 +304,7 @@ class FirebaseService {
   static async delete(collectionName, docId) {
     try {
       // CRITICAL: Log raw parameters BEFORE any conversion
-      console.error('[FIREBASE DELETE] RAW PARAMS:', {
+      console.debug('[FIREBASE DELETE] RAW PARAMS:', {
         collectionName: collectionName,
         collectionNameType: typeof collectionName,
         collectionNameValue: collectionName,
@@ -368,8 +368,8 @@ class FirebaseService {
         throw new Error(`Firebase db instance geçersiz! Type: ${typeof db}`);
       }
       
-      // Use console.error so it's never minified out
-      console.error(`[FIREBASE DELETE] Final params:`, {
+      // Use console.debug for debug logs (not errors)
+      console.debug(`[FIREBASE DELETE] Final params:`, {
         collection: stringCollectionName,
         collectionType: typeof stringCollectionName,
         id: stringId,
@@ -409,8 +409,8 @@ class FirebaseService {
         throw new Error(`Final params empty: collection length=${finalCollectionName.length}, id length=${finalDocId.length}`);
       }
       
-      // Use console.error so it's never minified out
-      console.error(`[FIREBASE DELETE] Calling doc() with (VALIDATED):`, {
+      // Use console.debug for debug logs (not errors)
+      console.debug(`[FIREBASE DELETE] Calling doc() with (VALIDATED):`, {
         dbType: typeof db,
         dbValid: !!db && typeof db === 'object',
         collection: finalCollectionName,
@@ -479,7 +479,7 @@ class FirebaseService {
           throw new Error('DocumentReference oluşturulamadı - docRef null/undefined');
         }
         
-        console.error('[FIREBASE DELETE] docRef created successfully:', {
+        console.debug('[FIREBASE DELETE] docRef created successfully:', {
           docRefType: typeof docRef,
           docRefId: docRef?.id,
           docRefPath: docRef?.path,
@@ -508,7 +508,7 @@ class FirebaseService {
       
       // Dokümanı sil
       try {
-        console.error('[FIREBASE DELETE] Calling deleteDoc() with:', {
+        console.debug('[FIREBASE DELETE] Calling deleteDoc() with:', {
           docRefType: typeof docRef,
           docRefId: docRef?.id,
           docRefPath: docRef?.path,

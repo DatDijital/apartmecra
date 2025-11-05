@@ -221,36 +221,52 @@ const ObserversPage = () => {
   };
 
   const getBallotBoxName = (ballotBoxId) => {
-    const ballotBox = ballotBoxes.find(bb => bb.id === ballotBoxId);
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    if (!ballotBoxId) return 'Sandık seçilmemiş';
+    const ballotBox = ballotBoxes.find(bb => String(bb.id) === String(ballotBoxId));
     return ballotBox ? `${ballotBox.ballot_number} - ${ballotBox.institution_name}` : 'Sandık seçilmemiş';
   };
 
   const getDistrictName = (districtId) => {
-    const district = districts.find(d => d.id === districtId);
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    if (!districtId) return '';
+    const district = districts.find(d => String(d.id) === String(districtId));
     return district ? district.name : '';
   };
 
   const getTownName = (townId) => {
-    const town = towns.find(t => t.id === townId);
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    if (!townId) return '';
+    const town = towns.find(t => String(t.id) === String(townId));
     return town ? town.name : '';
   };
 
   const getNeighborhoodName = (neighborhoodId) => {
-    const neighborhood = neighborhoods.find(n => n.id === neighborhoodId);
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    if (!neighborhoodId) return '';
+    const neighborhood = neighborhoods.find(n => String(n.id) === String(neighborhoodId));
     return neighborhood ? neighborhood.name : '';
   };
 
   const getVillageName = (villageId) => {
-    const village = villages.find(v => v.id === villageId);
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    if (!villageId) return '';
+    const village = villages.find(v => String(v.id) === String(villageId));
     return village ? village.name : '';
   };
 
   const getLocationInfo = (observer) => {
     const parts = [];
-    if (observer.observer_district_id) parts.push(getDistrictName(observer.observer_district_id));
-    if (observer.observer_town_id) parts.push(getTownName(observer.observer_town_id));
-    if (observer.observer_neighborhood_id) parts.push(getNeighborhoodName(observer.observer_neighborhood_id));
-    if (observer.observer_village_id) parts.push(getVillageName(observer.observer_village_id));
+    // Hem direkt alanlar hem de observer_ prefix'li alanları kontrol et
+    const districtId = observer.district_id || observer.observer_district_id;
+    const townId = observer.town_id || observer.observer_town_id;
+    const neighborhoodId = observer.neighborhood_id || observer.observer_neighborhood_id;
+    const villageId = observer.village_id || observer.observer_village_id;
+    
+    if (districtId) parts.push(getDistrictName(districtId));
+    if (townId) parts.push(getTownName(townId));
+    if (neighborhoodId) parts.push(getNeighborhoodName(neighborhoodId));
+    if (villageId) parts.push(getVillageName(villageId));
     return parts.length > 0 ? parts.join(' - ') : 'Konum seçilmemiş';
   };
 

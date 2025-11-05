@@ -164,10 +164,7 @@ class BallotBoxController {
       const errors = [];
       if (!ballot_number) errors.push('Sandık numarası zorunludur');
       if (!institution_name) errors.push('Kurum adı zorunludur');
-      if (!district_id) errors.push('İlçe ID zorunludur');
-      if (!neighborhood_id && !village_id) {
-        errors.push('Mahalle veya köy seçilmelidir');
-      }
+      // district_id, neighborhood_id, village_id opsiyonel - validation'ı kaldırıyoruz
       if (neighborhood_id && village_id) {
         errors.push('Hem mahalle hem köy seçilemez');
       }

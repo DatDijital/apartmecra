@@ -180,20 +180,28 @@ class BallotBoxObserverController {
       }
 
       const sql = `UPDATE ballot_box_observers 
-                   SET tc = ?, name = ?, phone = ?, is_chief_observer = ?, district_id = ?, town_id = ?, neighborhood_id = ?, village_id = ?, updated_at = CURRENT_TIMESTAMP
+                   SET ballot_box_id = ?, tc = ?, name = ?, phone = ?, is_chief_observer = ?, district_id = ?, town_id = ?, neighborhood_id = ?, village_id = ?, updated_at = CURRENT_TIMESTAMP
                    WHERE id = ?`;
       
-      await db.run(sql, [tc, name, phone, is_chief_observer ? 1 : 0, district_id, town_id, neighborhood_id, village_id, id]);
+      // ballot_box_id değiştiyse yeni değeri kullan, değilse mevcut değeri koru
+      const finalBallotBoxId = ballot_box_id !== undefined ? ballot_box_id : currentObserver.ballot_box_id;
+      
+      await db.run(sql, [finalBallotBoxId, tc, name, phone, is_chief_observer ? 1 : 0, district_id, town_id, neighborhood_id, village_id, id]);
       
       // Update in-memory collection
       const observerIndex = collections.ballot_box_observers.findIndex(obs => obs.id === parseInt(id));
       if (observerIndex !== -1) {
         collections.ballot_box_observers[observerIndex] = {
           ...collections.ballot_box_observers[observerIndex],
+          ballot_box_id: finalBallotBoxId,
           tc,
           name,
           phone,
           is_chief_observer: is_chief_observer ? 1 : 0,
+          district_id,
+          town_id,
+          neighborhood_id,
+          village_id,
           updated_at: new Date().toISOString()
         };
       }

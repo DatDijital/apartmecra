@@ -105,11 +105,13 @@ const ObserversPage = () => {
 
       // Reset dependent fields when parent changes (sadece manuel değişikliklerde)
       // Sandık seçimi değiştiğinde reset yapma, sandığın bilgilerini kullan
-      if (name === 'district_id' && name !== 'ballot_box_id') {
+      if (name === 'district_id') {
+        // Eğer district_id değiştiyse ve bu sandık seçimi nedeniyle değilse, alt alanları temizle
         newData.town_id = '';
         newData.neighborhood_id = '';
         newData.village_id = '';
-      } else if (name === 'town_id' && name !== 'ballot_box_id') {
+      } else if (name === 'town_id') {
+        // Eğer town_id değiştiyse ve bu sandık seçimi nedeniyle değilse, alt alanları temizle
         newData.neighborhood_id = '';
         newData.village_id = '';
       }

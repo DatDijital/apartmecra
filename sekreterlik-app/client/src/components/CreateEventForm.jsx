@@ -508,11 +508,12 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
         selectedLocationTypes: selectedLocationTypes, // Store selected location types
         selectedLocations: selectedLocations, // Store selected locations
         attendees: sortedMembers.map(member => {
-          const memberId = member.id;
+          // ID'leri string'e çevirerek tutarlılık sağla
+          const memberId = String(member.id);
           const attended = attendance[memberId] === true;
           
           return {
-            memberId: parseInt(memberId),
+            memberId: memberId, // String olarak sakla (Firebase ID'leri string)
             attended: attended
           };
         })
@@ -554,9 +555,11 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
   };
 
   const handleAttendanceChange = (memberId, attended) => {
+    // ID'yi string'e çevirerek tutarlılık sağla
+    const stringId = String(memberId);
     setAttendance(prev => ({
       ...prev,
-      [memberId]: attended
+      [stringId]: attended
     }));
   };
 
@@ -713,7 +716,7 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
                       <input
                         type="radio"
                         name={`responsible_${member.id}`}
-                        checked={attendance[member.id] === true}
+                        checked={attendance[String(member.id)] === true}
                         onChange={() => handleAttendanceChange(member.id, true)}
                         className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
                       />
@@ -724,7 +727,7 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
                       <input
                         type="radio"
                         name={`responsible_${member.id}`}
-                        checked={attendance[member.id] === false}
+                        checked={attendance[String(member.id)] === false}
                         onChange={() => handleAttendanceChange(member.id, false)}
                         className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
                       />
@@ -805,7 +808,7 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
                   <label className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={attendance[member.id] === true}
+                      checked={attendance[String(member.id)] === true}
                       onChange={(e) => handleAttendanceChange(member.id, e.target.checked)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />

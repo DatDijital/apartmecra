@@ -242,6 +242,16 @@ const ObserversPage = () => {
   const getBallotBoxName = (ballotBoxId) => {
     // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
     if (!ballotBoxId) return 'Sandık seçilmemiş';
+    
+    // Debug log
+    if (ballotBoxes.length > 0 && !ballotBoxes.find(bb => String(bb.id) === String(ballotBoxId))) {
+      console.warn('⚠️ Ballot box not found:', {
+        ballotBoxId,
+        ballotBoxIdType: typeof ballotBoxId,
+        availableIds: ballotBoxes.map(bb => ({ id: bb.id, idType: typeof bb.id, ballot_number: bb.ballot_number })).slice(0, 5)
+      });
+    }
+    
     const ballotBox = ballotBoxes.find(bb => String(bb.id) === String(ballotBoxId));
     return ballotBox ? `${ballotBox.ballot_number} - ${ballotBox.institution_name}` : 'Sandık seçilmemiş';
   };

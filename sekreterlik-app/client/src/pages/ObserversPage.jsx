@@ -11,6 +11,8 @@ const ObserversPage = () => {
   const [villages, setVillages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success'); // 'success' or 'error'
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingObserver, setEditingObserver] = useState(null);
   const [formData, setFormData] = useState({
@@ -213,10 +215,25 @@ const ObserversPage = () => {
       });
       setShowAddForm(false);
       setEditingObserver(null);
+      setError(''); // Clear error on success
       await fetchData();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage('');
+      }, 3000);
     } catch (error) {
       console.error('Error saving observer:', error);
-      setError('Müşahit kaydedilirken hata oluştu: ' + error.message);
+      const errorMessage = error.message || 'Müşahit kaydedilirken hata oluştu';
+      setError(errorMessage);
+      setMessage(errorMessage);
+      setMessageType('error');
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setError('');
+        setMessage('');
+      }, 5000);
     } finally {
       setLoading(false);
     }
@@ -560,6 +577,39 @@ const ObserversPage = () => {
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">Hata</h3>
                 <div className="mt-2 text-sm text-red-700">{error}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {message && (
+          <div className={`mb-6 border rounded-md p-4 ${
+            messageType === 'success' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className={`text-sm font-medium ${
+                  messageType === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {messageType === 'success' ? 'Başarılı' : 'Hata'}
+                </h3>
+                <div className={`mt-2 text-sm ${
+                  messageType === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {message}
+                </div>
+              </div>
+              <div className="ml-auto">
+                <button
+                  onClick={() => setMessage('')}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>

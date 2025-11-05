@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ApiService from '../utils/ApiService';
+import * as XLSX from 'xlsx';
 
 const BallotBoxesPage = () => {
   const [ballotBoxes, setBallotBoxes] = useState([]);
@@ -322,6 +323,47 @@ const BallotBoxesPage = () => {
               <p className="mt-2 text-gray-600">Sandık ekleme ve yönetimi</p>
             </div>
             <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  const excelData = [
+                    ['Sandık No', 'Kurum Adı', 'İlçe', 'Belde', 'Mahalle', 'Köy', 'Başmüşahit', 'Müşahit Sayısı', 'Durum']
+                  ];
+                  
+                  filteredBallotBoxes.forEach(ballotBox => {
+                    const status = getBallotBoxStatus(ballotBox.id);
+                    const districtName = districts.find(d => String(d.id) === String(ballotBox.district_id))?.name || '';
+                    const townName = towns.find(t => String(t.id) === String(ballotBox.town_id))?.name || '';
+                    const neighborhoodName = neighborhoods.find(n => String(n.id) === String(ballotBox.neighborhood_id))?.name || '';
+                    const villageName = villages.find(v => String(v.id) === String(ballotBox.village_id))?.name || '';
+                    const statusText = status.hasChiefObserver && status.hasDistrict && status.hasNeighborhoodOrVillage ? 'Tamamlandı' : 'Eksik';
+                    
+                    excelData.push([
+                      ballotBox.ballot_number || '',
+                      ballotBox.institution_name || '',
+                      districtName,
+                      townName,
+                      neighborhoodName,
+                      villageName,
+                      status.chiefObserverName || '',
+                      status.observersCount || 0,
+                      statusText
+                    ]);
+                  });
+                  
+                  const ws = XLSX.utils.aoa_to_sheet(excelData);
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, 'Sandıklar');
+                  
+                  const fileName = `sandiklar_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  XLSX.writeFile(wb, fileName);
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Excel'e Aktar
+              </button>
               <button
                 onClick={() => setShowAddForm(true)}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"

@@ -21,25 +21,25 @@ const TownDetailsPage = () => {
     try {
       setLoading(true);
       
-      // Fetch town
+      // Fetch town - ID'leri string'e çevirerek karşılaştır (Firebase uyumluluğu için)
       const towns = await ApiService.getTowns();
-      const townData = towns.find(t => t.id === parseInt(id));
+      const townData = towns.find(t => String(t.id) === String(id));
       setTown(townData);
 
       if (townData) {
-        // Fetch district
+        // Fetch district - ID'leri string'e çevirerek karşılaştır
         const districts = await ApiService.getDistricts();
-        const districtData = districts.find(d => d.id === townData.district_id);
+        const districtData = districts.find(d => String(d.id) === String(townData.district_id));
         setDistrict(districtData);
 
-        // Fetch officials
+        // Fetch officials - ID'leri string'e çevirerek karşılaştır
         const officialsData = await ApiService.getTownOfficials();
-        const townOfficials = officialsData.filter(official => official.town_id === parseInt(id));
+        const townOfficials = officialsData.filter(official => String(official.town_id) === String(id));
         setOfficials(townOfficials);
 
-        // Fetch deputy inspectors
+        // Fetch deputy inspectors - ID'leri string'e çevirerek karşılaştır
         const deputyInspectorsData = await ApiService.getAllTownDeputyInspectors();
-        const townDeputyInspectors = deputyInspectorsData.filter(deputy => deputy.town_id === parseInt(id));
+        const townDeputyInspectors = deputyInspectorsData.filter(deputy => String(deputy.town_id) === String(id));
         setDeputyInspectors(townDeputyInspectors);
       }
 

@@ -159,6 +159,71 @@ const GroupsPage = () => {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Gruplar</h1>
         </div>
+        <button
+          onClick={() => {
+            const excelData = [
+              ['Grup No', 'Grup Lideri', 'Mahalle/Köy', 'İlçe', 'Belde', 'Temsilci', 'Temsilci Telefon', 'Müfettiş', 'Müfettiş Telefon']
+            ];
+            
+            sortedGroupNos.forEach(groupNo => {
+              const groupData = groupedData[groupNo];
+              const groupLeader = getGroupLeader(groupNo);
+              
+              // Mahalleler
+              groupData.neighborhoods.forEach(neighborhood => {
+                const rep = neighborhoodRepresentatives.find(r => String(r.neighborhood_id) === String(neighborhood.id));
+                const sup = neighborhoodSupervisors.find(s => String(s.neighborhood_id) === String(neighborhood.id));
+                const district = districts.find(d => String(d.id) === String(neighborhood.district_id));
+                const town = neighborhood.town_id ? towns.find(t => String(t.id) === String(neighborhood.town_id)) : null;
+                
+                excelData.push([
+                  groupNo,
+                  groupLeader ? groupLeader.name : '',
+                  neighborhood.name || '',
+                  district?.name || '',
+                  town?.name || '',
+                  rep?.name || '',
+                  rep?.phone || '',
+                  sup?.name || '',
+                  sup?.phone || ''
+                ]);
+              });
+              
+              // Köyler
+              groupData.villages.forEach(village => {
+                const rep = villageRepresentatives.find(r => String(r.village_id) === String(village.id));
+                const sup = villageSupervisors.find(s => String(s.village_id) === String(village.id));
+                const district = districts.find(d => String(d.id) === String(village.district_id));
+                const town = village.town_id ? towns.find(t => String(t.id) === String(village.town_id)) : null;
+                
+                excelData.push([
+                  groupNo,
+                  groupLeader ? groupLeader.name : '',
+                  village.name || '',
+                  district?.name || '',
+                  town?.name || '',
+                  rep?.name || '',
+                  rep?.phone || '',
+                  sup?.name || '',
+                  sup?.phone || ''
+                ]);
+              });
+            });
+            
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Gruplar');
+            
+            const fileName = `gruplar_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+          }}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Excel'e Aktar
+        </button>
       </div>
 
       {sortedGroupNos.length === 0 ? (

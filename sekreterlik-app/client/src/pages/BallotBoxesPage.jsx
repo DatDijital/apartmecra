@@ -183,26 +183,33 @@ const BallotBoxesPage = () => {
   };
 
   const getBallotBoxObservers = (ballotBoxId) => {
-    return observers.filter(observer => observer.ballot_box_id === ballotBoxId);
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    return observers.filter(observer => String(observer.ballot_box_id) === String(ballotBoxId));
   };
 
   const getBallotBoxStatus = (ballotBoxId) => {
-    const ballotBox = ballotBoxes.find(bb => bb.id === ballotBoxId);
+    const ballotBox = ballotBoxes.find(bb => String(bb.id) === String(ballotBoxId));
     const ballotBoxObservers = getBallotBoxObservers(ballotBoxId);
-    const chiefObserver = ballotBoxObservers.find(observer => observer.is_chief_observer);
+    const chiefObserver = ballotBoxObservers.find(observer => observer.is_chief_observer === true || observer.is_chief_observer === 1);
     const regularObservers = ballotBoxObservers.filter(observer => !observer.is_chief_observer);
     
     // Sandığın kendisinde mahalle/köy var mı kontrol et
     const hasBallotBoxNeighborhood = ballotBox && (ballotBox.neighborhood_id || ballotBox.village_id);
     
-    // Observer'larda mahalle/köy var mı kontrol et
+    // Observer'larda mahalle/köy var mı kontrol et - hem direkt alanlar hem de observer_ prefix'li alanlar
     const hasObserverNeighborhoodOrVillage = ballotBoxObservers.some(observer => 
-      observer.neighborhood_id || observer.village_id || observer.observer_neighborhood_id || observer.observer_village_id
+      (observer.neighborhood_id && observer.neighborhood_id !== null && observer.neighborhood_id !== '') ||
+      (observer.village_id && observer.village_id !== null && observer.village_id !== '') ||
+      (observer.observer_neighborhood_id && observer.observer_neighborhood_id !== null && observer.observer_neighborhood_id !== '') ||
+      (observer.observer_village_id && observer.observer_village_id !== null && observer.observer_village_id !== '')
     );
     
-    // Sandığın kendisinde veya observer'larda ilçe var mı kontrol et
-    const hasBallotBoxDistrict = ballotBox && ballotBox.district_id;
-    const hasObserverDistrict = ballotBoxObservers.some(observer => observer.district_id || observer.observer_district_id);
+    // Sandığın kendisinde veya observer'larda ilçe var mı kontrol et - hem direkt alanlar hem de observer_ prefix'li alanlar
+    const hasBallotBoxDistrict = ballotBox && ballotBox.district_id && ballotBox.district_id !== null && ballotBox.district_id !== '';
+    const hasObserverDistrict = ballotBoxObservers.some(observer => 
+      (observer.district_id && observer.district_id !== null && observer.district_id !== '') ||
+      (observer.observer_district_id && observer.observer_district_id !== null && observer.observer_district_id !== '')
+    );
     
     return {
       hasChiefObserver: !!chiefObserver,

@@ -74,7 +74,7 @@ const MemberDetails = ({ member, meetings, events, memberRegistrations, calculat
       });
       
       // Check district deputy inspectors
-      const districtDeputyInspectors = await ApiService.getDistrictDeputyInspectors();
+      const districtDeputyInspectors = await ApiService.getAllDistrictDeputyInspectors();
       const districtDeputyPositions = districtDeputyInspectors.filter(deputy => 
         deputy.member_id === member.id
       );
@@ -112,7 +112,7 @@ const MemberDetails = ({ member, meetings, events, memberRegistrations, calculat
       });
       
       // Check town deputy inspectors
-      const townDeputyInspectors = await ApiService.getTownDeputyInspectors();
+      const townDeputyInspectors = await ApiService.getAllTownDeputyInspectors();
       const townDeputyPositions = townDeputyInspectors.filter(deputy => 
         deputy.member_id === member.id
       );

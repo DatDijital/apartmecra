@@ -955,6 +955,10 @@ class ApiService {
 
   // Personal Documents API methods
   static async getDocumentTypes() {
+    if (USE_FIREBASE) {
+      // Firebase'de document types için placeholder - gerekirse collection eklenebilir
+      return [];
+    }
     const response = await fetch(`${API_BASE_URL}/personal-documents/document-types`, {
       headers: this.getAuthHeaders(),
     });
@@ -962,6 +966,10 @@ class ApiService {
   }
 
   static async getPersonalDocuments(memberId) {
+    if (USE_FIREBASE) {
+      // Firebase'de personal documents için placeholder - gerekirse collection eklenebilir
+      return [];
+    }
     const response = await fetch(`${API_BASE_URL}/personal-documents/member/${memberId}`, {
       headers: this.getAuthHeaders(),
     });
@@ -1713,19 +1721,7 @@ class ApiService {
 
   static async getAllDistrictDeputyInspectors() {
     if (USE_FIREBASE) {
-      try {
-        // Tüm district officials'ları al ve deputy inspector'ları filtrele
-        const officials = await FirebaseApiService.getAllDistrictOfficials();
-        const deputyInspectors = officials.filter(official => 
-          official.type === 'deputy_inspector' || 
-          official.role === 'deputy_inspector' ||
-          official.position === 'deputy_inspector'
-        );
-        return deputyInspectors;
-      } catch (error) {
-        console.error('Get all district deputy inspectors error:', error);
-        return [];
-      }
+      return FirebaseApiService.getAllDistrictDeputyInspectors();
     }
     const response = await fetch(`${API_BASE_URL}/district-deputy-inspectors`);
     return response.json();
@@ -1783,19 +1779,7 @@ class ApiService {
 
   static async getTownDeputyInspectors(townId) {
     if (USE_FIREBASE) {
-      try {
-        // Town officials'ları al ve deputy inspector'ları filtrele
-        const officials = await FirebaseApiService.getTownOfficials(townId);
-        const deputyInspectors = officials.filter(official => 
-          official.type === 'deputy_inspector' || 
-          official.role === 'deputy_inspector' ||
-          official.position === 'deputy_inspector'
-        );
-        return deputyInspectors;
-      } catch (error) {
-        console.error('Get town deputy inspectors error:', error);
-        return [];
-      }
+      return FirebaseApiService.getTownDeputyInspectors(townId);
     }
     const response = await fetch(`${API_BASE_URL}/towns/${townId}/deputy-inspectors`);
     return response.json();
@@ -1803,19 +1787,7 @@ class ApiService {
 
   static async getAllTownDeputyInspectors() {
     if (USE_FIREBASE) {
-      try {
-        // Tüm town officials'ları al ve deputy inspector'ları filtrele
-        const officials = await FirebaseService.getAll(FirebaseApiService.COLLECTIONS.TOWN_OFFICIALS);
-        const deputyInspectors = officials.filter(official => 
-          official.type === 'deputy_inspector' || 
-          official.role === 'deputy_inspector' ||
-          official.position === 'deputy_inspector'
-        );
-        return deputyInspectors;
-      } catch (error) {
-        console.error('Get all town deputy inspectors error:', error);
-        return [];
-      }
+      return FirebaseApiService.getAllTownDeputyInspectors();
     }
     const response = await fetch(`${API_BASE_URL}/town-deputy-inspectors`);
     return response.json();

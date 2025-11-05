@@ -2247,12 +2247,17 @@ class FirebaseApiService {
   // District Deputy Inspectors
   static async getDistrictDeputyInspectors(districtId) {
     try {
+      // districtId undefined ise boş array döndür
+      if (!districtId || districtId === undefined) {
+        return [];
+      }
+      
       // Deputy inspectors muhtemelen district_officials collection'ında veya ayrı bir collection'da
       // Önce district_officials içinde arayalım
       const officials = await FirebaseService.findByField(
         this.COLLECTIONS.DISTRICT_OFFICIALS, 
         'district_id', 
-        districtId
+        String(districtId) // String'e çevirerek tutarlılık sağla
       );
       // Deputy inspectors'ı filtrele (eğer type field'ı varsa)
       const deputyInspectors = officials.filter(official => 
@@ -2267,12 +2272,79 @@ class FirebaseApiService {
     }
   }
 
+  // Get all district deputy inspectors (parametresiz)
+  static async getAllDistrictDeputyInspectors() {
+    try {
+      // Tüm district officials'ları al
+      const allOfficials = await FirebaseService.getAll(this.COLLECTIONS.DISTRICT_OFFICIALS);
+      // Deputy inspectors'ı filtrele
+      const deputyInspectors = allOfficials.filter(official => 
+        official.type === 'deputy_inspector' || 
+        official.role === 'deputy_inspector' ||
+        official.position === 'deputy_inspector'
+      );
+      return deputyInspectors;
+    } catch (error) {
+      console.error('Get all district deputy inspectors error:', error);
+      return [];
+    }
+  }
+
   // Town Officials CRUD
   static async getTownOfficials(townId) {
     try {
-      return await FirebaseService.findByField(this.COLLECTIONS.TOWN_OFFICIALS, 'town_id', townId);
+      // townId undefined ise boş array döndür
+      if (!townId || townId === undefined) {
+        return [];
+      }
+      
+      return await FirebaseService.findByField(this.COLLECTIONS.TOWN_OFFICIALS, 'town_id', String(townId)); // String'e çevirerek tutarlılık sağla
     } catch (error) {
       console.error('Get town officials error:', error);
+      return [];
+    }
+  }
+
+  // Town Deputy Inspectors
+  static async getTownDeputyInspectors(townId) {
+    try {
+      // townId undefined ise boş array döndür
+      if (!townId || townId === undefined) {
+        return [];
+      }
+      
+      // Town officials'ları al ve deputy inspector'ları filtrele
+      const officials = await FirebaseService.findByField(
+        this.COLLECTIONS.TOWN_OFFICIALS, 
+        'town_id', 
+        String(townId) // String'e çevirerek tutarlılık sağla
+      );
+      const deputyInspectors = officials.filter(official => 
+        official.type === 'deputy_inspector' || 
+        official.role === 'deputy_inspector' ||
+        official.position === 'deputy_inspector'
+      );
+      return deputyInspectors;
+    } catch (error) {
+      console.error('Get town deputy inspectors error:', error);
+      return [];
+    }
+  }
+
+  // Get all town deputy inspectors (parametresiz)
+  static async getAllTownDeputyInspectors() {
+    try {
+      // Tüm town officials'ları al
+      const allOfficials = await FirebaseService.getAll(this.COLLECTIONS.TOWN_OFFICIALS);
+      // Deputy inspectors'ı filtrele
+      const deputyInspectors = allOfficials.filter(official => 
+        official.type === 'deputy_inspector' || 
+        official.role === 'deputy_inspector' ||
+        official.position === 'deputy_inspector'
+      );
+      return deputyInspectors;
+    } catch (error) {
+      console.error('Get all town deputy inspectors error:', error);
       return [];
     }
   }

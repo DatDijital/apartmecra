@@ -508,12 +508,9 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
     }
     
     try {
-      // Get selected category name
+      // Get selected category name - use category name as event name
       const selectedCategory = eventCategories.find(cat => cat.id === parseInt(selectedCategoryId));
-      const eventNameFromCategory = selectedCategory ? selectedCategory.name : '';
-      
-      // Use manual event name if provided, otherwise use category name
-      const finalEventName = eventName.trim() || eventNameFromCategory;
+      const finalEventName = selectedCategory ? selectedCategory.name : '';
       
       // Generate location string from selected locations
       const finalLocation = generateEventLocation();
@@ -588,34 +585,11 @@ const CreateEventForm = ({ onClose, onEventCreated, members }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Etkinlik Adı *
-          </label>
-          <input
-            type="text"
-            value={eventName}
-            onChange={(e) => setEventName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Etkinlik adını girin (kategori seçildiğinde otomatik doldurulur)"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
             Etkinlik Kategorisi *
           </label>
           <select
             value={selectedCategoryId}
-            onChange={(e) => {
-              setSelectedCategoryId(e.target.value);
-              // Auto-fill event name from category if event name is empty
-              if (!eventName.trim()) {
-                const selectedCategory = eventCategories.find(cat => cat.id === parseInt(e.target.value));
-                if (selectedCategory) {
-                  setEventName(selectedCategory.name);
-                }
-              }
-            }}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             required
             disabled={loadingCategories}

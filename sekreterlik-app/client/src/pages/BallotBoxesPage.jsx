@@ -254,30 +254,26 @@ const BallotBoxesPage = () => {
     
     // Count ballot boxes with chief observers
     const ballotBoxesWithChiefObserver = filteredBallotBoxes.filter(ballotBox => {
-      const ballotBoxObservers = observers.filter(observer => observer.ballot_box_id === ballotBox.id);
-      return ballotBoxObservers.some(observer => observer.is_chief_observer);
+      const status = getBallotBoxStatus(ballotBox.id);
+      return status.hasChiefObserver;
     }).length;
     
-    // Count ballot boxes with district assigned
+    // Count ballot boxes with district assigned (sandığın kendisinde veya observer'larda)
     const ballotBoxesWithDistrict = filteredBallotBoxes.filter(ballotBox => {
-      const ballotBoxObservers = observers.filter(observer => observer.ballot_box_id === ballotBox.id);
-      return ballotBoxObservers.some(observer => observer.observer_district_id);
+      const status = getBallotBoxStatus(ballotBox.id);
+      return status.hasDistrict;
     }).length;
     
-    // Count ballot boxes with neighborhood/village assigned
+    // Count ballot boxes with neighborhood/village assigned (sandığın kendisinde veya observer'larda)
     const ballotBoxesWithLocation = filteredBallotBoxes.filter(ballotBox => {
-      const ballotBoxObservers = observers.filter(observer => observer.ballot_box_id === ballotBox.id);
-      return ballotBoxObservers.some(observer => observer.observer_neighborhood_id || observer.observer_village_id);
+      const status = getBallotBoxStatus(ballotBox.id);
+      return status.hasNeighborhoodOrVillage;
     }).length;
     
     // Count completed ballot boxes (has district, location, and chief observer)
     const completedBallotBoxes = filteredBallotBoxes.filter(ballotBox => {
-      const ballotBoxObservers = observers.filter(observer => observer.ballot_box_id === ballotBox.id);
-      const hasChiefObserver = ballotBoxObservers.some(observer => observer.is_chief_observer);
-      const hasDistrict = ballotBoxObservers.some(observer => observer.observer_district_id);
-      const hasLocation = ballotBoxObservers.some(observer => observer.observer_neighborhood_id || observer.observer_village_id);
-      
-      return hasChiefObserver && hasDistrict && hasLocation;
+      const status = getBallotBoxStatus(ballotBox.id);
+      return status.hasChiefObserver && status.hasDistrict && status.hasNeighborhoodOrVillage;
     }).length;
     
     return {

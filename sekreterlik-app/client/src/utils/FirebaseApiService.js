@@ -958,7 +958,25 @@ class FirebaseApiService {
 
   static async updateMeeting(id, meetingData) {
     try {
-      await FirebaseService.update(this.COLLECTIONS.MEETINGS, id, meetingData);
+      // description alanını şifrelemeden saklamak için özel işlem
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const descriptionValue = meetingData.description;
+      const meetingDataWithoutDescription = { ...meetingData };
+      delete meetingDataWithoutDescription.description;
+      
+      // Önce description olmadan güncelle
+      await FirebaseService.update(this.COLLECTIONS.MEETINGS, id, meetingDataWithoutDescription);
+      
+      // Sonra description'ı şifrelemeden ekle/güncelle
+      if (descriptionValue !== undefined && descriptionValue !== null) {
+        const docRef = doc(db, this.COLLECTIONS.MEETINGS, id);
+        await updateDoc(docRef, {
+          description: descriptionValue !== '' ? descriptionValue : null // Şifrelenmeden sakla
+        });
+      }
+      
       return { success: true, message: 'Toplantı güncellendi' };
     } catch (error) {
       console.error('Update meeting error:', error);
@@ -998,6 +1016,9 @@ class FirebaseApiService {
     try {
       // description alanını şifrelemeden saklamak için özel işlem
       // description hassas bir alan değil, normal metin olarak saklanmalı
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
       const descriptionValue = eventData.description;
       const eventDataWithoutDescription = { ...eventData };
       delete eventDataWithoutDescription.description;
@@ -1011,7 +1032,7 @@ class FirebaseApiService {
       );
       
       // Sonra description'ı şifrelemeden ekle
-      if (descriptionValue) {
+      if (descriptionValue !== undefined && descriptionValue !== null && descriptionValue !== '') {
         const docRef = doc(db, this.COLLECTIONS.EVENTS, docId);
         await updateDoc(docRef, {
           description: descriptionValue // Şifrelenmeden sakla
@@ -1027,7 +1048,25 @@ class FirebaseApiService {
 
   static async updateEvent(id, eventData) {
     try {
-      await FirebaseService.update(this.COLLECTIONS.EVENTS, id, eventData);
+      // description alanını şifrelemeden saklamak için özel işlem
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const descriptionValue = eventData.description;
+      const eventDataWithoutDescription = { ...eventData };
+      delete eventDataWithoutDescription.description;
+      
+      // Önce description olmadan güncelle
+      await FirebaseService.update(this.COLLECTIONS.EVENTS, id, eventDataWithoutDescription);
+      
+      // Sonra description'ı şifrelemeden ekle/güncelle
+      if (descriptionValue !== undefined && descriptionValue !== null) {
+        const docRef = doc(db, this.COLLECTIONS.EVENTS, id);
+        await updateDoc(docRef, {
+          description: descriptionValue !== '' ? descriptionValue : null // Şifrelenmeden sakla
+        });
+      }
+      
       return { success: true, message: 'Etkinlik güncellendi' };
     } catch (error) {
       console.error('Update event error:', error);

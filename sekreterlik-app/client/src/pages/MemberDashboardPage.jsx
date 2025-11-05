@@ -14,14 +14,13 @@ import MembersPage from './MembersPage';
 import MeetingsPage from './MeetingsPage';
 import CalendarPage from './CalendarPage';
 import DistrictsPage from './DistrictsPage';
-import EventsPage from './EventsPage';
 import ArchivePage from './ArchivePage';
 import ManagementChartPage from './ManagementChartPage';
-import ElectionPreparationPage from './pages/ElectionPreparationPage';
-import RepresentativesPage from './pages/RepresentativesPage';
-import NeighborhoodsPage from './pages/NeighborhoodsPage';
-import VillagesPage from './pages/VillagesPage';
-import GroupsPage from './pages/GroupsPage';
+import ElectionPreparationPage from './ElectionPreparationPage';
+import RepresentativesPage from './RepresentativesPage';
+import NeighborhoodsPage from './NeighborhoodsPage';
+import VillagesPage from './VillagesPage';
+import GroupsPage from './GroupsPage';
 
 const MemberDashboardPage = () => {
   const { user, logout } = useAuth();

@@ -61,18 +61,27 @@ const PersonalDocuments = ({ memberId }) => {
       setUploading(true);
       setError('');
       
-      await ApiService.uploadPersonalDocument(memberId, documentName.trim(), selectedFile);
+      const result = await ApiService.uploadPersonalDocument(memberId, documentName.trim(), selectedFile);
       
-      // Refresh documents list
-      await fetchDocuments();
-      
-      // Reset form
-      setSelectedFile(null);
-      setDocumentName('');
-      setShowUploadForm(false);
-      
+      // Başarı mesajı göster
+      if (result && result.message) {
+        // Refresh documents list
+        await fetchDocuments();
+        
+        // Reset form
+        setSelectedFile(null);
+        setDocumentName('');
+        setShowUploadForm(false);
+        setError(''); // Hata mesajını temizle
+        
+        // Başarı mesajı (opsiyonel - kullanıcı belgeler listesinde görecek)
+        console.log('Belge başarıyla yüklendi:', result.message);
+      } else {
+        throw new Error('Belge yüklenirken beklenmeyen bir hata oluştu');
+      }
     } catch (error) {
-      setError(error.message);
+      console.error('Upload error:', error);
+      setError(error.message || 'Belge yüklenirken hata oluştu');
     } finally {
       setUploading(false);
     }

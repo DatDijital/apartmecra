@@ -981,6 +981,11 @@ class ApiService {
   }
 
   static async uploadPersonalDocument(memberId, documentName, file) {
+    // Firebase kullanılıyorsa FirebaseApiService'i kullan
+    if (USE_FIREBASE) {
+      return FirebaseApiService.uploadPersonalDocument(memberId, documentName, file);
+    }
+    
     const formData = new FormData();
     formData.append('document', file);
     formData.append('document_type', documentName); // documentName artık belge adı olarak kullanılıyor
@@ -1002,6 +1007,11 @@ class ApiService {
   }
 
   static async downloadPersonalDocument(documentId) {
+    // Firebase kullanılıyorsa FirebaseApiService'i kullan
+    if (USE_FIREBASE) {
+      return FirebaseApiService.downloadPersonalDocument(documentId);
+    }
+    
     const response = await fetch(`${API_BASE_URL}/personal-documents/download/${documentId}`, {
       headers: this.getAuthHeaders(),
     });
@@ -1015,6 +1025,11 @@ class ApiService {
   }
 
   static async deletePersonalDocument(documentId) {
+    // Firebase kullanılıyorsa FirebaseApiService'i kullan
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deletePersonalDocument(documentId);
+    }
+    
     const response = await fetch(`${API_BASE_URL}/personal-documents/${documentId}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),

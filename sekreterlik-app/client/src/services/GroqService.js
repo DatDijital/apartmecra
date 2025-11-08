@@ -99,7 +99,14 @@ ${contextText}`;
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Groq API hatası: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        let errorMessage = errorData.error?.message || response.statusText;
+        
+        // 402 hatası için özel mesaj
+        if (response.status === 402) {
+          errorMessage = 'Groq API ücretsiz tier limiti aşıldı veya ödeme gerekiyor. Lütfen Groq Console\'dan hesabınızı kontrol edin veya başka bir AI servisi (Gemini, DeepSeek) kullanın.';
+        }
+        
+        throw new Error(`Groq API hatası: ${response.status} - ${errorMessage}`);
       }
 
       const data = await response.json();

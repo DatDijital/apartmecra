@@ -101,7 +101,14 @@ ${contextText}`;
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Gemini API hatası: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        let errorMessage = errorData.error?.message || response.statusText;
+        
+        // 402 hatası için özel mesaj
+        if (response.status === 402) {
+          errorMessage = 'Gemini API ücretsiz tier limiti aşıldı veya ödeme gerekiyor. Lütfen Google AI Studio\'dan hesabınızı kontrol edin veya başka bir AI servisi (Groq, DeepSeek) kullanın.';
+        }
+        
+        throw new Error(`Gemini API hatası: ${response.status} - ${errorMessage}`);
       }
 
       const data = await response.json();

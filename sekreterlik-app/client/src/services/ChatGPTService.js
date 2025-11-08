@@ -100,7 +100,14 @@ ${contextText}`;
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`ChatGPT API hatası: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        let errorMessage = errorData.error?.message || response.statusText;
+        
+        // 402 hatası için özel mesaj
+        if (response.status === 402) {
+          errorMessage = 'ChatGPT API ücretsiz tier limiti aşıldı veya ödeme gerekiyor. Lütfen OpenAI Platform\'dan hesabınızı kontrol edin veya başka bir AI servisi (Groq, Gemini, DeepSeek) kullanın.';
+        }
+        
+        throw new Error(`ChatGPT API hatası: ${response.status} - ${errorMessage}`);
       }
 
       const data = await response.json();

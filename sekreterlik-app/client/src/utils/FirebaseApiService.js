@@ -2894,6 +2894,110 @@ class FirebaseApiService {
       throw new Error('Grup silinirken hata oluştu');
     }
   }
+
+  // Personal Documents API methods
+  static async getPersonalDocuments(memberId) {
+    try {
+      // memberId'yi string'e çevir
+      const memberIdStr = String(memberId);
+      
+      // Firebase'de personal_documents collection'ından member_id'ye göre filtrele
+      const documents = await FirebaseService.findByField(
+        this.COLLECTIONS.PERSONAL_DOCUMENTS,
+        'member_id',
+        memberIdStr
+      );
+      
+      return documents || [];
+    } catch (error) {
+      console.error('Get personal documents error:', error);
+      return [];
+    }
+  }
+
+  static async uploadPersonalDocument(memberId, documentName, file) {
+    try {
+      // memberId'yi string'e çevir
+      const memberIdStr = String(memberId);
+      
+      // Dosyayı base64'e çevir (Firebase Storage kullanmadan önce)
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      
+      // Belge verilerini hazırla
+      const documentData = {
+        member_id: memberIdStr,
+        document_name: documentName.trim(),
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+        file_data: fileData, // Base64 encoded file data
+        uploaded_at: new Date().toISOString()
+      };
+      
+      // Firebase'e kaydet (şifreleme yok - belge adı hassas değil)
+      const docId = await FirebaseService.create(
+        this.COLLECTIONS.PERSONAL_DOCUMENTS,
+        null,
+        documentData,
+        false // Şifreleme yok
+      );
+      
+      return {
+        message: 'Belge başarıyla yüklendi',
+        document: {
+          id: docId,
+          document_name: documentName,
+          file_size: file.size,
+          uploaded_at: documentData.uploaded_at
+        }
+      };
+    } catch (error) {
+      console.error('Upload personal document error:', error);
+      throw new Error('Belge yüklenirken hata oluştu: ' + (error.message || error));
+    }
+  }
+
+  static async downloadPersonalDocument(documentId) {
+    try {
+      // Belgeyi Firebase'den al
+      const document = await FirebaseService.getById(
+        this.COLLECTIONS.PERSONAL_DOCUMENTS,
+        documentId
+      );
+      
+      if (!document) {
+        throw new Error('Belge bulunamadı');
+      }
+      
+      // Base64'ten blob'a çevir
+      if (document.file_data) {
+        // Base64 data URL'den blob'a çevir
+        const response = await fetch(document.file_data);
+        const blob = await response.blob();
+        return blob;
+      } else {
+        throw new Error('Belge verisi bulunamadı');
+      }
+    } catch (error) {
+      console.error('Download personal document error:', error);
+      throw new Error('Belge indirilirken hata oluştu: ' + (error.message || error));
+    }
+  }
+
+  static async deletePersonalDocument(documentId) {
+    try {
+      await FirebaseService.delete(this.COLLECTIONS.PERSONAL_DOCUMENTS, documentId);
+      return { success: true, message: 'Belge silindi' };
+    } catch (error) {
+      console.error('Delete personal document error:', error);
+      throw new Error('Belge silinirken hata oluştu');
+    }
+  }
 }
 
 export default FirebaseApiService;

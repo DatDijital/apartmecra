@@ -330,6 +330,13 @@ class FirebaseApiService {
           userData.role = memberUser[0].userType || 'member';
           userData.memberId = memberUser[0].memberId;
           userData.id = memberUser[0].id;
+          
+          // Belde başkanı veya ilçe başkanı ise townId veya districtId ekle
+          if (memberUser[0].userType === 'town_president' && memberUser[0].townId) {
+            userData.townId = memberUser[0].townId;
+          } else if (memberUser[0].userType === 'district_president' && memberUser[0].districtId) {
+            userData.districtId = memberUser[0].districtId;
+          }
         }
       } catch (e) {
         console.warn('Member user check failed:', e);

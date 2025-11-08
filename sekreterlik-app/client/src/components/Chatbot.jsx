@@ -13,6 +13,7 @@ const Chatbot = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [siteData, setSiteData] = useState(null);
   const [bylawsText, setBylawsText] = useState('');
+  const [aiProvider, setAiProvider] = useState('groq'); // 'groq', 'gemini', 'chatgpt', 'deepseek'
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom when new message is added

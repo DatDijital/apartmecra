@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ApiService from '../utils/ApiService';
+import { decryptData } from '../utils/crypto';
 
 const MemberUsersSettings = () => {
   const [memberUsers, setMemberUsers] = useState([]);
@@ -16,6 +17,11 @@ const MemberUsersSettings = () => {
     password: ''
   });
   const [isUpdating, setIsUpdating] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    username: '',
+    password: ''
+  });
 
   useEffect(() => {
     fetchMemberUsers();
@@ -60,7 +66,75 @@ const MemberUsersSettings = () => {
     }
   };
 
-  // Şifre düzenleme özelliği kaldırıldı - çalışmıyor
+  const handleEditUser = (user) => {
+    // Şifreyi decrypt et
+    let decryptedPassword = user.password || '';
+    try {
+      if (decryptedPassword && typeof decryptedPassword === 'string' && decryptedPassword.startsWith('U2FsdGVkX1')) {
+        decryptedPassword = decryptData(decryptedPassword);
+      }
+    } catch (error) {
+      console.error('Error decrypting password:', error);
+    }
+    
+    setEditingUser(user);
+    setEditForm({
+      username: user.username || '',
+      password: decryptedPassword
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setEditForm({ username: '', password: '' });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    
+    if (!editingUser) return;
+    
+    if (!editForm.username || !editForm.password) {
+      setMessage('Kullanıcı adı ve şifre zorunludur');
+      setMessageType('error');
+      return;
+    }
+
+    try {
+      const response = await ApiService.updateMemberUser(
+        editingUser.id,
+        editForm.username,
+        editForm.password
+      );
+      
+      if (response.success) {
+        setMessage('Kullanıcı bilgileri başarıyla güncellendi');
+        setMessageType('success');
+        setEditingUser(null);
+        setEditForm({ username: '', password: '' });
+        await fetchMemberUsers();
+      } else {
+        setMessage(response.message || 'Kullanıcı güncellenirken hata oluştu');
+        setMessageType('error');
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setMessage('Kullanıcı güncellenirken hata oluştu');
+      setMessageType('error');
+    }
+  };
+
+  const getDecryptedPassword = (user) => {
+    let password = user.password || '';
+    try {
+      if (password && typeof password === 'string' && password.startsWith('U2FsdGVkX1')) {
+        password = decryptData(password);
+      }
+    } catch (error) {
+      console.error('Error decrypting password:', error);
+    }
+    return password;
+  };
 
   const handleToggleStatus = async (userId) => {
     try {
@@ -345,6 +419,9 @@ const MemberUsersSettings = () => {
                   Kullanıcı Adı
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Şifre
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Durum
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -355,7 +432,7 @@ const MemberUsersSettings = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {memberUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                     Henüz üye kullanıcısı bulunmuyor
                   </td>
                 </tr>
@@ -410,6 +487,11 @@ const MemberUsersSettings = () => {
                       <div className="text-sm text-gray-900 dark:text-gray-100">{user.username}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-gray-100 font-mono">
+                        {getDecryptedPassword(user) || '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.is_active || user.isActive
                           ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
@@ -420,6 +502,12 @@ const MemberUsersSettings = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                        >
+                          Düzenle
+                        </button>
                         <button
                           onClick={() => handleToggleStatus(user.id)}
                           className={`${
@@ -447,7 +535,59 @@ const MemberUsersSettings = () => {
         </div>
       </div>
 
-      {/* Şifre düzenleme özelliği kaldırıldı - çalışmıyor */}
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
+          <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
+            Kullanıcı Bilgilerini Düzenle
+          </h4>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Kullanıcı Adı (TC)
+              </label>
+              <input
+                type="text"
+                value={editForm.username}
+                onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-200"
+                placeholder="TC kimlik numarası"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Şifre (Telefon)
+              </label>
+              <input
+                type="text"
+                value={editForm.password}
+                onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-200 font-mono"
+                placeholder="Telefon numarası (sadece rakamlar)"
+                required
+              />
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                type="submit"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200"
+              >
+                Kaydet
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition duration-200"
+              >
+                İptal
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

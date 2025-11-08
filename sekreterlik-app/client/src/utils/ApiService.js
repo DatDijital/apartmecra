@@ -320,6 +320,12 @@ class ApiService {
   }
 
   static async importMembersFromExcel(file) {
+    // Firebase kullanılıyorsa FirebaseApiService'i kullan
+    if (USE_FIREBASE) {
+      return FirebaseApiService.importMembersFromExcel(file);
+    }
+    
+    // Backend API kullanılıyorsa
     // Create FormData object to send the file
     const formData = new FormData();
     formData.append('file', file);

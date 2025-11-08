@@ -1963,7 +1963,18 @@ class FirebaseApiService {
   // Towns CRUD
   static async getTowns() {
     try {
-      return await FirebaseService.getAll(this.COLLECTIONS.TOWNS);
+      const towns = await FirebaseService.getAll(this.COLLECTIONS.TOWNS);
+      const townOfficials = await FirebaseService.getAll(this.COLLECTIONS.TOWN_OFFICIALS);
+      
+      // Her belde için başkan bilgisini ekle
+      return towns.map(town => {
+        const official = townOfficials.find(o => String(o.town_id) === String(town.id));
+        return {
+          ...town,
+          town_chairman_name: official?.chairman_name || null,
+          town_chairman_phone: official?.chairman_phone || null
+        };
+      });
     } catch (error) {
       console.error('Get towns error:', error);
       return [];
@@ -2750,10 +2761,95 @@ class FirebaseApiService {
       
       if (existing && existing.length > 0) {
         await FirebaseService.update(this.COLLECTIONS.TOWN_OFFICIALS, existing[0].id, cleanedData, false);
+      } else {
+        await FirebaseService.create(this.COLLECTIONS.TOWN_OFFICIALS, null, cleanedData, false);
+      }
+
+      // Belde başkanı kullanıcısı oluştur/güncelle (eğer başkan bilgileri varsa)
+      if (cleanedData.chairman_name && cleanedData.chairman_phone) {
+        try {
+          // Belde bilgisini al
+          const town = await FirebaseService.getById(this.COLLECTIONS.TOWNS, townId);
+          if (town) {
+            // Başkan üye ise, üye kullanıcısı oluştur (eğer yoksa)
+            if (cleanedData.chairman_member_id) {
+              const memberUsers = await FirebaseService.findByField(
+                this.COLLECTIONS.MEMBER_USERS,
+                'memberId',
+                String(cleanedData.chairman_member_id)
+              );
+              
+              if (!memberUsers || memberUsers.length === 0) {
+                // Üye bilgisini al
+                const member = await FirebaseService.getById(this.COLLECTIONS.MEMBERS, cleanedData.chairman_member_id);
+                if (member) {
+                  // TC ve telefon numarasını decrypt et
+                  const { decryptData } = require('../utils/crypto');
+                  const tc = member.tc && member.tc.startsWith('U2FsdGVkX1') ? decryptData(member.tc) : member.tc;
+                  const phone = member.phone && member.phone.startsWith('U2FsdGVkX1') ? decryptData(member.phone) : member.phone;
+                  
+                  // Üye kullanıcısı oluştur
+                  await this.createMemberUser(cleanedData.chairman_member_id, tc, phone.replace(/\D/g, ''));
+                  console.log('✅ Created member user for chairman member ID:', cleanedData.chairman_member_id);
+                }
+              } else {
+                console.log('ℹ️ Chairman is a member and already has a user account, skipping town president user creation');
+              }
+            } else {
+              // Başkan üye değilse, belde başkanı kullanıcısı oluştur
+              // Kullanıcı adı: belde adı (normalize edilmiş)
+              const normalizedTownName = town.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+              const username = normalizedTownName;
+              const password = cleanedData.chairman_phone.replace(/\D/g, ''); // Sadece rakamlar
+              
+              // Mevcut belde başkanı kullanıcısını kontrol et
+              const existingTownUsers = await FirebaseService.findByField(
+                this.COLLECTIONS.MEMBER_USERS,
+                'townId',
+                townId
+              );
+              
+              if (existingTownUsers && existingTownUsers.length > 0) {
+                // Mevcut kullanıcıyı güncelle
+                const townUser = existingTownUsers.find(u => u.userType === 'town_president');
+                if (townUser) {
+                  await FirebaseService.update(this.COLLECTIONS.MEMBER_USERS, townUser.id, {
+                    username,
+                    password: password, // Şifreleme FirebaseService içinde yapılacak
+                    chairmanName: cleanedData.chairman_name,
+                    chairmanPhone: cleanedData.chairman_phone
+                  });
+                  console.log('✅ Updated town president user for town ID:', townId);
+                }
+              } else {
+                // Yeni belde başkanı kullanıcısı oluştur
+                await FirebaseService.create(
+                  this.COLLECTIONS.MEMBER_USERS,
+                  null,
+                  {
+                    username,
+                    password: password, // Şifreleme FirebaseService içinde yapılacak
+                    userType: 'town_president',
+                    townId: townId,
+                    chairmanName: cleanedData.chairman_name,
+                    chairmanPhone: cleanedData.chairman_phone,
+                    isActive: true
+                  }
+                );
+                console.log('✅ Created town president user for town ID:', townId, 'Username:', username, 'Password:', password);
+              }
+            }
+          }
+        } catch (userError) {
+          console.warn('⚠️ Error creating/updating town president user (non-critical):', userError);
+          // Kullanıcı oluşturma hatası kritik değil, devam et
+        }
+      }
+      
+      if (existing && existing.length > 0) {
         return { success: true, id: existing[0].id, message: 'Belde yetkilileri güncellendi' };
       } else {
-        const docId = await FirebaseService.create(this.COLLECTIONS.TOWN_OFFICIALS, null, cleanedData, false);
-        return { success: true, id: docId, message: 'Belde yetkilileri oluşturuldu' };
+        return { success: true, id: townId, message: 'Belde yetkilileri oluşturuldu' };
       }
     } catch (error) {
       console.error('Create/update town officials error:', error);

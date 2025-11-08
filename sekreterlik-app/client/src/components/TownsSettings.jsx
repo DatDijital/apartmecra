@@ -207,7 +207,20 @@ const TownsSettings = () => {
         )
       };
 
-      await ApiService.createOrUpdateTownOfficials(officialsData);
+      const result = await ApiService.createOrUpdateTownOfficials(officialsData);
+      
+      // Belde başkanı kullanıcı bilgilerini göster
+      if (formData.chairman_name && formData.chairman_phone) {
+        // Belde bilgisini al
+        const town = towns.find(t => String(t.id) === String(townId)) || { name: formData.name };
+        const normalizedTownName = town.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        const username = normalizedTownName;
+        const password = formData.chairman_phone.replace(/\D/g, ''); // Sadece rakamlar
+        
+        setMessage(`Belde başarıyla kaydedildi. Belde başkanı kullanıcı bilgileri:\nKullanıcı Adı: ${username}\nŞifre: ${password}`);
+      } else {
+        setMessage('Belde başarıyla kaydedildi');
+      }
       
       setMessageType('success');
       setFormData({ 

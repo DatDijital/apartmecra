@@ -3,10 +3,11 @@ import FirebaseService from '../services/FirebaseService';
 import { decryptData, encryptData } from '../utils/crypto';
 
 const GroqApiSettings = () => {
-  const [selectedProvider, setSelectedProvider] = useState('groq'); // 'groq', 'gemini', 'chatgpt'
+  const [selectedProvider, setSelectedProvider] = useState('groq'); // 'groq', 'gemini', 'chatgpt', 'deepseek'
   const [groqApiKey, setGroqApiKey] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [chatgptApiKey, setChatgptApiKey] = useState('');
+  const [deepseekApiKey, setDeepseekApiKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -94,10 +95,28 @@ const GroqApiSettings = () => {
           const envKey = import.meta.env.VITE_OPENAI_API_KEY;
           if (envKey) setChatgptApiKey(envKey);
         }
+
+        // DeepSeek API Key
+        try {
+          const deepseekConfig = await FirebaseService.getById('deepseek_api_config', 'main');
+          if (deepseekConfig && deepseekConfig.api_key) {
+            const decryptedKey = deepseekConfig.api_key.startsWith('U2FsdGVkX1') 
+              ? decryptData(deepseekConfig.api_key)
+              : deepseekConfig.api_key;
+            setDeepseekApiKey(decryptedKey);
+          } else {
+            const envKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
+            if (envKey) setDeepseekApiKey(envKey);
+          }
+        } catch (error) {
+          const envKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
+          if (envKey) setDeepseekApiKey(envKey);
+        }
       } else {
         setGroqApiKey(import.meta.env.VITE_GROQ_API_KEY || '');
         setGeminiApiKey(import.meta.env.VITE_GEMINI_API_KEY || '');
         setChatgptApiKey(import.meta.env.VITE_OPENAI_API_KEY || '');
+        setDeepseekApiKey(import.meta.env.VITE_DEEPSEEK_API_KEY || '');
       }
     } catch (error) {
       console.error('Error loading API keys:', error);
@@ -113,6 +132,7 @@ const GroqApiSettings = () => {
       case 'groq': return groqApiKey;
       case 'gemini': return geminiApiKey;
       case 'chatgpt': return chatgptApiKey;
+      case 'deepseek': return deepseekApiKey;
       default: return '';
     }
   };
@@ -122,6 +142,7 @@ const GroqApiSettings = () => {
       case 'groq': setGroqApiKey(value); break;
       case 'gemini': setGeminiApiKey(value); break;
       case 'chatgpt': setChatgptApiKey(value); break;
+      case 'deepseek': setDeepseekApiKey(value); break;
     }
   };
 
@@ -133,7 +154,11 @@ const GroqApiSettings = () => {
       const currentKey = getCurrentApiKey();
       
       if (!currentKey.trim()) {
-        setMessage(`Lütfen ${selectedProvider === 'groq' ? 'Groq' : selectedProvider === 'gemini' ? 'Gemini' : 'ChatGPT'} API anahtarını girin`);
+        const providerName = selectedProvider === 'groq' ? 'Groq' : 
+                            selectedProvider === 'gemini' ? 'Gemini' : 
+                            selectedProvider === 'chatgpt' ? 'ChatGPT' : 
+                            selectedProvider === 'deepseek' ? 'DeepSeek' : 'AI';
+        setMessage(`Lütfen ${providerName} API anahtarını girin`);
         setMessageType('error');
         return;
       }
@@ -147,6 +172,12 @@ const GroqApiSettings = () => {
 
       if (selectedProvider === 'chatgpt' && !currentKey.trim().startsWith('sk-')) {
         setMessage('Geçersiz ChatGPT API anahtarı formatı. API anahtarı "sk-" ile başlamalıdır.');
+        setMessageType('error');
+        return;
+      }
+
+      if (selectedProvider === 'deepseek' && !currentKey.trim().startsWith('sk-')) {
+        setMessage('Geçersiz DeepSeek API anahtarı formatı. API anahtarı "sk-" ile başlamalıdır.');
         setMessageType('error');
         return;
       }
@@ -172,7 +203,11 @@ const GroqApiSettings = () => {
           updated_at: new Date().toISOString()
         }, false);
         
-        setMessage(`${selectedProvider === 'groq' ? 'Groq' : selectedProvider === 'gemini' ? 'Gemini' : 'ChatGPT'} API anahtarı başarıyla kaydedildi`);
+        const providerName = selectedProvider === 'groq' ? 'Groq' : 
+                            selectedProvider === 'gemini' ? 'Gemini' : 
+                            selectedProvider === 'chatgpt' ? 'ChatGPT' : 
+                            selectedProvider === 'deepseek' ? 'DeepSeek' : 'AI';
+        setMessage(`${providerName} API anahtarı başarıyla kaydedildi`);
         setMessageType('success');
       } else {
         setMessage('Firebase kullanılmıyor. API anahtarı environment variable olarak ayarlanmalıdır.');
@@ -282,6 +317,12 @@ const GroqApiSettings = () => {
       placeholder: 'sk-...',
       link: 'https://platform.openai.com/api-keys',
       description: 'OpenAI\'nin ChatGPT servisi. Ücretli, ancak güçlü.'
+    },
+    deepseek: {
+      name: 'DeepSeek',
+      placeholder: 'sk-...',
+      link: 'https://platform.deepseek.com/api_keys',
+      description: 'DeepSeek AI servisi. Uygun fiyatlı ve güçlü. Ücretsiz tier mevcut.'
     }
   };
 
@@ -310,6 +351,7 @@ const GroqApiSettings = () => {
         >
           <option value="groq">Groq (Ücretsiz - Önerilen)</option>
           <option value="gemini">Google Gemini (Ücretsiz)</option>
+          <option value="deepseek">DeepSeek (Ücretsiz/Uygun Fiyatlı)</option>
           <option value="chatgpt">OpenAI ChatGPT (Ücretli)</option>
         </select>
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -390,7 +432,7 @@ const GroqApiSettings = () => {
           <li>Seçtiğiniz AI servisi chatbot tarafından kullanılacaktır</li>
           <li>API anahtarı değiştiğinde buraya yeni anahtarı girebilirsiniz</li>
           <li>Test butonu ile API anahtarının geçerli olup olmadığını kontrol edebilirsiniz</li>
-          <li>Groq: "gsk_" ile başlamalı | Gemini: "AIza" ile başlamalı | ChatGPT: "sk-" ile başlamalı</li>
+          <li>Groq: "gsk_" ile başlamalı | Gemini: "AIza" ile başlamalı | DeepSeek: "sk-" ile başlamalı | ChatGPT: "sk-" ile başlamalı</li>
         </ul>
       </div>
     </div>

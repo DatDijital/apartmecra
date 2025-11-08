@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import GroqService from '../services/GroqService';
 import GeminiService from '../services/GeminiService';
 import ChatGPTService from '../services/ChatGPTService';
+import DeepSeekService from '../services/DeepSeekService';
 import ApiService from '../utils/ApiService';
 import FirebaseService from '../services/FirebaseService';
 
@@ -334,6 +335,8 @@ const Chatbot = ({ isOpen, onClose }) => {
           AIService = GeminiService;
         } else if (aiProvider === 'chatgpt') {
           AIService = ChatGPTService;
+        } else if (aiProvider === 'deepseek') {
+          AIService = DeepSeekService;
         } else {
           AIService = GroqService; // Default: Groq
         }

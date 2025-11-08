@@ -213,7 +213,16 @@ const TownsSettings = () => {
       if (formData.chairman_name && formData.chairman_phone) {
         // Belde bilgisini al
         const town = towns.find(t => String(t.id) === String(townId)) || { name: formData.name };
-        const normalizedTownName = town.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        const normalizedTownName = town.name
+          .toLowerCase()
+          .replace(/ç/g, 'c')
+          .replace(/ğ/g, 'g')
+          .replace(/ı/g, 'i')
+          .replace(/ö/g, 'o')
+          .replace(/ş/g, 's')
+          .replace(/ü/g, 'u')
+          .replace(/\s+/g, '_')
+          .replace(/[^a-z0-9_]/g, '');
         const username = normalizedTownName;
         const password = formData.chairman_phone.replace(/\D/g, ''); // Sadece rakamlar
         

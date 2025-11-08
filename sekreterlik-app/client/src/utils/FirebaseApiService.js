@@ -2796,8 +2796,17 @@ class FirebaseApiService {
               }
             } else {
               // Başkan üye değilse, belde başkanı kullanıcısı oluştur
-              // Kullanıcı adı: belde adı (normalize edilmiş)
-              const normalizedTownName = town.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+              // Kullanıcı adı: belde adı (normalize edilmiş - Türkçe karakterler düzeltilmiş)
+              const normalizedTownName = town.name
+                .toLowerCase()
+                .replace(/ç/g, 'c')
+                .replace(/ğ/g, 'g')
+                .replace(/ı/g, 'i')
+                .replace(/ö/g, 'o')
+                .replace(/ş/g, 's')
+                .replace(/ü/g, 'u')
+                .replace(/\s+/g, '_')
+                .replace(/[^a-z0-9_]/g, '');
               const username = normalizedTownName;
               const password = cleanedData.chairman_phone.replace(/\D/g, ''); // Sadece rakamlar
               

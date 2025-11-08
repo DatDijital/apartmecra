@@ -15,10 +15,35 @@ class GroqService {
    */
   static async chat(userMessage, context = [], conversationHistory = []) {
     try {
-      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      // Önce Firebase'den API key'i al, yoksa environment variable'dan al
+      let apiKey = null;
+      
+      const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
+      if (USE_FIREBASE) {
+        try {
+          const FirebaseService = (await import('../services/FirebaseService')).default;
+          const configDoc = await FirebaseService.getById('groq_api_config', 'main');
+          if (configDoc && configDoc.api_key) {
+            // API key şifrelenmiş olabilir, decrypt et
+            if (configDoc.api_key.startsWith('U2FsdGVkX1')) {
+              const { decryptData } = await import('../utils/crypto');
+              apiKey = decryptData(configDoc.api_key);
+            } else {
+              apiKey = configDoc.api_key;
+            }
+          }
+        } catch (error) {
+          console.warn('Firebase\'den Groq API key alınamadı, environment variable kullanılıyor:', error);
+        }
+      }
+      
+      // Eğer Firebase'de yoksa, environment variable'dan al
+      if (!apiKey) {
+        apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      }
       
       if (!apiKey) {
-        throw new Error('Groq API key bulunamadı. Lütfen VITE_GROQ_API_KEY environment variable\'ını ayarlayın.');
+        throw new Error('Groq API key bulunamadı. Lütfen Ayarlar > Chatbot API sayfasından API anahtarını girin veya VITE_GROQ_API_KEY environment variable\'ını ayarlayın.');
       }
 
       // System prompt - AI'nın kimliği ve sınırları

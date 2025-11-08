@@ -13,6 +13,7 @@ import MosquesSettings from '../components/MosquesSettings';
 import EventCategoriesSettings from '../components/EventCategoriesSettings';
 import AuthorizationSettings from '../components/AuthorizationSettings';
 import BylawsSettings from '../components/BylawsSettings';
+import GroqApiSettings from '../components/GroqApiSettings';
 import { 
   SettingsHeader, 
   SettingsSummaryCards, 
@@ -72,6 +73,7 @@ const SettingsPage = ({ tab }) => {
           {activeTab === 'event-categories' && <EventCategoriesSettings />}
           {activeTab === 'authorization' && <AuthorizationSettings />}
           {activeTab === 'bylaws' && <BylawsSettings />}
+          {activeTab === 'groq-api' && <GroqApiSettings />}
           {/* Push notifications removed */}
         </div>
       </div>

@@ -19,13 +19,33 @@ const Chatbot = ({ isOpen, onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Load AI provider
+  const loadAiProvider = async () => {
+    try {
+      const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
+      if (USE_FIREBASE) {
+        try {
+          const configDoc = await FirebaseService.getById('ai_provider_config', 'main');
+          if (configDoc && configDoc.provider) {
+            setAiProvider(configDoc.provider);
+          }
+        } catch (error) {
+          console.warn('AI provider config not found, using default (groq)');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading AI provider:', error);
+    }
+  };
+
   // Load site data on mount (lazy load - only when chatbot is opened)
   useEffect(() => {
     if (isOpen && !siteData) {
       // Load data asynchronously without blocking UI
       Promise.all([
         loadSiteData(),
-        loadBylaws()
+        loadBylaws(),
+        loadAiProvider()
       ]).catch(error => {
         console.error('Error loading chatbot data:', error);
       });

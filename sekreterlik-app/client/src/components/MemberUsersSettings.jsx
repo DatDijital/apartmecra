@@ -4,6 +4,7 @@ import ApiService from '../utils/ApiService';
 const MemberUsersSettings = () => {
   const [memberUsers, setMemberUsers] = useState([]);
   const [members, setMembers] = useState([]);
+  const [towns, setTowns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('success');
@@ -19,6 +20,7 @@ const MemberUsersSettings = () => {
   useEffect(() => {
     fetchMemberUsers();
     fetchMembers();
+    fetchTowns();
   }, []);
 
   const fetchMemberUsers = async () => {
@@ -46,6 +48,15 @@ const MemberUsersSettings = () => {
       setMembers(response);
     } catch (error) {
       console.error('Error fetching members:', error);
+    }
+  };
+
+  const fetchTowns = async () => {
+    try {
+      const response = await ApiService.getTowns();
+      setTowns(response || []);
+    } catch (error) {
+      console.error('Error fetching towns:', error);
     }
   };
 
@@ -350,18 +361,49 @@ const MemberUsersSettings = () => {
                 </tr>
               ) : (
                 memberUsers.map((user) => {
-                  // Üye bilgilerini members array'inden bul
-                  const member = members.find(m => m.id === user.member_id || m.id === user.memberId || String(m.id) === String(user.member_id) || String(m.id) === String(user.memberId));
-                  const memberName = member?.name || 'Bilinmeyen Üye';
-                  const memberRegion = member?.region || member?.region_name || '-';
-                  const memberPosition = member?.position || member?.position_name || '-';
+                  // Kullanıcı tipine göre bilgileri al
+                  let displayName = 'Bilinmeyen';
+                  let displayInfo = '-';
+                  let userTypeLabel = 'Üye';
+                  
+                  if (user.userType === 'town_president' && user.townId) {
+                    // Belde başkanı kullanıcısı
+                    const town = towns.find(t => String(t.id) === String(user.townId));
+                    displayName = town?.name || user.chairmanName || 'Bilinmeyen Belde';
+                    displayInfo = user.chairmanName ? `${user.chairmanName} - Belde Başkanı` : 'Belde Başkanı';
+                    userTypeLabel = 'Belde Başkanı';
+                  } else if (user.userType === 'district_president' && user.districtId) {
+                    // İlçe başkanı kullanıcısı
+                    displayName = user.chairmanName || 'Bilinmeyen İlçe';
+                    displayInfo = 'İlçe Başkanı';
+                    userTypeLabel = 'İlçe Başkanı';
+                  } else {
+                    // Üye kullanıcısı
+                    const member = members.find(m => m.id === user.member_id || m.id === user.memberId || String(m.id) === String(user.member_id) || String(m.id) === String(user.memberId));
+                    displayName = member?.name || 'Bilinmeyen Üye';
+                    const memberRegion = member?.region || member?.region_name || '-';
+                    const memberPosition = member?.position || member?.position_name || '-';
+                    displayInfo = `${memberRegion} - ${memberPosition}`;
+                    userTypeLabel = 'Üye';
+                  }
                   
                   return (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{memberName}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{memberRegion} - {memberPosition}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{displayName}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{displayInfo}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          <span className={`inline-flex px-2 py-0.5 rounded-full ${
+                            user.userType === 'town_president'
+                              ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                              : user.userType === 'district_president'
+                              ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                          }`}>
+                            {userTypeLabel}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

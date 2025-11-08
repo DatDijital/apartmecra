@@ -2971,13 +2971,29 @@ class FirebaseApiService {
                       });
                     }
                   } else {
-                    // Auth UID varsa sadece Firestore'u güncelle
+                    // Auth UID varsa Firestore'u güncelle
+                    // Telefon değiştiyse şifre de güncellenmeli
+                    const oldPhone = townUser.chairmanPhone || townUser.password;
+                    const newPhone = cleanedData.chairman_phone.replace(/\D/g, '');
+                    const phoneChanged = oldPhone && oldPhone.replace(/\D/g, '') !== newPhone;
+                    
                     await FirebaseService.update(this.COLLECTIONS.MEMBER_USERS, townUser.id, {
                       username,
                       password: password, // Şifreleme FirebaseService içinde yapılacak
                       chairmanName: cleanedData.chairman_name,
                       chairmanPhone: cleanedData.chairman_phone
                     });
+                    
+                    // Telefon değiştiyse şifre de güncellendi (Firestore'da)
+                    // Firebase Auth'daki şifre güncellemesi için backend/Cloud Functions gerekir
+                    // Şimdilik Firestore'daki password güncelleniyor, login sırasında kontrol edilecek
+                    if (phoneChanged) {
+                      console.log('✅ Town president phone changed, password updated in Firestore:', {
+                        oldPhone: oldPhone?.replace(/\D/g, ''),
+                        newPhone: newPhone,
+                        username
+                      });
+                    }
                   }
                   console.log('✅ Updated town president user for town ID:', townId);
                 }

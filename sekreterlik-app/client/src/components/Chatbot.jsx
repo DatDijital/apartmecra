@@ -317,8 +317,14 @@ const Chatbot = ({ isOpen, onClose }) => {
         context.push(...memberContext);
       }
       
-      // Add bylaws text or URL if available
+      // Add bylaws text or URL if available (kısaltılmış - token limiti için)
       if (bylawsText) {
+        // Tüzük metnini kısalt (token limiti için - max 10000 karakter)
+        const MAX_BYLAWS_LENGTH = 10000;
+        const shortenedBylaws = bylawsText.length > MAX_BYLAWS_LENGTH 
+          ? bylawsText.substring(0, MAX_BYLAWS_LENGTH) + '\n\n[Tüzük metni kısaltıldı - token limiti nedeniyle]'
+          : bylawsText;
+        
         console.log('📋 Adding bylaws to context:', {
           textLength: bylawsText.length,
           startsWithLink: bylawsText.startsWith('TÜZÜK_LINK:'),

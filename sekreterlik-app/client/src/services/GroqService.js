@@ -46,6 +46,17 @@ class GroqService {
         throw new Error('Groq API key bulunamadı. Lütfen Ayarlar > Chatbot API sayfasından API anahtarını girin veya VITE_GROQ_API_KEY environment variable\'ını ayarlayın.');
       }
 
+      // Context'i token limitine göre kısalt (12000 token limiti için)
+      // Her token yaklaşık 4 karakter (Türkçe için)
+      const MAX_CONTEXT_LENGTH = 40000; // ~10000 token için güvenli limit
+      let contextText = context.length > 0 ? context.join('\n') : 'Henüz context bilgisi yok.';
+      
+      // Eğer context çok büyükse, kısalt
+      if (contextText.length > MAX_CONTEXT_LENGTH) {
+        contextText = contextText.substring(0, MAX_CONTEXT_LENGTH) + '\n\n[Context kısaltıldı - token limiti nedeniyle]';
+        console.warn('Context çok büyük, kısaltıldı:', contextText.length, 'karakter');
+      }
+
       // System prompt - AI'nın kimliği ve sınırları
       const systemPrompt = `Sen "Yeniden Refah Partisi Elazığ Merkez İlçe Sekreteri" adlı bir yapay zeka asistanısın. Görevin site içi bilgileri ve yüklenen siyasi parti tüzüğünü kullanarak kullanıcılara yardımcı olmaktır.
 
@@ -62,7 +73,7 @@ KURALLAR:
 10. Kullanıcılar site işlevlerini nasıl kullanacaklarını sorduğunda, hangi sayfaya gitmeleri gerektiğini, hangi butona tıklamaları gerektiğini ve hangi bilgileri girmeleri gerektiğini detaylıca anlat
 
 CONTEXT BİLGİLERİ:
-${context.length > 0 ? context.map((item, index) => `${index + 1}. ${item}`).join('\n') : 'Henüz context bilgisi yok.'}`;
+${contextText}`;
 
       // Konuşma geçmişini formatla
       const messages = [
@@ -105,31 +116,32 @@ ${context.length > 0 ? context.map((item, index) => `${index + 1}. ${item}`).joi
   }
 
   /**
-   * Site verilerini context'e çevir
+   * Site verilerini context'e çevir (Token limiti için optimize edilmiş)
    * @param {Object} siteData - Firestore'dan çekilen site verileri
    * @returns {Array<string>} Context array'i
    */
   static buildSiteContext(siteData) {
     const context = [];
+    const MAX_ITEMS_PER_SECTION = 50; // Her bölüm için maksimum öğe sayısı
     
-    // ÜYE BİLGİLERİ
+    // ÜYE BİLGİLERİ (Özet - detaylar sadece gerektiğinde)
     if (siteData.members && siteData.members.length > 0) {
       context.push(`\n=== ÜYE BİLGİLERİ ===`);
       context.push(`Toplam ${siteData.members.length} üye kayıtlı.`);
       
-      // Tüm üyelerin detaylı bilgileri
-      const membersList = siteData.members.map(m => {
+      // Sadece ilk 50 üyenin özet bilgileri (token limiti için)
+      const membersList = siteData.members.slice(0, MAX_ITEMS_PER_SECTION).map(m => {
         const info = [];
-        info.push(`Ad Soyad: ${m.name || 'İsimsiz'}`);
-        if (m.tc) info.push(`TC: ${m.tc}`);
-        if (m.phone) info.push(`Telefon: ${m.phone}`);
+        info.push(`Ad: ${m.name || 'İsimsiz'}`);
         if (m.region) info.push(`Bölge: ${m.region}`);
         if (m.position) info.push(`Görev: ${m.position}`);
-        if (m.address) info.push(`Adres: ${m.address}`);
-        return info.join(', ');
+        return info.join(' | ');
       }).join('\n');
       
-      context.push(`ÜYE LİSTESİ:\n${membersList}`);
+      context.push(`ÜYE LİSTESİ (İlk ${Math.min(siteData.members.length, MAX_ITEMS_PER_SECTION)}):\n${membersList}`);
+      if (siteData.members.length > MAX_ITEMS_PER_SECTION) {
+        context.push(`... ve ${siteData.members.length - MAX_ITEMS_PER_SECTION} üye daha`);
+      }
     }
     
     // ÜYE KAYITLARI (Üyelerin kaydettiği üye sayıları ve tarihleri)
@@ -226,11 +238,11 @@ ${context.length > 0 ? context.map((item, index) => `${index + 1}. ${item}`).joi
       });
     }
     
-    // ETKİNLİK BİLGİLERİ
+    // ETKİNLİK BİLGİLERİ (Kısaltılmış - token limiti için)
     if (siteData.events && siteData.events.length > 0) {
-      const activeEvents = siteData.events.filter(e => !e.archived);
+      const activeEvents = siteData.events.filter(e => !e.archived).slice(0, MAX_ITEMS_PER_SECTION);
       context.push(`\n=== ETKİNLİK BİLGİLERİ ===`);
-      context.push(`Toplam ${activeEvents.length} aktif etkinlik var.`);
+      context.push(`Toplam ${siteData.events.filter(e => !e.archived).length} aktif etkinlik var.`);
       
       activeEvents.forEach(event => {
         const eventInfo = [];

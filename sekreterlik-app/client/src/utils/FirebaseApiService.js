@@ -1496,19 +1496,23 @@ class FirebaseApiService {
           // Check if TC already exists
           const existingMembers = await FirebaseService.getAll(this.COLLECTIONS.MEMBERS);
           const existingMember = existingMembers.find(m => {
+            if (m.archived) return false;
+            
             const memberTc = m.tc || m.tcNo;
+            if (!memberTc) return false;
+            
             // TC'yi decrypt etmek gerekebilir
             let decryptedTc = memberTc;
             try {
               if (typeof memberTc === 'string' && memberTc.startsWith('U2FsdGVkX1')) {
-                const { decryptData } = await import('../utils/crypto');
                 decryptedTc = decryptData(memberTc);
               }
             } catch (e) {
               // Decrypt başarısız, orijinal TC'yi kullan
               decryptedTc = memberTc;
             }
-            return decryptedTc === tc && !m.archived;
+            
+            return String(decryptedTc) === String(tc);
           });
           
           // Create region and position if they don't exist

@@ -294,33 +294,31 @@ const FirebaseConfigSettings = () => {
         </div>
       </div>
 
-          {message && (
-            <div className={`p-3 rounded-lg ${
-              messageType === 'success' 
-                ? 'bg-green-50 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700' 
-                : 'bg-red-50 dark:bg-red-900 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700'
-            }`}>
-              {message}
-            </div>
-          )}
-
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleSave}
-              disabled={saving || !adminPassword.trim()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {saving ? 'Kaydediliyor...' : 'Kaydet'}
-            </button>
-            <button
-              onClick={loadConfig}
-              disabled={loading}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Yenile
-            </button>
-          </div>
+      {message && (
+        <div className={`p-3 rounded-lg ${
+          messageType === 'success' 
+            ? 'bg-green-50 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700' 
+            : 'bg-red-50 dark:bg-red-900 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700'
+        }`}>
+          {message}
         </div>
+      )}
+
+      <div className="flex items-center space-x-3">
+        <button
+          onClick={handleSave}
+          disabled={saving || !adminPassword.trim()}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {saving ? 'Kaydediliyor...' : 'Kaydet'}
+        </button>
+        <button
+          onClick={loadConfig}
+          disabled={loading}
+          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Yenile
+        </button>
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
@@ -328,7 +326,7 @@ const FirebaseConfigSettings = () => {
         <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
           <li>Firebase yapılandırması şifrelenmiş olarak Firebase'de saklanır</li>
           <li>Yapılandırma değiştiğinde sayfayı yenilemeniz gerekir</li>
-          <li>Bu bilgileri Firebase Console &gt; Project Settings &gt; General &gt; Your apps bölümünden alabilirsiniz</li>
+          <li>Bu bilgileri Firebase Console {'>'} Project Settings {'>'} General {'>'} Your apps bölümünden alabilirsiniz</li>
           <li>Yeni bir Firebase projesi oluşturmak için <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="underline">Firebase Console</a>'u ziyaret edin</li>
         </ul>
       </div>

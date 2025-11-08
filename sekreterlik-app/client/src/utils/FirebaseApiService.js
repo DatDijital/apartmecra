@@ -1495,21 +1495,27 @@ class FirebaseApiService {
           
           // Check if TC already exists
           const existingMembers = await FirebaseService.getAll(this.COLLECTIONS.MEMBERS);
-          const duplicateMember = existingMembers.find(m => {
+          const existingMember = existingMembers.find(m => {
             const memberTc = m.tc || m.tcNo;
-            return memberTc === tc && !m.archived;
+            // TC'yi decrypt etmek gerekebilir
+            let decryptedTc = memberTc;
+            try {
+              if (typeof memberTc === 'string' && memberTc.startsWith('U2FsdGVkX1')) {
+                const { decryptData } = await import('../utils/crypto');
+                decryptedTc = decryptData(memberTc);
+              }
+            } catch (e) {
+              // Decrypt başarısız, orijinal TC'yi kullan
+              decryptedTc = memberTc;
+            }
+            return decryptedTc === tc && !m.archived;
           });
-          
-          if (duplicateMember) {
-            errors.push(`Satır ${i + 2}: Bu TC kimlik numarası zaten kayıtlı`);
-            continue;
-          }
           
           // Create region and position if they don't exist
           await createRegionIfNotExists.call(this, region);
           await createPositionIfNotExists.call(this, position);
           
-          // Create member
+          // Member data
           const memberData = {
             tc,
             name,
@@ -1519,8 +1525,15 @@ class FirebaseApiService {
             archived: false
           };
           
-          await this.createMember(memberData);
-          importedCount++;
+          if (existingMember) {
+            // TC zaten varsa, üyeyi güncelle
+            await this.updateMember(existingMember.id, memberData);
+            importedCount++;
+          } else {
+            // TC yoksa, yeni üye ekle
+            await this.createMember(memberData);
+            importedCount++;
+          }
         } catch (rowError) {
           console.error(`Error processing row ${i + 2}:`, rowError);
           errors.push(`Satır ${i + 2}: ${rowError.message}`);

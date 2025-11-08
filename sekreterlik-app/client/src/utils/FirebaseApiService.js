@@ -220,21 +220,19 @@ class FirebaseApiService {
                     // Şifre yanlış - Firebase Auth'daki şifre Firestore'daki şifreyle eşleşmiyor
                     console.error('❌ Cannot sign in with existing email - password mismatch:', signInError2.code);
                     
-                    // Eğer authUid varsa ve email eşleşiyorsa, şifreyi güncellemek için re-authenticate gerekir
-                    // Ama şifre zaten yanlış olduğu için re-authenticate yapılamaz
+                    // Firebase Auth'daki kullanıcının şifresini güncellemek için client-side'da mümkün değil
                     // Bu durumda Firestore'daki authUid'i temizle ve kullanıcıya bilgi ver
-                    if (memberUser.authUid) {
-                      console.log('⚠️ Clearing authUid from Firestore - password mismatch with Firebase Auth');
-                      await FirebaseService.update(this.COLLECTIONS.MEMBER_USERS, memberUser.id, {
-                        authUid: null,
-                        username: username
-                      }, false);
-                      
-                      // Kullanıcıya daha açıklayıcı hata mesajı ver
-                      throw new Error('Firebase Auth\'daki şifre Firestore\'daki şifreyle eşleşmiyor. Lütfen admin ile iletişime geçin veya sayfayı yenileyip tekrar deneyin.');
-                    } else {
-                      throw new Error('Bu email başka bir kullanıcı tarafından kullanılıyor ve şifre eşleşmiyor. Lütfen admin ile iletişime geçin.');
-                    }
+                    // Bir sonraki login denemesinde yeni bir Firebase Auth kullanıcısı oluşturulacak
+                    console.log('⚠️ Clearing authUid from Firestore - password mismatch with Firebase Auth');
+                    await FirebaseService.update(this.COLLECTIONS.MEMBER_USERS, memberUser.id, {
+                      authUid: null,
+                      username: username
+                    }, false);
+                    
+                    // Kullanıcıya daha açıklayıcı hata mesajı ver
+                    // Firebase Auth'daki eski kullanıcı hala var ama şifre eşleşmiyor
+                    // Admin tarafından Firebase Console'dan silinmesi gerekebilir
+                    throw new Error('Firebase Auth\'daki kullanıcı şifresi Firestore\'daki şifreyle eşleşmiyor. Lütfen sayfayı yenileyip tekrar deneyin. Sorun devam ederse admin ile iletişime geçin.');
                   }
                 } else {
                   throw createError;

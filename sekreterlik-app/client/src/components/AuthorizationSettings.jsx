@@ -35,6 +35,7 @@ const AuthorizationSettings = () => {
   const [positionPermissions, setPositionPermissions] = useState({});
   const [loading, setLoading] = useState(false);
   const [positions, setPositions] = useState([]);
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -101,8 +102,44 @@ const AuthorizationSettings = () => {
     }
   };
 
+  const handleCleanupInvalidAttendees = async () => {
+    if (!window.confirm('Tüm etkinliklerden geçersiz katılımcıları (null ve 1762645941232_qxutglj9a) temizlemek istediğinize emin misiniz?')) {
+      return;
+    }
+    setCleaningUp(true);
+    try {
+      const result = await ApiService.cleanupInvalidAttendees();
+      alert(`Temizlik tamamlandı!\n${result.message}`);
+      // Sayfayı yenile
+      window.location.reload();
+    } catch (e) {
+      alert('Hata: ' + e.message);
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Cleanup Invalid Attendees Button */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-yellow-900">Geçersiz Katılımcıları Temizle</h3>
+            <p className="text-sm text-yellow-700 mt-1">
+              Tüm etkinliklerden geçersiz katılımcıları (null ve 1762645941232_qxutglj9a) temizler
+            </p>
+          </div>
+          <button
+            onClick={handleCleanupInvalidAttendees}
+            disabled={cleaningUp}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-md disabled:opacity-50 hover:bg-yellow-700 transition-colors"
+          >
+            {cleaningUp ? 'Temizleniyor...' : 'Temizle'}
+          </button>
+        </div>
+      </div>
+
       {/* Mevcut Yetkilendirmeler Özeti */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="px-4 py-3 border-b border-gray-200">

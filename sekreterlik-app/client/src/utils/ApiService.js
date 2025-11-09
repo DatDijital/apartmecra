@@ -39,6 +39,16 @@ class ApiService {
     return USE_FIREBASE ? FirebaseApiService : ApiService;
   }
 
+  // Clean up invalid attendees from all events
+  static async cleanupInvalidAttendees() {
+    const service = this.getService();
+    if (service === FirebaseApiService) {
+      return await FirebaseApiService.cleanupInvalidAttendees();
+    }
+    // For non-Firebase backend, this would need to be implemented
+    throw new Error('Cleanup invalid attendees is only available with Firebase');
+  }
+
   static async fetchJsonWithRetry(url, options = {}, retryOnce = true) {
     try {
       const res = await fetch(url, options);

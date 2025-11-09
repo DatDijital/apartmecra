@@ -1129,6 +1129,23 @@ class FirebaseApiService {
           }
         }
         
+        // Geçersiz attendee'leri temizle (null veya geçersiz ID'ler)
+        if (event.attendees && Array.isArray(event.attendees)) {
+          const INVALID_ATTENDEE_IDS = ['1762645941232_qxutglj9a', null, 'null', undefined];
+          event.attendees = event.attendees.filter(attendee => {
+            const memberId = attendee?.memberId;
+            // Geçersiz ID'leri filtrele
+            if (INVALID_ATTENDEE_IDS.includes(memberId) || 
+                memberId === null || 
+                memberId === undefined ||
+                String(memberId) === 'null' ||
+                String(memberId) === '1762645941232_qxutglj9a') {
+              return false;
+            }
+            return true;
+          });
+        }
+        
         // description zaten şifrelenmemişse (yeni kayıtlar), olduğu gibi bırak
         return event;
       });
@@ -1218,6 +1235,23 @@ class FirebaseApiService {
         ? eventData.description.trim() 
         : null;
       
+      // Geçersiz attendee'leri temizle (null veya geçersiz ID'ler)
+      const INVALID_ATTENDEE_IDS = ['1762645941232_qxutglj9a', null, 'null', undefined];
+      if (eventData.attendees && Array.isArray(eventData.attendees)) {
+        eventData.attendees = eventData.attendees.filter(attendee => {
+          const memberId = attendee?.memberId;
+          // Geçersiz ID'leri filtrele
+          if (INVALID_ATTENDEE_IDS.includes(memberId) || 
+              memberId === null || 
+              memberId === undefined ||
+              String(memberId) === 'null' ||
+              String(memberId) === '1762645941232_qxutglj9a') {
+            return false;
+          }
+          return true;
+        });
+      }
+      
       const eventDataWithoutDescription = { ...eventData };
       delete eventDataWithoutDescription.description;
       
@@ -1234,6 +1268,90 @@ class FirebaseApiService {
     } catch (error) {
       console.error('Update event error:', error);
       return { success: false, message: 'Etkinlik güncellenirken hata oluştu' };
+    }
+  }
+
+  // Clean up invalid attendees from all events
+  static async cleanupInvalidAttendees() {
+    try {
+      const { collection, getDocs, doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const INVALID_ATTENDEE_IDS = ['1762645941232_qxutglj9a', null, 'null', undefined];
+      
+      console.log('🔍 Fetching all events to clean up invalid attendees...');
+      const eventsRef = collection(db, this.COLLECTIONS.EVENTS);
+      const eventsSnapshot = await getDocs(eventsRef);
+      
+      let totalEvents = 0;
+      let updatedEvents = 0;
+      let totalRemoved = 0;
+      
+      const updatePromises = [];
+      
+      eventsSnapshot.forEach((eventDoc) => {
+        totalEvents++;
+        const eventData = eventDoc.data();
+        const eventId = eventDoc.id;
+        
+        if (!eventData.attendees || !Array.isArray(eventData.attendees)) {
+          return;
+        }
+        
+        const originalAttendees = eventData.attendees;
+        const validAttendees = originalAttendees.filter(attendee => {
+          const memberId = attendee?.memberId;
+          
+          // Check if memberId is invalid
+          if (INVALID_ATTENDEE_IDS.includes(memberId) || 
+              memberId === null || 
+              memberId === undefined ||
+              String(memberId) === 'null' ||
+              String(memberId) === '1762645941232_qxutglj9a') {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        if (validAttendees.length !== originalAttendees.length) {
+          const removedCount = originalAttendees.length - validAttendees.length;
+          totalRemoved += removedCount;
+          
+          console.log(`🔧 Event ${eventId}: Removing ${removedCount} invalid attendees`);
+          
+          const eventRef = doc(db, this.COLLECTIONS.EVENTS, eventId);
+          updatePromises.push(
+            updateDoc(eventRef, {
+              attendees: validAttendees
+            }).then(() => {
+              updatedEvents++;
+              console.log(`✅ Updated event ${eventId}`);
+            }).catch(error => {
+              console.error(`❌ Error updating event ${eventId}:`, error);
+            })
+          );
+        }
+      });
+      
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+      
+      console.log(`\n✅ Cleanup completed!`);
+      console.log(`📊 Total events checked: ${totalEvents}`);
+      console.log(`🔧 Events updated: ${updatedEvents}`);
+      console.log(`🗑️  Total invalid attendees removed: ${totalRemoved}`);
+      
+      return { 
+        success: true, 
+        totalEvents, 
+        updatedEvents, 
+        totalRemoved,
+        message: `${updatedEvents} etkinlik güncellendi, ${totalRemoved} geçersiz katılımcı silindi` 
+      };
+    } catch (error) {
+      console.error('❌ Error cleaning up invalid attendees:', error);
+      throw new Error('Geçersiz katılımcılar temizlenirken hata oluştu');
     }
   }
 

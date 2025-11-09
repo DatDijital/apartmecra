@@ -89,8 +89,9 @@ const CalendarPage = () => {
     // console.log('All events:', events.length, 'events');
     // console.log('All meetings:', meetings.length, 'meetings');
     
+    // Filter events - show all events (planned and completed)
     const dayEvents = events.filter(event => {
-      if (!event.date) return false;
+      if (!event.date || event.archived) return false;
       
       let eventDate;
       try {
@@ -120,8 +121,9 @@ const CalendarPage = () => {
       return matches;
     });
 
+    // Filter meetings - show all meetings (planned and completed)
     const dayMeetings = meetings.filter(meeting => {
-      if (!meeting.date) return false;
+      if (!meeting.date || meeting.archived) return false;
       
       let meetingDate;
       try {
@@ -316,10 +318,15 @@ const CalendarPage = () => {
                           <div
                             key={eventIndex}
                             className={`text-xs p-1 rounded truncate ${
-                              item.name ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                              item.isPlanned 
+                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' 
+                                : item.name 
+                                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
+                                  : 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                             }`}
                             title={item.name || item.title}
                           >
+                            {item.isPlanned && '📅 '}
                             {item.name || item.title}
                           </div>
                         ))}
@@ -351,14 +358,26 @@ const CalendarPage = () => {
             
             <div className="space-y-4">
               {getEventsForDate(selectedDate.getDate()).map((item, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className={`w-3 h-3 rounded-full mt-1 ${
-                    item.name ? 'bg-green-500' : 'bg-blue-500'
+                    item.isPlanned 
+                      ? 'bg-blue-500' 
+                      : item.name 
+                        ? 'bg-green-500' 
+                        : 'bg-blue-500'
                   }`}></div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">
-                      {item.name || item.title}
-                    </h4>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        {item.isPlanned && '📅 '}
+                        {item.name || item.title}
+                      </h4>
+                      {item.isPlanned && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                          Planlandı
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600">
                       {formatTime(item.date)}
                     </p>

@@ -994,6 +994,11 @@ class FirebaseApiService {
       const meetingDataWithoutDescription = { ...meetingData };
       delete meetingDataWithoutDescription.description;
       
+      // isPlanned field'ını ekle (varsayılan: false)
+      if (meetingDataWithoutDescription.isPlanned === undefined) {
+        meetingDataWithoutDescription.isPlanned = false;
+      }
+      
       // Önce description olmadan kaydet
       const docId = await FirebaseService.create(
         this.COLLECTIONS.MEETINGS,
@@ -1116,6 +1121,11 @@ class FirebaseApiService {
       const descriptionValue = eventData.description;
       const eventDataWithoutDescription = { ...eventData };
       delete eventDataWithoutDescription.description;
+      
+      // isPlanned field'ını ekle (varsayılan: false)
+      if (eventDataWithoutDescription.isPlanned === undefined) {
+        eventDataWithoutDescription.isPlanned = false;
+      }
       
       // Önce description olmadan kaydet
       const docId = await FirebaseService.create(

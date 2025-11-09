@@ -1,12 +1,12 @@
 import React from 'react';
 import ExcelExport from '../ExcelExport';
 
-const MeetingsHeader = ({ onCreateMeeting, onCreateFromMinutes, onExportExcel, meetings }) => {
+const MeetingsHeader = ({ onCreateMeeting, onPlanMeeting, onCreateFromMinutes, onExportExcel, meetings }) => {
   return (
     <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Toplantılar</h1>
-        <p className="text-gray-600 mt-1">Tüm toplantıları yönetin ve izleyin</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Toplantılar</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Tüm toplantıları yönetin ve izleyin</p>
       </div>
       <div className="flex flex-col sm:flex-row gap-2">
         <ExcelExport
@@ -14,6 +14,15 @@ const MeetingsHeader = ({ onCreateMeeting, onCreateFromMinutes, onExportExcel, m
           filename="Toplantilar"
           buttonText="Excel Çıktı"
         />
+        <button
+          onClick={onPlanMeeting}
+          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Toplantı Planla
+        </button>
         <button
           onClick={onCreateFromMinutes}
           className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center shadow-md hover:shadow-lg transform hover:-translate-y-0.5"

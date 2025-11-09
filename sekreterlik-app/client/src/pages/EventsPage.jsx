@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ApiService from '../utils/ApiService';
 import Modal from '../components/Modal';
 import CreateEventForm from '../components/CreateEventForm';
+import PlanEventForm from '../components/PlanEventForm';
 import EventDetails from '../components/EventDetails';
 import EventForm from '../components/EventForm';
 import AttendanceUpdate from '../components/AttendanceUpdate';
@@ -17,6 +18,7 @@ const EventsPage = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
@@ -144,6 +146,10 @@ const EventsPage = () => {
     setIsCreateModalOpen(true);
   };
 
+  const handlePlanEvent = () => {
+    setIsPlanModalOpen(true);
+  };
+
   const handleEditEvent = (event) => {
     setSelectedEvent(event);
     setFormMode('edit');
@@ -156,6 +162,11 @@ const EventsPage = () => {
   };
 
   const handleUpdateAttendance = (event) => {
+    // Planlanan etkinlikler için yoklama alma özelliği devre dışı
+    if (event.isPlanned) {
+      alert('Planlanan etkinlikler için yoklama alınamaz. Etkinlik gerçekleştikten sonra "Etkinlik Oluştur" ile oluşturup yoklama alabilirsiniz.');
+      return;
+    }
     setSelectedEvent(event);
     setIsAttendanceModalOpen(true);
   };
@@ -177,6 +188,10 @@ const EventsPage = () => {
     setIsCreateModalOpen(false);
   };
 
+  const closePlanModal = () => {
+    setIsPlanModalOpen(false);
+  };
+
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedEvent(null);
@@ -193,6 +208,10 @@ const EventsPage = () => {
   };
 
   const handleEventCreated = () => {
+    fetchEvents(); // Refresh the events list
+  };
+
+  const handleEventPlanned = () => {
     fetchEvents(); // Refresh the events list
   };
 
@@ -215,6 +234,7 @@ const EventsPage = () => {
       {/* Header Section */}
       <EventsHeader 
         onCreateEvent={handleCreateEvent}
+        onPlanEvent={handlePlanEvent}
       />
 
       {/* Summary Statistics Cards - Responsive Grid Layout */}
@@ -241,6 +261,20 @@ const EventsPage = () => {
         onArchiveEvent={handleArchiveEvent}
         calculateAttendanceStats={calculateAttendanceStats}
       />
+
+      {/* Plan Event Modal */}
+      <Modal 
+        isOpen={isPlanModalOpen} 
+        onClose={closePlanModal} 
+        title="Etkinlik Planla"
+        size="xl"
+      >
+        <PlanEventForm 
+          onClose={closePlanModal}
+          onEventPlanned={handleEventPlanned}
+          members={members}
+        />
+      </Modal>
 
       {/* Create Event Modal */}
       <Modal 

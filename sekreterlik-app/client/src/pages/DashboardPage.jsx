@@ -16,6 +16,8 @@ const DashboardPage = () => {
   
   const [topRegistrars, setTopRegistrars] = useState([]);
   const [topAttendees, setTopAttendees] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,9 +29,10 @@ const DashboardPage = () => {
       setLoading(true);
       
       // Fetch all data
-      const [members, meetings, memberRegistrations] = await Promise.all([
+      const [members, meetings, events, memberRegistrations] = await Promise.all([
         ApiService.getMembers(),
         ApiService.getMeetings(),
+        ApiService.getEvents(),
         ApiService.getMemberRegistrations()
       ]);
       
@@ -107,6 +110,75 @@ const DashboardPage = () => {
         .slice(0, 3);
       
       setTopAttendees(sortedAttendees);
+      
+      // Get upcoming events and meetings (next 7 days)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      
+      const upcomingEventsList = events
+        .filter(event => {
+          if (!event.date || event.archived) return false;
+          try {
+            let eventDate;
+            if (event.date.includes('T')) {
+              eventDate = new Date(event.date);
+            } else if (event.date.includes('.')) {
+              const [day, month, year] = event.date.split('.');
+              eventDate = new Date(year, month - 1, day);
+            } else {
+              eventDate = new Date(event.date);
+            }
+            eventDate.setHours(0, 0, 0, 0);
+            return eventDate >= today && eventDate <= nextWeek;
+          } catch (e) {
+            return false;
+          }
+        })
+        .sort((a, b) => {
+          try {
+            const dateA = a.date.includes('T') ? new Date(a.date) : new Date(a.date.split('.').reverse().join('-'));
+            const dateB = b.date.includes('T') ? new Date(b.date) : new Date(b.date.split('.').reverse().join('-'));
+            return dateA - dateB;
+          } catch (e) {
+            return 0;
+          }
+        })
+        .slice(0, 5);
+      
+      const upcomingMeetingsList = meetings
+        .filter(meeting => {
+          if (!meeting.date || meeting.archived) return false;
+          try {
+            let meetingDate;
+            if (meeting.date.includes('T')) {
+              meetingDate = new Date(meeting.date);
+            } else if (meeting.date.includes('.')) {
+              const [day, month, year] = meeting.date.split('.');
+              meetingDate = new Date(year, month - 1, day);
+            } else {
+              meetingDate = new Date(meeting.date);
+            }
+            meetingDate.setHours(0, 0, 0, 0);
+            return meetingDate >= today && meetingDate <= nextWeek;
+          } catch (e) {
+            return false;
+          }
+        })
+        .sort((a, b) => {
+          try {
+            const dateA = a.date.includes('T') ? new Date(a.date) : new Date(a.date.split('.').reverse().join('-'));
+            const dateB = b.date.includes('T') ? new Date(b.date) : new Date(b.date.split('.').reverse().join('-'));
+            return dateA - dateB;
+          } catch (e) {
+            return 0;
+          }
+        })
+        .slice(0, 5);
+      
+      setUpcomingEvents(upcomingEventsList);
+      setUpcomingMeetings(upcomingMeetingsList);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -138,6 +210,85 @@ const DashboardPage = () => {
 
         {/* Top Attendees */}
         <TopAttendeesTable topAttendees={topAttendees} />
+      </div>
+
+      {/* Upcoming Events and Meetings */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mt-6">
+        {/* Upcoming Events */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Yaklaşan Etkinlikler</h3>
+          {upcomingEvents.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingEvents.map((event, index) => (
+                <div key={index} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{event.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {event.date && (
+                          <span>
+                            {event.date.includes('T') 
+                              ? new Date(event.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                              : event.date}
+                          </span>
+                        )}
+                      </p>
+                      {event.location && (
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">📍 {event.location}</p>
+                      )}
+                    </div>
+                    {event.isPlanned && (
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                        Planlandı
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-center py-4">Yaklaşan etkinlik bulunmuyor</p>
+          )}
+        </div>
+
+        {/* Upcoming Meetings */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Yaklaşan Toplantılar</h3>
+          {upcomingMeetings.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingMeetings.map((meeting, index) => (
+                <div key={index} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{meeting.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {meeting.date && (
+                          <span>
+                            {meeting.date.includes('T') 
+                              ? new Date(meeting.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                              : meeting.date}
+                          </span>
+                        )}
+                      </p>
+                      {meeting.regions && meeting.regions.length > 0 && (
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                          📍 {meeting.regions.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    {meeting.isPlanned && (
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                        Planlandı
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-center py-4">Yaklaşan toplantı bulunmuyor</p>
+          )}
+        </div>
       </div>
     </div>
   );

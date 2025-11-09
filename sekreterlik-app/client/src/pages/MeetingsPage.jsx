@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ApiService from '../utils/ApiService';
 import Modal from '../components/Modal';
 import CreateMeetingForm from '../components/CreateMeetingForm';
+import PlanMeetingForm from '../components/PlanMeetingForm';
 import CreateMeetingFromMinutes from '../components/CreateMeetingFromMinutes';
 import MeetingDetails from '../components/MeetingDetails';
 import MeetingForm from '../components/MeetingForm';
@@ -20,6 +21,7 @@ const MeetingsPage = () => {
   // Removed showArchived state
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isCreateFromMinutesModalOpen, setIsCreateFromMinutesModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -105,6 +107,10 @@ const MeetingsPage = () => {
     setIsCreateModalOpen(true);
   };
 
+  const handlePlanMeeting = () => {
+    setIsPlanModalOpen(true);
+  };
+
   const handleEditMeeting = (id) => {
     const meeting = meetings.find(m => m.id === id);
     if (meeting) {
@@ -140,6 +146,11 @@ const MeetingsPage = () => {
   const handleUpdateAttendance = async (id) => {
     try {
       const meeting = await ApiService.getMeetingById(id);
+      // Planlanan toplantılar için yoklama alma özelliği devre dışı
+      if (meeting.isPlanned) {
+        alert('Planlanan toplantılar için yoklama alınamaz. Toplantı gerçekleştikten sonra "Toplantı Oluştur" ile oluşturup yoklama alabilirsiniz.');
+        return;
+      }
       setSelectedMeeting(meeting);
       setIsAttendanceModalOpen(true);
     } catch (error) {
@@ -162,6 +173,10 @@ const MeetingsPage = () => {
     setIsCreateModalOpen(false);
   };
 
+  const closePlanModal = () => {
+    setIsPlanModalOpen(false);
+  };
+
   const closeDetailsModal = () => {
     setIsDetailsModalOpen(false);
     setSelectedMeeting(null);
@@ -178,6 +193,10 @@ const MeetingsPage = () => {
   };
 
   const handleMeetingCreated = () => {
+    fetchMeetings(); // Refresh the meetings list
+  };
+
+  const handleMeetingPlanned = () => {
     fetchMeetings(); // Refresh the meetings list
   };
 
@@ -295,7 +314,8 @@ const MeetingsPage = () => {
     <div className="py-6">
       {/* Header Section */}
         <MeetingsHeader 
-          onCreateMeeting={handleCreateMeeting} 
+          onCreateMeeting={handleCreateMeeting}
+          onPlanMeeting={handlePlanMeeting}
           onCreateFromMinutes={handleCreateFromMinutes}
           onExportExcel={handleExportExcel}
           meetings={meetings}
@@ -330,6 +350,20 @@ const MeetingsPage = () => {
           getAttendanceColor={getAttendanceColor}
         />
       </div>
+
+      {/* Plan Meeting Modal */}
+      <Modal
+        isOpen={isPlanModalOpen}
+        onClose={closePlanModal}
+        title="Toplantı Planla"
+        size="xl"
+      >
+        <PlanMeetingForm 
+          regions={regions} 
+          onClose={closePlanModal} 
+          onMeetingPlanned={handleMeetingPlanned} 
+        />
+      </Modal>
 
       <Modal
         isOpen={isCreateModalOpen}

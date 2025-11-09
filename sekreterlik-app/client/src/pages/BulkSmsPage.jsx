@@ -21,6 +21,12 @@ const BulkSmsPage = () => {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledSms, setScheduledSms] = useState([]);
   const [showScheduledModal, setShowScheduledModal] = useState(false);
+  const [editingSms, setEditingSms] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Seçilen kişiler
+  const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [loadingRecipients, setLoadingRecipients] = useState(false);
 
   useEffect(() => {
     loadRegions();
@@ -33,6 +39,11 @@ const BulkSmsPage = () => {
     
     return () => clearInterval(interval);
   }, []);
+
+  // Seçilen kişileri yükle
+  useEffect(() => {
+    loadSelectedRecipients();
+  }, [selectedRegions, includeObservers, includeChiefObservers, includeTownPresidents]);
 
   const loadRegions = async () => {
     try {
@@ -89,6 +100,95 @@ const BulkSmsPage = () => {
       }
     } catch (error) {
       console.error('Error processing scheduled SMS:', error);
+    }
+  };
+
+  const loadSelectedRecipients = async () => {
+    try {
+      setLoadingRecipients(true);
+      const recipients = [];
+
+      // Üyeler (bölge seçilmişse)
+      if (selectedRegions.length > 0) {
+        const members = await ApiService.getMembers();
+        const filteredMembers = members.filter(member => 
+          member.region && selectedRegions.includes(member.region)
+        );
+        filteredMembers.forEach(member => {
+          if (member.phone) {
+            recipients.push({
+              name: member.name || 'Üye',
+              phone: member.phone,
+              type: 'member',
+              region: member.region
+            });
+          }
+        });
+      }
+
+      // Müşahitler
+      if (includeObservers) {
+        const observers = await ApiService.getBallotBoxObservers();
+        const regularObservers = observers.filter(obs => !obs.is_chief_observer);
+        regularObservers.forEach(observer => {
+          const phone = observer.observer_phone || observer.phone;
+          if (phone) {
+            recipients.push({
+              name: observer.observer_name || observer.name || 'Müşahit',
+              phone: phone,
+              type: 'observer'
+            });
+          }
+        });
+      }
+
+      // Baş müşahitler
+      if (includeChiefObservers) {
+        const observers = await ApiService.getBallotBoxObservers();
+        const chiefObservers = observers.filter(obs => obs.is_chief_observer === true);
+        chiefObservers.forEach(observer => {
+          const phone = observer.observer_phone || observer.phone;
+          if (phone) {
+            recipients.push({
+              name: observer.observer_name || observer.name || 'Baş Müşahit',
+              phone: phone,
+              type: 'chief_observer'
+            });
+          }
+        });
+      }
+
+      // Belde başkanları
+      if (includeTownPresidents) {
+        const towns = await ApiService.getTowns();
+        for (const town of towns) {
+          const townOfficials = await ApiService.getTownOfficials(town.id);
+          const presidents = townOfficials.filter(official => 
+            official.type === 'president' || 
+            official.role === 'president' || 
+            official.position === 'president' ||
+            official.chairman_name
+          );
+          presidents.forEach(president => {
+            const phone = president.chairman_phone || president.phone;
+            if (phone) {
+              recipients.push({
+                name: president.chairman_name || president.name || 'Belde Başkanı',
+                phone: phone,
+                type: 'town_president',
+                town: town.name
+              });
+            }
+          });
+        }
+      }
+
+      setSelectedRecipients(recipients);
+    } catch (error) {
+      console.error('Error loading selected recipients:', error);
+      setSelectedRecipients([]);
+    } finally {
+      setLoadingRecipients(false);
     }
   };
 
@@ -493,27 +593,59 @@ const BulkSmsPage = () => {
                       </div>
                     </div>
                     {sms.status === 'pending' && (
-                      <button
-                        onClick={async () => {
-                          if (window.confirm('Bu planlanmış SMS\'i iptal etmek istediğinize emin misiniz?')) {
-                            try {
-                              const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
-                              if (USE_FIREBASE) {
-                                const { default: FirebaseApiService } = await import('../utils/FirebaseApiService');
-                                await FirebaseApiService.cancelScheduledSms(sms.id);
-                                await loadScheduledSms();
-                                alert('SMS iptal edildi');
+                      <div className="ml-3 flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingSms(sms);
+                            setShowEditModal(true);
+                          }}
+                          className="px-3 py-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 border border-indigo-300 dark:border-indigo-700 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                        >
+                          Düzenle
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Bu planlanmış SMS\'i silmek istediğinize emin misiniz?')) {
+                              try {
+                                const result = await ApiService.deleteScheduledSms(sms.id);
+                                if (result.success) {
+                                  await loadScheduledSms();
+                                  alert('SMS silindi');
+                                } else {
+                                  alert('SMS silinirken hata oluştu: ' + result.message);
+                                }
+                              } catch (error) {
+                                console.error('Error deleting SMS:', error);
+                                alert('SMS silinirken hata oluştu: ' + error.message);
                               }
-                            } catch (error) {
-                              console.error('Error cancelling SMS:', error);
-                              alert('SMS iptal edilirken hata oluştu: ' + error.message);
                             }
-                          }
-                        }}
-                        className="ml-3 px-3 py-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-300 dark:border-red-700 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        İptal Et
-                      </button>
+                          }}
+                          className="px-3 py-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-300 dark:border-red-700 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          Sil
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Bu planlanmış SMS\'i iptal etmek istediğinize emin misiniz?')) {
+                              try {
+                                const result = await ApiService.cancelScheduledSms(sms.id);
+                                if (result.success) {
+                                  await loadScheduledSms();
+                                  alert('SMS iptal edildi');
+                                } else {
+                                  alert('SMS iptal edilirken hata oluştu: ' + result.message);
+                                }
+                              } catch (error) {
+                                console.error('Error cancelling SMS:', error);
+                                alert('SMS iptal edilirken hata oluştu: ' + error.message);
+                              }
+                            }
+                          }}
+                          className="px-3 py-1 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 border border-orange-300 dark:border-orange-700 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                        >
+                          İptal Et
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -530,7 +662,195 @@ const BulkSmsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Düzenleme Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingSms(null);
+        }}
+        title="Planlanmış SMS Düzenle"
+      >
+        {editingSms && (
+          <EditScheduledSmsForm
+            sms={editingSms}
+            regions={regions}
+            onSave={async (updatedData) => {
+              try {
+                const result = await ApiService.updateScheduledSms(editingSms.id, updatedData);
+                if (result.success) {
+                  alert('SMS başarıyla güncellendi');
+                  await loadScheduledSms();
+                  setShowEditModal(false);
+                  setEditingSms(null);
+                } else {
+                  alert('SMS güncellenirken hata oluştu: ' + result.message);
+                }
+              } catch (error) {
+                console.error('Error updating SMS:', error);
+                alert('SMS güncellenirken hata oluştu: ' + error.message);
+              }
+            }}
+            onCancel={() => {
+              setShowEditModal(false);
+              setEditingSms(null);
+            }}
+          />
+        )}
+      </Modal>
     </div>
+  );
+};
+
+// Düzenleme Formu Komponenti
+const EditScheduledSmsForm = ({ sms, regions, onSave, onCancel }) => {
+  const [message, setMessage] = useState(sms.message || '');
+  const [selectedRegions, setSelectedRegions] = useState(sms.regions || []);
+  const [scheduledDate, setScheduledDate] = useState(
+    sms.scheduledDate ? new Date(sms.scheduledDate).toISOString().slice(0, 16) : ''
+  );
+  const [includeObservers, setIncludeObservers] = useState(sms.options?.includeObservers || false);
+  const [includeChiefObservers, setIncludeChiefObservers] = useState(sms.options?.includeChiefObservers || false);
+  const [includeTownPresidents, setIncludeTownPresidents] = useState(sms.options?.includeTownPresidents || false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!message.trim()) {
+      alert('Lütfen mesaj metnini girin');
+      return;
+    }
+
+    if (!scheduledDate) {
+      alert('Lütfen planlanan tarih ve saati girin');
+      return;
+    }
+
+    const scheduledDateTime = new Date(scheduledDate);
+    const now = new Date();
+    
+    if (scheduledDateTime <= now) {
+      alert('Planlanan tarih gelecekte olmalıdır');
+      return;
+    }
+
+    onSave({
+      message,
+      regions: selectedRegions,
+      memberIds: [],
+      scheduledDate,
+      options: {
+        includeObservers,
+        includeChiefObservers,
+        includeTownPresidents
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Mesaj Metni <span className="text-red-500">*</span>
+        </label>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Bölgeler
+        </label>
+        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+          {regions.map(region => (
+            <label key={region.id} className="flex items-center">
+              <input
+                type="checkbox"
+                checked={selectedRegions.includes(region.name)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedRegions([...selectedRegions, region.name]);
+                  } else {
+                    setSelectedRegions(selectedRegions.filter(r => r !== region.name));
+                  }
+                }}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{region.name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Ek Alıcılar
+        </label>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={includeObservers}
+            onChange={(e) => setIncludeObservers(e.target.checked)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Müşahitler</span>
+        </label>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={includeChiefObservers}
+            onChange={(e) => setIncludeChiefObservers(e.target.checked)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Baş Müşahitler</span>
+        </label>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={includeTownPresidents}
+            onChange={(e) => setIncludeTownPresidents(e.target.checked)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Belde Başkanları</span>
+        </label>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Planlanan Tarih ve Saat <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="datetime-local"
+          value={scheduledDate}
+          onChange={(e) => setScheduledDate(e.target.value)}
+          min={new Date().toISOString().slice(0, 16)}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          required
+        />
+      </div>
+
+      <div className="flex justify-end space-x-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          İptal
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Kaydet
+        </button>
+      </div>
+    </form>
   );
 };
 

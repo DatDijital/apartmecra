@@ -4164,6 +4164,64 @@ class FirebaseApiService {
   }
 
   /**
+   * Planlanmış SMS'i güncelle
+   * @param {string} id - Scheduled SMS ID
+   * @param {object} smsData - { message, regions, memberIds, scheduledDate, options }
+   */
+  static async updateScheduledSms(id, smsData) {
+    try {
+      const { message, regions = [], memberIds = [], scheduledDate, options = {} } = smsData;
+      
+      if (!message || !scheduledDate) {
+        return { success: false, message: 'Mesaj ve planlanan tarih gerekli' };
+      }
+
+      // Tarih kontrolü
+      const scheduledDateTime = new Date(scheduledDate);
+      const now = new Date();
+      
+      if (scheduledDateTime <= now) {
+        return { success: false, message: 'Planlanan tarih gelecekte olmalıdır' };
+      }
+
+      // Scheduled SMS güncelle
+      const updatedSmsDoc = {
+        message: message,
+        regions: regions,
+        memberIds: memberIds,
+        options: options,
+        scheduledDate: scheduledDateTime.toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await FirebaseService.update(this.COLLECTIONS.SCHEDULED_SMS, id, updatedSmsDoc, false);
+
+      return { 
+        success: true, 
+        message: 'SMS başarıyla güncellendi',
+        scheduledDate: scheduledDateTime.toISOString()
+      };
+    } catch (error) {
+      console.error('Update scheduled SMS error:', error);
+      return { success: false, message: 'SMS güncellenirken hata oluştu: ' + error.message };
+    }
+  }
+
+  /**
+   * Planlanmış SMS'i sil
+   * @param {string} id - Scheduled SMS ID
+   */
+  static async deleteScheduledSms(id) {
+    try {
+      await FirebaseService.delete(this.COLLECTIONS.SCHEDULED_SMS, id);
+      return { success: true, message: 'Planlanmış SMS silindi' };
+    } catch (error) {
+      console.error('Delete scheduled SMS error:', error);
+      return { success: false, message: 'SMS silinirken hata oluştu: ' + error.message };
+    }
+  }
+
+  /**
    * Planlanmış SMS'leri kontrol et ve gönder (cron job benzeri)
    * Bu metod periyodik olarak çağrılmalı (örneğin her dakika)
    */

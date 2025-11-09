@@ -2626,6 +2626,42 @@ class ApiService {
     return response.json();
   }
 
+  /**
+   * Planlanmış SMS'i güncelle
+   * @param {string} id - Scheduled SMS ID
+   * @param {object} smsData - { message, regions, memberIds, scheduledDate, options }
+   */
+  static async updateScheduledSms(id, smsData) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.updateScheduledSms(id, smsData);
+    }
+
+    // Backend API için (gelecekte eklenebilir)
+    const response = await fetch(`${API_BASE_URL}/sms/scheduled/${id}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(smsData),
+    });
+    return response.json();
+  }
+
+  /**
+   * Planlanmış SMS'i sil
+   * @param {string} id - Scheduled SMS ID
+   */
+  static async deleteScheduledSms(id) {
+    if (USE_FIREBASE) {
+      return FirebaseApiService.deleteScheduledSms(id);
+    }
+
+    // Backend API için (gelecekte eklenebilir)
+    const response = await fetch(`${API_BASE_URL}/sms/scheduled/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    return response.json();
+  }
+
 }
 
 export default ApiService;

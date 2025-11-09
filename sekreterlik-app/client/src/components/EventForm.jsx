@@ -713,9 +713,23 @@ const EventForm = ({ event, onClose, onEventSaved, members }) => {
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {locationTypeLabels[locationType]}:
                   </label>
+                  
+                  {/* Search box for neighborhood and village */}
+                  {(locationType === 'neighborhood' || locationType === 'village') && (
+                    <input
+                      type="text"
+                      placeholder={`${locationTypeLabels[locationType]} ara...`}
+                      value={locationSearchTerms[locationType] || ''}
+                      onChange={(e) => handleLocationSearchChange(locationType, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  )}
+                  
                   <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-700">
                     {options.length === 0 ? (
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Seçenek bulunamadı</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {locationSearchTerms[locationType] ? 'Arama sonucu bulunamadı' : 'Seçenek bulunamadı'}
+                      </p>
                     ) : (
                       options.map(option => (
                         <label key={option.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">

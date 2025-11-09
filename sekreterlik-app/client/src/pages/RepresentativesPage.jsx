@@ -9,6 +9,9 @@ import Modal from '../components/Modal';
 const RepresentativesPage = () => {
   const [neighborhoodRepresentatives, setNeighborhoodRepresentatives] = useState([]);
   const [villageRepresentatives, setVillageRepresentatives] = useState([]);
+  const [neighborhoodVisitCounts, setNeighborhoodVisitCounts] = useState({});
+  const [villageVisitCounts, setVillageVisitCounts] = useState({});
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('neighborhood'); // 'neighborhood' or 'village'
@@ -113,12 +116,83 @@ const RepresentativesPage = () => {
       
       setNeighborhoodRepresentatives(decryptedNeighborhoodData);
       setVillageRepresentatives(decryptedVillageData);
+      
+      // Ziyaret sayılarını ve etkinlikleri yükle
+      await fetchVisitCountsAndEvents();
     } catch (error) {
       console.error('Error fetching representatives:', error);
       setError('Temsilciler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchVisitCountsAndEvents = async () => {
+    try {
+      // Ziyaret sayılarını yükle
+      const [neighborhoodVisits, villageVisits, eventsData] = await Promise.all([
+        ApiService.getAllVisitCounts('neighborhood'),
+        ApiService.getAllVisitCounts('village'),
+        ApiService.getEvents(false) // Sadece aktif etkinlikler
+      ]);
+      
+      // Neighborhood visit counts'u map'e çevir
+      const neighborhoodCounts = {};
+      neighborhoodVisits.forEach(visit => {
+        neighborhoodCounts[visit.neighborhood_id] = visit.visit_count || 0;
+      });
+      setNeighborhoodVisitCounts(neighborhoodCounts);
+      
+      // Village visit counts'u map'e çevir
+      const villageCounts = {};
+      villageVisits.forEach(visit => {
+        villageCounts[visit.village_id] = visit.visit_count || 0;
+      });
+      setVillageVisitCounts(villageCounts);
+      
+      // Events'i kaydet
+      setEvents(eventsData || []);
+    } catch (error) {
+      console.error('Error fetching visit counts and events:', error);
+    }
+  };
+
+  // Temsilcinin katılım sayısını hesapla
+  const getAttendanceStats = (rep, isNeighborhood = true) => {
+    const locationId = isNeighborhood ? rep.neighborhood_id : rep.village_id;
+    const memberId = String(rep.member_id);
+    
+    // Katılması gereken ziyaret sayısı (location için toplam ziyaret sayısı)
+    const requiredVisits = isNeighborhood 
+      ? (neighborhoodVisitCounts[locationId] || 0)
+      : (villageVisitCounts[locationId] || 0);
+    
+    // Katıldığı ziyaret sayısı (member_id ile katıldığı etkinlik sayısı)
+    let attendedVisits = 0;
+    events.forEach(event => {
+      if (event.selectedLocationTypes && event.selectedLocations) {
+        const locationType = isNeighborhood ? 'neighborhood' : 'village';
+        if (event.selectedLocationTypes.includes(locationType)) {
+          const locationIds = event.selectedLocations[locationType] || [];
+          if (locationIds.includes(locationId) || locationIds.includes(String(locationId))) {
+            // Bu etkinlikte bu location var, şimdi temsilci katılmış mı kontrol et
+            if (event.attendees && event.attendees.length > 0) {
+              const attended = event.attendees.find(a => 
+                String(a.memberId) === memberId && a.attended === true
+              );
+              if (attended) {
+                attendedVisits++;
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    return {
+      required: requiredVisits,
+      attended: attendedVisits
+    };
   };
 
   const filteredNeighborhoodReps = neighborhoodRepresentatives.filter(rep =>
@@ -291,31 +365,42 @@ const RepresentativesPage = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Belde
                         </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Katılım
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredNeighborhoodReps.map((rep) => (
-                        <tr key={rep.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {rep.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.tc}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.phone || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.neighborhood_name || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.district_name || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.town_name || '-'}
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredNeighborhoodReps.map((rep) => {
+                        const attendanceStats = getAttendanceStats(rep, true);
+                        return (
+                          <tr key={rep.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {rep.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.tc}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.phone || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.neighborhood_name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.district_name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.town_name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {attendanceStats.attended}/{attendanceStats.required}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -353,31 +438,42 @@ const RepresentativesPage = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Belde
                         </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Katılım
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredVillageReps.map((rep) => (
-                        <tr key={rep.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {rep.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.tc}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.phone || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.village_name || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.district_name || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rep.town_name || '-'}
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredVillageReps.map((rep) => {
+                        const attendanceStats = getAttendanceStats(rep, false);
+                        return (
+                          <tr key={rep.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {rep.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.tc}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.phone || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.village_name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.district_name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {rep.town_name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {attendanceStats.attended}/{attendanceStats.required}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -6,15 +6,113 @@ import html2canvas from 'html2canvas';
 
 const EventDetails = ({ event, members }) => {
   const [loading, setLoading] = useState(true);
+  const [neighborhoodRepresentatives, setNeighborhoodRepresentatives] = useState([]);
+  const [neighborhoodSupervisors, setNeighborhoodSupervisors] = useState([]);
+  const [villageRepresentatives, setVillageRepresentatives] = useState([]);
+  const [villageSupervisors, setVillageSupervisors] = useState([]);
 
   useEffect(() => {
+    const fetchAdditionalData = async () => {
+      try {
+        const [neighborhoodReps, neighborhoodSups, villageReps, villageSups] = await Promise.all([
+          ApiService.getNeighborhoodRepresentatives(),
+          ApiService.getNeighborhoodSupervisors(),
+          ApiService.getVillageRepresentatives(),
+          ApiService.getVillageSupervisors()
+        ]);
+        setNeighborhoodRepresentatives(neighborhoodReps || []);
+        setNeighborhoodSupervisors(neighborhoodSups || []);
+        setVillageRepresentatives(villageReps || []);
+        setVillageSupervisors(villageSups || []);
+      } catch (error) {
+        console.error('Error fetching additional data:', error);
+      }
+    };
+    
+    fetchAdditionalData();
     setLoading(false);
   }, [event]);
 
   const getMemberName = (memberId) => {
     // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
     const member = members.find(m => String(m.id) === String(memberId));
-    return member ? member.name : 'Bilinmeyen Üye';
+    if (member) return member.name;
+    
+    // Members listesinde yoksa, neighborhood representatives'te ara
+    const neighborhoodRep = neighborhoodRepresentatives.find(rep => String(rep.member_id) === String(memberId));
+    if (neighborhoodRep) return neighborhoodRep.name;
+    
+    // Neighborhood supervisors'te ara
+    const neighborhoodSup = neighborhoodSupervisors.find(sup => String(sup.member_id) === String(memberId));
+    if (neighborhoodSup) return neighborhoodSup.name;
+    
+    // Village representatives'te ara
+    const villageRep = villageRepresentatives.find(rep => String(rep.member_id) === String(memberId));
+    if (villageRep) return villageRep.name;
+    
+    // Village supervisors'te ara
+    const villageSup = villageSupervisors.find(sup => String(sup.member_id) === String(memberId));
+    if (villageSup) return villageSup.name;
+    
+    return 'Bilinmeyen Üye';
+  };
+
+  const getMemberInfo = (memberId) => {
+    // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
+    const member = members.find(m => String(m.id) === String(memberId));
+    if (member) {
+      return {
+        name: member.name,
+        position: member.position || '-',
+        region: member.region || '-'
+      };
+    }
+    
+    // Members listesinde yoksa, neighborhood representatives'te ara
+    const neighborhoodRep = neighborhoodRepresentatives.find(rep => String(rep.member_id) === String(memberId));
+    if (neighborhoodRep) {
+      return {
+        name: neighborhoodRep.name,
+        position: 'Mahalle Temsilcisi',
+        region: neighborhoodRep.neighborhood_name || '-'
+      };
+    }
+    
+    // Neighborhood supervisors'te ara
+    const neighborhoodSup = neighborhoodSupervisors.find(sup => String(sup.member_id) === String(memberId));
+    if (neighborhoodSup) {
+      return {
+        name: neighborhoodSup.name,
+        position: 'Mahalle Sorumlusu',
+        region: neighborhoodSup.neighborhood_name || '-'
+      };
+    }
+    
+    // Village representatives'te ara
+    const villageRep = villageRepresentatives.find(rep => String(rep.member_id) === String(memberId));
+    if (villageRep) {
+      return {
+        name: villageRep.name,
+        position: 'Köy Temsilcisi',
+        region: villageRep.village_name || '-'
+      };
+    }
+    
+    // Village supervisors'te ara
+    const villageSup = villageSupervisors.find(sup => String(sup.member_id) === String(memberId));
+    if (villageSup) {
+      return {
+        name: villageSup.name,
+        position: 'Köy Sorumlusu',
+        region: villageSup.village_name || '-'
+      };
+    }
+    
+    return {
+      name: 'Bilinmeyen Üye',
+      position: '-',
+      region: '-'
+    };
   };
 
   const getAttendanceRate = () => {
@@ -251,30 +349,28 @@ const EventDetails = ({ event, members }) => {
                   .filter(attendance => attendance.attended) // Sadece katılan kişileri filtrele
                   .sort((a, b) => {
                     // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
-                    const memberA = members.find(m => String(m.id) === String(a.memberId));
-                    const memberB = members.find(m => String(m.id) === String(b.memberId));
-                    const nameA = memberA ? memberA.name : 'Bilinmeyen Üye';
-                    const nameB = memberB ? memberB.name : 'Bilinmeyen Üye';
-                    return nameA.localeCompare(nameB, 'tr', { sensitivity: 'base' });
+                    const memberInfoA = getMemberInfo(a.memberId);
+                    const memberInfoB = getMemberInfo(b.memberId);
+                    return memberInfoA.name.localeCompare(memberInfoB.name, 'tr', { sensitivity: 'base' });
                   })
                   .map((attendance) => {
                   // ID'leri string'e çevirerek karşılaştır (tip uyumsuzluğu sorununu çözer)
-                  const member = members.find(m => String(m.id) === String(attendance.memberId));
+                  const memberInfo = getMemberInfo(attendance.memberId);
                   return (
                     <tr key={attendance.memberId} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
                             <span className="text-green-800 text-xs font-medium">
-                              {member ? member.name.charAt(0) : '?'}
+                              {memberInfo.name.charAt(0)}
                             </span>
                           </div>
                           <div className="ml-3">
                             <div className="text-sm font-medium text-gray-900">
-                              {member ? member.name : 'Bilinmeyen Üye'}
+                              {memberInfo.name}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {member ? member.position : '-'} - {member ? member.region : '-'}
+                              {memberInfo.position} - {memberInfo.region}
                             </div>
                           </div>
                         </div>

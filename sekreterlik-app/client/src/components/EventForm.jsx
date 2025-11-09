@@ -1,80 +1,548 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ApiService from '../utils/ApiService';
 
 const EventForm = ({ event, onClose, onEventSaved, members }) => {
-  const [eventName, setEventName] = useState(event?.name || '');
-  const [eventDate, setEventDate] = useState(event?.date || '');
-  const [eventLocation, setEventLocation] = useState(event?.location || '');
-  const [eventDescription, setEventDescription] = useState(event?.description || '');
+  const [eventName, setEventName] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
   const [attendance, setAttendance] = useState({});
-  const [excuse, setExcuse] = useState({});
-  const [excuseReasons, setExcuseReasons] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [eventCategories, setEventCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  
+  // Location selection states
+  const [selectedLocationTypes, setSelectedLocationTypes] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState({});
+  const [districts, setDistricts] = useState([]);
+  const [towns, setTowns] = useState([]);
+  const [neighborhoods, setNeighborhoods] = useState([]);
+  const [villages, setVillages] = useState([]);
+  const [stks, setStks] = useState([]);
+  const [mosques, setMosques] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [responsibleMembers, setResponsibleMembers] = useState([]);
+  const [loadingResponsibleMembers, setLoadingResponsibleMembers] = useState(false);
 
-  // Sort members A-Z by name
-  const sortedMembers = members ? [...members].sort((a, b) => {
-    return a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' });
-  }) : [];
+  // Filter and sort members
+  const filteredMembers = members ? members.filter(member => 
+    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.region?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
-  // Initialize attendance data from existing event
-  React.useEffect(() => {
-    if (event && event.attendees) {
-      const initialAttendance = {};
-      const initialExcuse = {};
-      const initialExcuseReasons = {};
+  // Get responsible members for selected locations
+  const getResponsibleMembers = async () => {
+    const responsibleMembers = [];
+    
+    try {
+      console.log('Getting responsible members for:', selectedLocationTypes, selectedLocations);
+      
+      // Get all officials and representatives data
+      const [districtOfficials, townOfficials, neighborhoodRepresentatives, villageRepresentatives, neighborhoodSupervisors, villageSupervisors, districtDeputyInspectors, townDeputyInspectors] = await Promise.all([
+        ApiService.getDistrictOfficials(),
+        ApiService.getTownOfficials(),
+        ApiService.getNeighborhoodRepresentatives(),
+        ApiService.getVillageRepresentatives(),
+        ApiService.getNeighborhoodSupervisors(),
+        ApiService.getVillageSupervisors(),
+        ApiService.getAllDistrictDeputyInspectors(),
+        ApiService.getAllTownDeputyInspectors()
+      ]);
 
-      event.attendees.forEach(attendee => {
-        initialAttendance[attendee.memberId] = attendee.attended;
-        initialExcuse[attendee.memberId] = attendee.excuse?.hasExcuse || false;
-        initialExcuseReasons[attendee.memberId] = attendee.excuse?.reason || '';
+      selectedLocationTypes.forEach(locationType => {
+        const locationIds = selectedLocations[locationType] || [];
+        if (locationIds.length === 0) return;
+        
+        locationIds.forEach(locationId => {
+        
+        let responsible = [];
+        
+        switch (locationType) {
+          case 'district':
+            // Find district officials for this district
+            const districtOfficialsForLocation = districtOfficials.filter(official => official.district_id === locationId);
+            const districtDeputyInspectorsForLocation = districtDeputyInspectors.filter(deputy => deputy.district_id === locationId);
+            
+            // Add chairman and inspector
+            const districtMainOfficials = districtOfficialsForLocation.map(official => {
+              const officials = [];
+              
+              if (official.chairman_member_id) {
+                officials.push({
+                  id: official.chairman_member_id,
+                  name: official.chairman_name,
+                  position: 'İlçe Başkanı',
+                  region: official.district_name,
+                  phone: official.chairman_phone
+                });
+              }
+              
+              if (official.inspector_member_id) {
+                officials.push({
+                  id: official.inspector_member_id,
+                  name: official.inspector_name,
+                  position: 'İlçe Müfettişi',
+                  region: official.district_name,
+                  phone: official.inspector_phone
+                });
+              }
+              
+              return officials;
+            }).flat();
+            
+            // Add deputy inspectors
+            const districtDeputyOfficials = districtDeputyInspectorsForLocation.map(deputy => ({
+              id: deputy.member_id,
+              name: deputy.member_name || deputy.name,
+              position: 'İlçe Müfettiş Yardımcısı',
+              region: deputy.district_name,
+              phone: deputy.member_phone || deputy.phone
+            }));
+            
+            responsible = [...districtMainOfficials, ...districtDeputyOfficials];
+            break;
+            
+          case 'town':
+            // Find town officials for this town
+            const townOfficialsForLocation = townOfficials.filter(official => official.town_id === locationId);
+            const townDeputyInspectorsForLocation = townDeputyInspectors.filter(deputy => deputy.town_id === locationId);
+            
+            // Add chairman and inspector
+            const townMainOfficials = townOfficialsForLocation.map(official => {
+              const officials = [];
+              
+              if (official.chairman_member_id) {
+                officials.push({
+                  id: official.chairman_member_id,
+                  name: official.chairman_name,
+                  position: 'Belde Başkanı',
+                  region: official.town_name,
+                  phone: official.chairman_phone
+                });
+              }
+              
+              if (official.inspector_member_id) {
+                officials.push({
+                  id: official.inspector_member_id,
+                  name: official.inspector_name,
+                  position: 'Belde Müfettişi',
+                  region: official.town_name,
+                  phone: official.inspector_phone
+                });
+              }
+              
+              return officials;
+            }).flat();
+            
+            // Add deputy inspectors
+            const townDeputyOfficials = townDeputyInspectorsForLocation.map(deputy => ({
+              id: deputy.member_id,
+              name: deputy.member_name || deputy.name,
+              position: 'Belde Müfettiş Yardımcısı',
+              region: deputy.town_name,
+              phone: deputy.member_phone || deputy.phone
+            }));
+            
+            responsible = [...townMainOfficials, ...townDeputyOfficials];
+            break;
+            
+          case 'neighborhood':
+            // Find neighborhood representatives and supervisors
+            const neighborhoodReps = neighborhoodRepresentatives
+              .filter(rep => rep.neighborhood_id === locationId)
+              .map(rep => ({
+                id: rep.member_id,
+                name: rep.name,
+                position: 'Mahalle Temsilcisi',
+                region: rep.neighborhood_name,
+                phone: rep.phone
+              }));
+              
+            const neighborhoodSups = neighborhoodSupervisors
+              .filter(sup => sup.neighborhood_id === locationId)
+              .map(sup => ({
+                id: sup.member_id,
+                name: sup.name,
+                position: 'Mahalle Sorumlusu',
+                region: sup.neighborhood_name,
+                phone: sup.phone
+              }));
+              
+            responsible = [...neighborhoodReps, ...neighborhoodSups];
+            break;
+            
+          case 'village':
+            // Find village representatives and supervisors
+            const villageReps = villageRepresentatives
+              .filter(rep => rep.village_id === locationId)
+              .map(rep => ({
+                id: rep.member_id,
+                name: rep.name,
+                position: 'Köy Temsilcisi',
+                region: rep.village_name,
+                phone: rep.phone
+              }));
+              
+            const villageSups = villageSupervisors
+              .filter(sup => sup.village_id === locationId)
+              .map(sup => ({
+                id: sup.member_id,
+                name: sup.name,
+                position: 'Köy Sorumlusu',
+                region: sup.village_name,
+                phone: sup.phone
+              }));
+              
+            responsible = [...villageReps, ...villageSups];
+            break;
+        }
+        
+        responsibleMembers.push(...responsible);
+        });
       });
+      
+      // Remove duplicates
+      const finalResponsible = responsibleMembers.filter((member, index, self) => 
+        index === self.findIndex(m => m.id === member.id)
+      );
+      
+      return finalResponsible;
+    } catch (error) {
+      console.error('Error fetching responsible members:', error);
+      return [];
+    }
+  };
 
-      setAttendance(initialAttendance);
-      setExcuse(initialExcuse);
-      setExcuseReasons(initialExcuseReasons);
+  // Get other members (excluding responsible ones)
+  const otherMembers = filteredMembers.filter(member => 
+    !responsibleMembers.some(resp => resp.id === member.id)
+  );
+
+  // Sort members: responsible first, then others A-Z
+  const sortedMembers = [
+    ...responsibleMembers.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' })),
+    ...otherMembers.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }))
+  ];
+
+  // Load event categories
+  const fetchEventCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const categories = await ApiService.getEventCategories();
+      setEventCategories(categories);
+    } catch (error) {
+      console.error('Error fetching event categories:', error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Load all location data
+  const fetchLocationData = async () => {
+    setLoadingLocations(true);
+    try {
+      const [districtsData, townsData, neighborhoodsData, villagesData, stksData, mosquesData] = await Promise.all([
+        ApiService.getDistricts(),
+        ApiService.getTowns(),
+        ApiService.getNeighborhoods(),
+        ApiService.getVillages(),
+        ApiService.getSTKs(),
+        ApiService.getMosques()
+      ]);
+      
+      setDistricts(districtsData);
+      setTowns(townsData);
+      setNeighborhoods(neighborhoodsData);
+      setVillages(villagesData);
+      setStks(stksData);
+      setMosques(mosquesData);
+    } catch (error) {
+      console.error('Error fetching location data:', error);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  // Load categories and location data on component mount
+  useEffect(() => {
+    fetchEventCategories();
+    fetchLocationData();
+  }, []);
+
+  // Initialize form data from event
+  useEffect(() => {
+    if (event) {
+      setEventName(event.name || '');
+      // Convert date to datetime-local format
+      if (event.date) {
+        const dateObj = new Date(event.date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        setEventDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+      }
+      setEventDescription(event.description || '');
+      
+      // Set category ID if available
+      if (event.category_id) {
+        setSelectedCategoryId(String(event.category_id));
+      }
+      
+      // Load location data from event
+      if (event.selectedLocationTypes && event.selectedLocationTypes.length > 0) {
+        setSelectedLocationTypes(event.selectedLocationTypes);
+      }
+      if (event.selectedLocations) {
+        setSelectedLocations(event.selectedLocations);
+      }
+      
+      // Initialize attendance data from existing event
+      if (event.attendees) {
+        const initialAttendance = {};
+        event.attendees.forEach(attendee => {
+          const memberId = String(attendee.memberId);
+          initialAttendance[memberId] = attendee.attended === true;
+        });
+        setAttendance(initialAttendance);
+      }
     }
   }, [event]);
+
+  // Compute filtered options based on hierarchical selections
+  const getFilteredOptions = (type) => {
+    const selectedDistrictIds = selectedLocations.district || [];
+    const selectedTownIds = selectedLocations.town || [];
+    const selectedNeighborhoodIds = selectedLocations.neighborhood || [];
+    const selectedVillageIds = selectedLocations.village || [];
+
+    switch (type) {
+      case 'town': {
+        if (selectedDistrictIds.length === 0) return towns;
+        return towns.filter(t => selectedDistrictIds.includes(t.district_id));
+      }
+      case 'neighborhood': {
+        let base = neighborhoods;
+        if (selectedDistrictIds.length > 0) {
+          base = base.filter(n => selectedDistrictIds.includes(n.district_id));
+        }
+        if (selectedTownIds.length > 0 && base.length > 0 && 'town_id' in (base[0] || {})) {
+          base = base.filter(n => selectedTownIds.includes(n.town_id));
+        }
+        return base;
+      }
+      case 'village': {
+        let base = villages;
+        if (selectedDistrictIds.length > 0) {
+          base = base.filter(v => selectedDistrictIds.includes(v.district_id));
+        }
+        if (selectedTownIds.length > 0 && base.length > 0 && 'town_id' in (base[0] || {})) {
+          base = base.filter(v => selectedTownIds.includes(v.town_id));
+        }
+        return base;
+      }
+      case 'mosque': {
+        let base = mosques;
+        if (selectedDistrictIds.length > 0) {
+          base = base.filter(m => selectedDistrictIds.includes(m.district_id));
+        }
+        // If neighborhood selected, constrain to those
+        if (selectedNeighborhoodIds.length > 0 && base.length > 0 && 'neighborhood_id' in (base[0] || {})) {
+          base = base.filter(m => selectedNeighborhoodIds.includes(m.neighborhood_id));
+        }
+        // If village selected, constrain to those (some mosques may be village-linked)
+        if (selectedVillageIds.length > 0 && base.length > 0 && 'village_id' in (base[0] || {})) {
+          base = base.filter(m => selectedVillageIds.includes(m.village_id));
+        }
+        return base;
+      }
+      case 'district':
+        return districts;
+      case 'stk':
+        // STK'lar bölge bazlı olabilir; eğer district_id alanı varsa filtrele
+        if ((selectedDistrictIds.length > 0) && stks.length > 0 && 'district_id' in (stks[0] || {})) {
+          return stks.filter(s => selectedDistrictIds.includes(s.district_id));
+        }
+        return stks;
+      default:
+        return [];
+    }
+  };
+
+  // Load responsible members when selected locations change
+  useEffect(() => {
+    const loadResponsibleMembers = async () => {
+      if (selectedLocationTypes.length === 0 || Object.values(selectedLocations).every(arr => arr.length === 0)) {
+        setResponsibleMembers([]);
+        return;
+      }
+
+      setLoadingResponsibleMembers(true);
+      try {
+        const responsible = await getResponsibleMembers();
+        setResponsibleMembers(responsible);
+        
+        // Initialize attendance state for responsible members - preserve existing attendance
+        setAttendance(prev => {
+          const newAttendance = { ...prev };
+          responsible.forEach(member => {
+            const stringId = String(member.id);
+            if (!(stringId in newAttendance)) {
+              newAttendance[stringId] = true; // Default to attended
+            }
+          });
+          return newAttendance;
+        });
+      } catch (error) {
+        console.error('Error loading responsible members:', error);
+        setResponsibleMembers([]);
+      } finally {
+        setLoadingResponsibleMembers(false);
+      }
+    };
+
+    loadResponsibleMembers();
+  }, [selectedLocationTypes, selectedLocations]);
+
+  // Handle location type selection
+  const handleLocationTypeChange = (locationType) => {
+    setSelectedLocationTypes(prev => {
+      if (prev.includes(locationType)) {
+        // Remove location type and clear its selections
+        const newTypes = prev.filter(type => type !== locationType);
+        setSelectedLocations(prev => {
+          const newLocations = { ...prev };
+          delete newLocations[locationType];
+          return newLocations;
+        });
+        return newTypes;
+      } else {
+        return [...prev, locationType];
+      }
+    });
+  };
+
+  // Handle specific location selection (multiple selection)
+  const handleLocationSelection = (locationType, locationId, isChecked) => {
+    setSelectedLocations(prev => {
+      const currentSelections = prev[locationType] || [];
+      
+      if (isChecked) {
+        // Add to selection if not already present
+        if (!currentSelections.includes(locationId)) {
+          return {
+            ...prev,
+            [locationType]: [...currentSelections, locationId]
+          };
+        }
+      } else {
+        // Remove from selection
+        return {
+          ...prev,
+          [locationType]: currentSelections.filter(id => id !== locationId)
+        };
+      }
+      
+      return prev;
+    });
+  };
+
+  // Get location name by type and id
+  const getLocationName = (locationType, locationId) => {
+    if (!locationId) return '';
+    
+    switch (locationType) {
+      case 'district':
+        const district = districts.find(d => d.id === locationId);
+        return district ? district.name : '';
+      case 'town':
+        const town = towns.find(t => t.id === locationId);
+        return town ? town.name : '';
+      case 'neighborhood':
+        const neighborhood = neighborhoods.find(n => n.id === locationId);
+        return neighborhood ? neighborhood.name : '';
+      case 'village':
+        const village = villages.find(v => v.id === locationId);
+        return village ? village.name : '';
+      case 'stk':
+        const stk = stks.find(s => s.id === locationId);
+        return stk ? stk.name : '';
+      case 'mosque':
+        const mosque = mosques.find(m => m.id === locationId);
+        return mosque ? mosque.name : '';
+      default:
+        return '';
+    }
+  };
+
+  // Generate event location string
+  const generateEventLocation = () => {
+    const locationParts = selectedLocationTypes.map(type => {
+      const locationIds = selectedLocations[type] || [];
+      if (locationIds.length > 0) {
+        const locationNames = locationIds.map(id => getLocationName(type, id)).filter(name => name !== '');
+        return locationNames.join(', ');
+      }
+      return '';
+    }).filter(name => name !== '');
+    
+    return locationParts.join(', ');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!eventName.trim()) {
-      alert('Etkinlik adı zorunludur');
+    if (!selectedCategoryId) {
+      alert('Etkinlik kategorisi seçilmelidir');
       return;
     }
     
     if (!eventDate) {
-      alert('Etkinlik tarihi zorunludur');
+      alert('Etkinlik tarihi ve saati zorunludur');
       return;
     }
     
-    if (!eventLocation.trim()) {
-      alert('Etkinlik yeri zorunludur');
+    if (selectedLocationTypes.length === 0) {
+      alert('En az bir konum türü seçilmelidir');
+      return;
+    }
+
+    // Check if all selected location types have at least one selected location
+    const missingLocations = selectedLocationTypes.filter(type => 
+      !selectedLocations[type] || selectedLocations[type].length === 0
+    );
+    if (missingLocations.length > 0) {
+      alert('Seçilen konum türleri için en az bir konum seçimi yapılmalıdır');
       return;
     }
     
     try {
-      // Prepare event data
+      // Get selected category name - use category name as event name
+      const selectedCategory = eventCategories.find(cat => cat.id === parseInt(selectedCategoryId));
+      const finalEventName = selectedCategory ? selectedCategory.name : eventName;
+      
+      // Generate location string from selected locations
+      const finalLocation = generateEventLocation();
+      
+      // Update event
       const eventData = {
-        name: eventName,
+        name: finalEventName,
+        category_id: selectedCategoryId, // Store category ID for reference
         date: eventDate,
-        location: eventLocation,
+        location: finalLocation,
         description: eventDescription,
+        selectedLocationTypes: selectedLocationTypes, // Store selected location types
+        selectedLocations: selectedLocations, // Store selected locations
         attendees: sortedMembers.map(member => {
-          const memberId = member.id;
+          // ID'leri string'e çevirerek tutarlılık sağla
+          const memberId = String(member.id);
           const attended = attendance[memberId] === true;
-          const hasExcuse = excuse[memberId] === true;
-          const excuseReason = excuseReasons[memberId] || '';
           
           return {
-            memberId: parseInt(memberId),
-            attended: attended && !hasExcuse, // If has excuse, not attended
-            excuse: hasExcuse ? { 
-              hasExcuse: true, 
-              reason: excuseReason 
-            } : { 
-              hasExcuse: false, 
-              reason: '' 
-            }
+            memberId: memberId, // String olarak sakla (Firebase ID'leri string)
+            attended: attended
           };
         })
       };
@@ -100,37 +568,12 @@ const EventForm = ({ event, onClose, onEventSaved, members }) => {
   };
 
   const handleAttendanceChange = (memberId, attended) => {
+    // ID'yi string'e çevirerek tutarlılık sağla
+    const stringId = String(memberId);
     setAttendance(prev => ({
       ...prev,
-      [memberId]: attended
+      [stringId]: attended
     }));
-    
-    // If not attended, clear excuse
-    if (!attended) {
-      setExcuse(prev => ({
-        ...prev,
-        [memberId]: false
-      }));
-      setExcuseReasons(prev => ({
-        ...prev,
-        [memberId]: ''
-      }));
-    }
-  };
-
-  const handleExcuseChange = (memberId, hasExcuse) => {
-    setExcuse(prev => ({
-      ...prev,
-      [memberId]: hasExcuse
-    }));
-    
-    // If has excuse, mark as not attended
-    if (hasExcuse) {
-      setAttendance(prev => ({
-        ...prev,
-        [memberId]: false
-      }));
-    }
   };
 
   return (
@@ -138,121 +581,266 @@ const EventForm = ({ event, onClose, onEventSaved, members }) => {
       {/* Event Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Etkinlik Adı *
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Etkinlik Kategorisi *
           </label>
-          <input
-            type="text"
-            value={eventName}
-            onChange={(e) => setEventName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Örn: Cuma Gezisi"
+          <select
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             required
-          />
+            disabled={loadingCategories}
+          >
+            <option value="">
+              {loadingCategories ? 'Kategoriler yükleniyor...' : 'Etkinlik kategorisi seçin'}
+            </option>
+            {eventCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          {eventCategories.length === 0 && !loadingCategories && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Henüz etkinlik kategorisi eklenmemiş. Lütfen önce ayarlar sayfasından etkinlik kategorisi ekleyin.
+            </p>
+          )}
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Etkinlik Tarihi *
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Etkinlik Tarihi ve Saati *
           </label>
           <input
-            type="date"
+            type="datetime-local"
             value={eventDate}
             onChange={(e) => setEventDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             required
           />
         </div>
       </div>
 
+      {/* Location Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
           Etkinlik Yeri *
         </label>
-        <input
-          type="text"
-          value={eventLocation}
-          onChange={(e) => setEventLocation(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          placeholder="Örn: İstanbul Müzesi"
-          required
-        />
+        
+        {/* Location Type Checkboxes */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Konum türü seçin:</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { key: 'district', label: 'İlçe' },
+              { key: 'town', label: 'Belde' },
+              { key: 'neighborhood', label: 'Mahalle' },
+              { key: 'village', label: 'Köy' },
+              { key: 'stk', label: 'STK' },
+              { key: 'mosque', label: 'Cami' }
+            ].map(({ key, label }) => (
+              <label key={key} className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedLocationTypes.includes(key)}
+                  onChange={() => handleLocationTypeChange(key)}
+                  className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-gray-700"
+                  disabled={loadingLocations}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Location Selection Dropdowns */}
+        {selectedLocationTypes.length > 0 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Seçilen konum türleri için detay seçin:</p>
+            
+            {selectedLocationTypes.map(locationType => {
+              const locationTypeLabels = {
+                district: 'İlçe',
+                town: 'Belde', 
+                neighborhood: 'Mahalle',
+                village: 'Köy',
+                stk: 'STK',
+                mosque: 'Cami'
+              };
+
+              const options = getFilteredOptions(locationType);
+
+              return (
+                <div key={locationType} className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locationTypeLabels[locationType]}:
+                  </label>
+                  <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-700">
+                    {options.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">Seçenek bulunamadı</p>
+                    ) : (
+                      options.map(option => (
+                        <label key={option.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(selectedLocations[locationType] || []).includes(option.id)}
+                            onChange={(e) => handleLocationSelection(locationType, option.id, e.target.checked)}
+                            className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-gray-700"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{option.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
       </div>
 
+      {/* Responsible Members Selection */}
+      {responsibleMembers.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            Sorumlu Kişilerin Katılım Durumu
+          </label>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+              Seçilen konumlardaki sorumlu kişilerin katılım durumunu belirleyin:
+            </p>
+            <div className="space-y-3">
+              {responsibleMembers.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{member.name}</div>
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                        {member.position}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{member.region}</div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name={`responsible_${member.id}`}
+                        checked={attendance[String(member.id)] === true}
+                        onChange={() => handleAttendanceChange(member.id, true)}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Katıldı</span>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name={`responsible_${member.id}`}
+                        checked={attendance[String(member.id)] === false}
+                        onChange={() => handleAttendanceChange(member.id, false)}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Katılmadı</span>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Açıklama
         </label>
         <textarea
           value={eventDescription}
           onChange={(e) => setEventDescription(e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           placeholder="Etkinlik hakkında detaylı bilgi..."
         />
       </div>
 
       {/* Attendance Section */}
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Katılım Durumu</h3>
-        <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Katılım Durumu</h3>
+          {responsibleMembers.length > 0 && (
+            <span className="text-sm text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded-full">
+              {responsibleMembers.length} sorumlu kişi
+            </span>
+          )}
+        </div>
+        
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Üye ara (isim, görev, bölge)..."
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          />
+        </div>
+        
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-96 overflow-y-auto">
           <div className="space-y-3">
-            {sortedMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{member.name}</div>
-                  <div className="text-sm text-gray-500">{member.position} - {member.region}</div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  {/* Attendance Checkbox */}
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={attendance[member.id] === true}
-                      onChange={(e) => handleAttendanceChange(member.id, e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Katıldı</span>
-                  </label>
-                  
-                  {/* Excuse Checkbox */}
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={excuse[member.id] === true}
-                      onChange={(e) => handleExcuseChange(member.id, e.target.checked)}
-                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Mazeretli</span>
-                  </label>
-                  
-                  {/* Excuse Reason */}
-                  {excuse[member.id] && (
-                    <input
-                      type="text"
-                      value={excuseReasons[member.id] || ''}
-                      onChange={(e) => setExcuseReasons(prev => ({
-                        ...prev,
-                        [member.id]: e.target.value
-                      }))}
-                      placeholder="Mazeret sebebi"
-                      className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                    />
-                  )}
-                </div>
+            {sortedMembers.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                {searchTerm ? 'Arama kriterlerine uygun üye bulunamadı' : 'Üye bulunamadı'}
               </div>
-            ))}
+            ) : (
+              sortedMembers.map((member) => {
+                const isResponsible = responsibleMembers.some(resp => resp.id === member.id);
+                return (
+                  <div key={member.id} className={`flex items-center justify-between p-3 rounded-lg border ${
+                    isResponsible 
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                      : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                  }`}>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{member.name}</div>
+                        {isResponsible && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                            Sorumlu
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{member.position} - {member.region}</div>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      {/* Attendance Checkbox */}
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={attendance[String(member.id)] === true}
+                          onChange={(e) => handleAttendanceChange(member.id, e.target.checked)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Katıldı</span>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+      <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
         >
           İptal
         </button>

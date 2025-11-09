@@ -2366,7 +2366,28 @@ class FirebaseApiService {
 
   static async createEventCategory(categoryData) {
     try {
-      const docId = await FirebaseService.create(this.COLLECTIONS.EVENT_CATEGORIES, null, categoryData);
+      // description alanını şifrelemeden saklamak için özel işlem
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const descriptionValue = categoryData.description;
+      const categoryDataWithoutDescription = { ...categoryData };
+      delete categoryDataWithoutDescription.description;
+      
+      // Önce description olmadan kaydet
+      const docId = await FirebaseService.create(
+        this.COLLECTIONS.EVENT_CATEGORIES,
+        null,
+        categoryDataWithoutDescription,
+        true // encrypt = true (description hariç diğer hassas alanlar şifrelenecek)
+      );
+      
+      // Sonra description'ı şifrelemeden ekle (sadece boş değilse)
+      if (descriptionValue !== undefined && descriptionValue !== null && descriptionValue !== '') {
+        const docRef = doc(db, this.COLLECTIONS.EVENT_CATEGORIES, docId);
+        await updateDoc(docRef, { description: descriptionValue }); // Şifrelenmeden sakla
+      }
+      
       return { success: true, id: docId, message: 'Etkinlik kategorisi oluşturuldu' };
     } catch (error) {
       console.error('Create event category error:', error);

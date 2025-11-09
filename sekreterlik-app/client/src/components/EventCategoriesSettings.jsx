@@ -247,9 +247,6 @@ const EventCategoriesSettings = () => {
                   {category.description && (
                     <p className="text-sm text-gray-500 mt-1">{category.description}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    Eklenme: {new Date(category.created_at).toLocaleDateString('tr-TR')}
-                  </p>
                 </div>
                 <div className="flex space-x-2">
                   <button

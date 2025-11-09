@@ -2376,7 +2376,25 @@ class FirebaseApiService {
 
   static async updateEventCategory(id, categoryData) {
     try {
-      await FirebaseService.update(this.COLLECTIONS.EVENT_CATEGORIES, id, categoryData);
+      // description alanını şifrelemeden saklamak için özel işlem
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const descriptionValue = categoryData.description;
+      const categoryDataWithoutDescription = { ...categoryData };
+      delete categoryDataWithoutDescription.description;
+      
+      // Önce description olmadan güncelle
+      await FirebaseService.update(this.COLLECTIONS.EVENT_CATEGORIES, id, categoryDataWithoutDescription);
+      
+      // Sonra description'ı şifrelemeden ekle (boş ise null olarak sakla)
+      const docRef = doc(db, this.COLLECTIONS.EVENT_CATEGORIES, id);
+      if (descriptionValue !== undefined && descriptionValue !== null && descriptionValue !== '') {
+        await updateDoc(docRef, { description: descriptionValue }); // Şifrelenmeden sakla
+      } else {
+        await updateDoc(docRef, { description: null }); // Boş ise null olarak sakla
+      }
+      
       return { success: true, message: 'Etkinlik kategorisi güncellendi' };
     } catch (error) {
       console.error('Update event category error:', error);

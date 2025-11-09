@@ -146,11 +146,6 @@ const MeetingsPage = () => {
   const handleUpdateAttendance = async (id) => {
     try {
       const meeting = await ApiService.getMeetingById(id);
-      // Planlanan toplantılar için yoklama alma özelliği devre dışı
-      if (meeting.isPlanned) {
-        alert('Planlanan toplantılar için yoklama alınamaz. Toplantı gerçekleştikten sonra "Toplantı Oluştur" ile oluşturup yoklama alabilirsiniz.');
-        return;
-      }
       setSelectedMeeting(meeting);
       setIsAttendanceModalOpen(true);
     } catch (error) {

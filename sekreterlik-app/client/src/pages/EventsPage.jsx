@@ -162,11 +162,6 @@ const EventsPage = () => {
   };
 
   const handleUpdateAttendance = (event) => {
-    // Planlanan etkinlikler için yoklama alma özelliği devre dışı
-    if (event.isPlanned) {
-      alert('Planlanan etkinlikler için yoklama alınamaz. Etkinlik gerçekleştikten sonra "Etkinlik Oluştur" ile oluşturup yoklama alabilirsiniz.');
-      return;
-    }
     setSelectedEvent(event);
     setIsAttendanceModalOpen(true);
   };

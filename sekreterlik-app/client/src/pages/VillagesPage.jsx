@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ApiService from '../utils/ApiService';
+import Modal from '../components/Modal';
 import * as XLSX from 'xlsx';
 
 const VillagesPage = () => {
   const [villages, setVillages] = useState([]);
   const [villageRepresentatives, setVillageRepresentatives] = useState([]);
   const [villageSupervisors, setVillageSupervisors] = useState([]);
+  const [visitCounts, setVisitCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroupNo, setFilterGroupNo] = useState('');
   const [editingGroup, setEditingGroup] = useState(null);
   const [groupNoInput, setGroupNoInput] = useState('');
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [selectedVillage, setSelectedVillage] = useState(null);
+  const [visitDetails, setVisitDetails] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -29,11 +34,69 @@ const VillagesPage = () => {
       setVillages(villagesData);
       setVillageRepresentatives(representativesData);
       setVillageSupervisors(supervisorsData);
+      
+      // Ziyaret sayılarını yükle
+      await fetchVisitCounts();
     } catch (error) {
       console.error('Error fetching villages:', error);
       setError('Köyler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVisitCounts = async () => {
+    try {
+      const data = await ApiService.getAllVisitCounts('village');
+      const counts = {};
+      data.forEach(visit => {
+        counts[visit.village_id] = visit.visit_count || 0;
+      });
+      setVisitCounts(counts);
+    } catch (error) {
+      console.error('Error fetching visit counts:', error);
+    }
+  };
+
+  const handleVisitCountClick = async (village) => {
+    setSelectedVillage(village);
+    setShowVisitModal(true);
+    
+    try {
+      // Tüm etkinlikleri al
+      const events = await ApiService.getEvents(false); // Sadece aktif etkinlikler
+      
+      // Bu köy için ziyaret detaylarını bul
+      const details = [];
+      events.forEach(event => {
+        if (event.selectedLocationTypes && event.selectedLocations) {
+          const locationTypes = event.selectedLocationTypes;
+          const locations = event.selectedLocations;
+          
+          if (locationTypes.includes('village') && locations.village) {
+            const villageIds = locations.village;
+            if (villageIds.includes(village.id) || villageIds.includes(String(village.id))) {
+              details.push({
+                eventName: event.name || 'Etkinlik',
+                eventDate: event.date || '',
+                eventDescription: event.description || ''
+              });
+            }
+          }
+        }
+      });
+      
+      // Tarihe göre sırala (en yeni önce)
+      details.sort((a, b) => {
+        const dateA = new Date(a.eventDate);
+        const dateB = new Date(b.eventDate);
+        return dateB - dateA;
+      });
+      
+      setVisitDetails(details);
+    } catch (error) {
+      console.error('Error fetching visit details:', error);
+      setVisitDetails([]);
     }
   };
 
@@ -227,6 +290,9 @@ const VillagesPage = () => {
                     Müfettiş
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ziyaret Sayısı
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Temsilci Durumu
                   </th>
                 </tr>
@@ -304,6 +370,18 @@ const VillagesPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {supervisor?.name || '-'}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => handleVisitCountClick(village)}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors cursor-pointer"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          {visitCounts[village.id] || 0} ziyaret
+                        </button>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {hasRepresentative ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -323,6 +401,54 @@ const VillagesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Visit Details Modal */}
+      <Modal
+        isOpen={showVisitModal}
+        onClose={() => {
+          setShowVisitModal(false);
+          setSelectedVillage(null);
+          setVisitDetails([]);
+        }}
+        title={`${selectedVillage?.name || 'Köy'} - Ziyaret Detayları`}
+        size="lg"
+      >
+        <div className="space-y-4">
+          {visitDetails.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>Bu köy için henüz ziyaret kaydı bulunmamaktadır.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visitDetails.map((detail, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        {detail.eventName}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span className="font-medium">Tarih:</span> {detail.eventDate ? new Date(detail.eventDate).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '-'}
+                      </p>
+                      {detail.eventDescription && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {detail.eventDescription}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

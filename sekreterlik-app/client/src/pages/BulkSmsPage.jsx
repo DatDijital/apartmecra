@@ -718,6 +718,8 @@ const BulkSmsPage = () => {
                         {sms.options?.includeObservers && ' | Müşahitler'}
                         {sms.options?.includeChiefObservers && ' | Baş Müşahitler'}
                         {sms.options?.includeTownPresidents && ' | Belde Başkanları'}
+                        {sms.options?.includeNeighborhoodRepresentatives && ' | Mahalle Temsilcileri'}
+                        {sms.options?.includeVillageRepresentatives && ' | Köy Temsilcileri'}
                       </div>
                       <div className="mt-2">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${

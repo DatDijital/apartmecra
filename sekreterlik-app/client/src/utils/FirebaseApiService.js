@@ -2277,7 +2277,27 @@ class FirebaseApiService {
   // STKs CRUD
   static async getSTKs() {
     try {
-      return await FirebaseService.getAll(this.COLLECTIONS.STKS);
+      const stks = await FirebaseService.getAll(this.COLLECTIONS.STKS);
+      
+      // description alanını decrypt etmeye çalış (eski şifrelenmiş kayıtlar için)
+      const { decryptData } = await import('../utils/crypto');
+      
+      return stks.map(stk => {
+        // Eğer description şifrelenmişse (eski kayıtlar için), decrypt et
+        if (stk.description && typeof stk.description === 'string' && stk.description.startsWith('U2FsdGVkX1')) {
+          try {
+            const decrypted = decryptData(stk.description);
+            if (decrypted && decrypted !== stk.description) {
+              stk.description = decrypted;
+            }
+          } catch (error) {
+            // Decrypt başarısız olursa, description'ı temizle (muhtemelen bozuk veri)
+            console.warn('Failed to decrypt description for STK:', stk.id, error);
+            stk.description = null;
+          }
+        }
+        return stk;
+      });
     } catch (error) {
       console.error('Get STKs error:', error);
       return [];
@@ -2286,7 +2306,28 @@ class FirebaseApiService {
 
   static async createSTK(stkData) {
     try {
-      const docId = await FirebaseService.create(this.COLLECTIONS.STKS, null, stkData);
+      // description alanını şifrelemeden saklamak için özel işlem
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const descriptionValue = stkData.description;
+      const stkDataWithoutDescription = { ...stkData };
+      delete stkDataWithoutDescription.description;
+      
+      // Önce description olmadan kaydet
+      const docId = await FirebaseService.create(
+        this.COLLECTIONS.STKS,
+        null,
+        stkDataWithoutDescription,
+        true // encrypt = true (description hariç diğer hassas alanlar şifrelenecek)
+      );
+      
+      // Sonra description'ı şifrelemeden ekle (sadece boş değilse)
+      if (descriptionValue !== undefined && descriptionValue !== null && descriptionValue !== '') {
+        const docRef = doc(db, this.COLLECTIONS.STKS, docId);
+        await updateDoc(docRef, { description: descriptionValue }); // Şifrelenmeden sakla
+      }
+      
       return { success: true, id: docId, message: 'STK oluşturuldu' };
     } catch (error) {
       console.error('Create STK error:', error);
@@ -2296,7 +2337,25 @@ class FirebaseApiService {
 
   static async updateSTK(id, stkData) {
     try {
-      await FirebaseService.update(this.COLLECTIONS.STKS, id, stkData);
+      // description alanını şifrelemeden saklamak için özel işlem
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const descriptionValue = stkData.description;
+      const stkDataWithoutDescription = { ...stkData };
+      delete stkDataWithoutDescription.description;
+      
+      // Önce description olmadan güncelle
+      await FirebaseService.update(this.COLLECTIONS.STKS, id, stkDataWithoutDescription);
+      
+      // Sonra description'ı şifrelemeden ekle (boş ise null olarak sakla)
+      const docRef = doc(db, this.COLLECTIONS.STKS, id);
+      if (descriptionValue !== undefined && descriptionValue !== null && descriptionValue !== '') {
+        await updateDoc(docRef, { description: descriptionValue }); // Şifrelenmeden sakla
+      } else {
+        await updateDoc(docRef, { description: null }); // Boş ise null olarak sakla
+      }
+      
       return { success: true, message: 'STK güncellendi' };
     } catch (error) {
       console.error('Update STK error:', error);

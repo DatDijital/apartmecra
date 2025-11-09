@@ -32,6 +32,12 @@ const routes = [
   'district-president-dashboard',
   'town-president-dashboard',
   'election-preparation',
+  'election-preparation/ballot-boxes',
+  'election-preparation/observers',
+  'election-preparation/representatives',
+  'election-preparation/neighborhoods',
+  'election-preparation/villages',
+  'election-preparation/groups',
   'management-chart',
   'calendar',
   'bulk-sms'

@@ -3,7 +3,7 @@ services:
     name: apartmecra
     env: node
     plan: free
-    rootDir: .
+    rootDir: Desktop/-1 bakı/apart4 2
     buildCommand: npm install --include=dev && npm run build
     startCommand: node server.cjs
     envVars:

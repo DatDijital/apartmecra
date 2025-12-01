@@ -142,35 +142,33 @@ const SitesMain = () => {
 
   // Memoize handler objects to prevent infinite loops
   // Use refs to avoid recreating handlers on every render
-  // BUT: Update handlers when formData changes to avoid closure issues
+  // BUT: Recreate when formData changes to avoid closure issues
   const handlersRef = useRef(null);
   const formDataRef = useRef(formData);
-  formDataRef.current = formData; // Keep ref in sync with current formData
   
-  if (!handlersRef.current || handlersRef.current.formDataVersion !== formDataRef.current) {
-    handlersRef.current = {
-      ...SiteHandlers({
-        sites, setSites,
-        transactions, setTransactions,
-        agreements, setAgreements,
-        companies, setCompanies,
-        formData: formDataRef.current, // Use ref to get current value
-        setFormData,
-        selectedSiteForPayment, setSelectedSiteForPayment,
-        pendingPayments, setPendingPayments,
-        showPaymentSelection, setShowPaymentSelection,
-        currentSiteForAgreements, setCurrentSiteForAgreements,
-        currentSite, setCurrentSite,
-        setShowAddForm,
-        calculateTotalElevators: helpers.calculateTotalElevators,
-        calculatePanels: helpers.calculatePanels,
-        formatCurrency: helpers.formatCurrency,
-        refreshData, // Pass the refreshData function to handlers
-        processedPayments, setProcessedPayments,
-        helpers
-      }),
-      formDataVersion: formDataRef.current
-    };
+  // Recreate handlers if formData changed
+  if (!handlersRef.current || formDataRef.current !== formData) {
+    formDataRef.current = formData;
+    handlersRef.current = SiteHandlers({
+      sites, setSites,
+      transactions, setTransactions,
+      agreements, setAgreements,
+      companies, setCompanies,
+      formData, // Use current formData
+      setFormData,
+      selectedSiteForPayment, setSelectedSiteForPayment,
+      pendingPayments, setPendingPayments,
+      showPaymentSelection, setShowPaymentSelection,
+      currentSiteForAgreements, setCurrentSiteForAgreements,
+      currentSite, setCurrentSite,
+      setShowAddForm,
+      calculateTotalElevators: helpers.calculateTotalElevators,
+      calculatePanels: helpers.calculatePanels,
+      formatCurrency: helpers.formatCurrency,
+      refreshData, // Pass the refreshData function to handlers
+      processedPayments, setProcessedPayments,
+      helpers
+    });
   }
   const handlers = handlersRef.current;
 

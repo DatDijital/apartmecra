@@ -103,10 +103,18 @@ export const login = async (username, password) => {
     const loginAttempts = [];
     
     if (username.includes('@')) {
-      // Direct email login (admin)
+      // Direct email login - determine role from email
+      let role = 'admin';
+      if (username.includes('@site.local')) {
+        role = 'site_user';
+      } else if (username.includes('@company.local')) {
+        role = 'company';
+      } else if (username.includes('@personnel.local')) {
+        role = 'personnel';
+      }
       loginAttempts.push({
         email: username,
-        role: 'admin'
+        role: role
       });
     } else {
       // Try site login first
@@ -127,7 +135,11 @@ export const login = async (username, password) => {
         role: 'personnel'
       });
       
-      // Try admin login as fallback
+      // Try admin login as fallback - try multiple admin email formats
+      loginAttempts.push({
+        email: `${username}@apartmecra.com`,
+        role: 'admin'
+      });
       loginAttempts.push({
         email: `${username}@example.com`,
         role: 'admin'

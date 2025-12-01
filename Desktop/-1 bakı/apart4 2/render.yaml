@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: cd "Desktop/-1 bakı/apart4 2" && npm install --include=dev && npm run build
-    startCommand: node server.cjs
+    startCommand: cd "Desktop/-1 bakı/apart4 2" && node server.cjs
     envVars:
       - key: NODE_ENV
         value: production

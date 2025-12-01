@@ -1,0 +1,13 @@
+services:
+  - type: static
+    name: ilce-sekreterlik
+    branch: version1
+    rootDir: "sekreterlik-app/client"
+    buildCommand: rm -rf dist node_modules/.vite .cache && npm install && npm run build && node scripts/fix-spa-routing.js && ls -la dist && echo "Build completed at $(date)" && echo "Commit: $(git rev-parse HEAD)"
+    staticPublishPath: "./dist"
+    envVars:
+      - key: VITE_USE_FIREBASE
+        value: true
+      - key: VITE_ENCRYPTION_KEY
+        value: ilsekreterlik-app-encryption-key-2024-secret-very-long-key-for-security-minimum-32-characters
+

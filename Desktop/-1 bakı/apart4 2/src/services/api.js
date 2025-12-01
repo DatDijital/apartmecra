@@ -1,17 +1,21 @@
 // src/services/api.js
-// LOCAL MODE ONLY - All external connections disabled
-// This service ONLY uses local JSON Server (port 3001)
-// Firebase, Vercel, and all other external services are DISABLED
+// Dynamic API service selector - Firebase or Local mode
+import { auth } from '../config/firebase.js';
 
-// Firebase is PERMANENTLY DISABLED - Always use local mode
+// Check if Firebase is enabled (auth object exists)
 const isFirebaseEnabled = () => {
-  return false; // NEVER enable Firebase
+  return auth !== null && auth !== undefined;
 };
 
-// Always use Local API service - Firebase is completely disabled
+// Select API service based on Firebase availability
 const getApiService = async () => {
-  console.log('🏠 Using Local API service (Local mode only)');
-  return await import('./localApi.js');
+  if (isFirebaseEnabled()) {
+    console.log('🔥 Using Firebase API service');
+    return await import('./firebaseApi.js');
+  } else {
+    console.log('🏠 Using Local API service (Local mode only)');
+    return await import('./localApi.js');
+  }
 };
 
 // Create a proxy object that dynamically calls the appropriate API service

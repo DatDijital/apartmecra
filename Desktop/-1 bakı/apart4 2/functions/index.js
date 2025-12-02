@@ -1,7 +1,8 @@
 const {beforeUserCreated} = require('firebase-functions/v2/identity');
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
-const {onCall} = require('firebase-functions/v2/https');
+const {onCall, onRequest} = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const cors = require('cors')({ origin: true });
 
 // Firebase Admin SDK'yı başlat
 admin.initializeApp();
@@ -176,37 +177,40 @@ exports.createAdminUser = onCall(async (request) => {
   }
 });
 
-// Email'e göre kullanıcıyı sil (Auth + Firestore) - CORS enabled
-exports.deleteUserByEmail = onCall(
+// Email'e göre kullanıcıyı sil (Auth + Firestore) - CORS enabled with onRequest
+exports.deleteUserByEmail = onRequest(
   {
     cors: true,
     region: 'us-central1'
   },
-  async (request) => {
-    try {
-      const { email } = request.data || {};
-      
-      if (!email) {
-        return { success: false, error: 'Email is required' };
+  async (req, res) => {
+    return cors(req, res, async () => {
+      try {
+        // Handle both GET and POST requests
+        const email = req.method === 'POST' ? (req.body?.email || req.body) : req.query.email;
+        
+        if (!email) {
+          return res.status(400).json({ success: false, error: 'Email is required' });
+        }
+        
+        console.log('Deleting user by email:', email);
+        
+        // Find user in Auth
+        const userRecord = await admin.auth().getUserByEmail(email);
+        
+        // Delete from Auth
+        await admin.auth().deleteUser(userRecord.uid);
+        
+        // Delete from Firestore users collection (if exists)
+        await db.collection('users').doc(userRecord.uid).delete().catch(() => null);
+        
+        console.log('User deleted successfully:', userRecord.uid);
+        
+        return res.status(200).json({ success: true });
+      } catch (error) {
+        console.error('Error deleting user by email:', error);
+        return res.status(500).json({ success: false, error: error.message });
       }
-      
-      console.log('Deleting user by email:', email);
-      
-      // Find user in Auth
-      const userRecord = await admin.auth().getUserByEmail(email);
-      
-      // Delete from Auth
-      await admin.auth().deleteUser(userRecord.uid);
-      
-      // Delete from Firestore users collection (if exists)
-      await db.collection('users').doc(userRecord.uid).delete().catch(() => null);
-      
-      console.log('User deleted successfully:', userRecord.uid);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting user by email:', error);
-      return { success: false, error: error.message };
-    }
+    });
   }
 );

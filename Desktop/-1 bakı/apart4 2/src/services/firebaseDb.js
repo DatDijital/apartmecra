@@ -16,7 +16,6 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import app, { db } from '../config/firebase.js';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { createUserWithEmail } from './firebaseAuth.js';
 import { syncWithFirebase } from './firebaseSync.js';
 
@@ -252,9 +251,6 @@ export const updateSite = async (siteId, siteData) => {
 
 export const deleteSite = async (siteId) => {
   try {
-    const functions = getFunctions(app);
-    const deleteUserByEmail = httpsCallable(functions, 'deleteUserByEmail');
-
     // Get site data first to find associated user and real document id
     let siteRecord = null;
     let docId = siteId;
@@ -285,10 +281,28 @@ export const deleteSite = async (siteId) => {
     if (deleteResult.success) {
       console.log(`✅ Site ${logicalSiteId} (doc: ${docId}) deleted from Firestore`);
       
-      // Delete associated Auth user (ignore errors, just log)
+      // Delete associated Auth user using fetch (onRequest endpoint)
       try {
-        await deleteUserByEmail({ email: siteEmail });
-        console.log(`✅ Auth user deleted: ${siteEmail}`);
+        const functions = getFunctions(app);
+        const functionUrl = `https://us-central1-apartmecra-elz.cloudfunctions.net/deleteUserByEmail`;
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: siteEmail })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            console.log(`✅ Auth user deleted: ${siteEmail}`);
+          } else {
+            console.error(`⚠️ Failed to delete Auth user ${siteEmail}:`, result.error);
+          }
+        } else {
+          console.error(`⚠️ Failed to delete Auth user ${siteEmail}: HTTP ${response.status}`);
+        }
       } catch (err) {
         console.error(`⚠️ Failed to delete Auth user ${siteEmail}:`, err.message || err);
       }
@@ -375,9 +389,6 @@ export const updateCompany = async (companyId, companyData) => {
 
 export const deleteCompany = async (companyId) => {
   try {
-    const functions = getFunctions(app);
-    const deleteUserByEmail = httpsCallable(functions, 'deleteUserByEmail');
-
     // Get company data first to find associated user and real document id
     let companyRecord = null;
     let docId = companyId;
@@ -407,10 +418,27 @@ export const deleteCompany = async (companyId) => {
     if (deleteResult.success) {
       console.log(`✅ Company ${logicalCompanyId} (doc: ${docId}) deleted from Firestore`);
       
-      // Delete associated Auth user (ignore errors, just log)
+      // Delete associated Auth user using fetch (onRequest endpoint)
       try {
-        await deleteUserByEmail({ email: companyEmail });
-        console.log(`✅ Auth user deleted: ${companyEmail}`);
+        const functionUrl = `https://us-central1-apartmecra-elz.cloudfunctions.net/deleteUserByEmail`;
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: companyEmail })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            console.log(`✅ Auth user deleted: ${companyEmail}`);
+          } else {
+            console.error(`⚠️ Failed to delete Auth user ${companyEmail}:`, result.error);
+          }
+        } else {
+          console.error(`⚠️ Failed to delete Auth user ${companyEmail}: HTTP ${response.status}`);
+        }
       } catch (err) {
         console.error(`⚠️ Failed to delete Auth user ${companyEmail}:`, err.message || err);
       }

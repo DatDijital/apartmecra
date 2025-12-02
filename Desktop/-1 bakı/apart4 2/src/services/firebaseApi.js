@@ -118,33 +118,35 @@ export const login = async (username, password) => {
         role: role
       });
     } else {
-      // Try site login first
-      loginAttempts.push({
-        email: `${username}@site.local`,
-        role: 'site_user'
-      });
-      
-      // Try company login
-      loginAttempts.push({
-        email: `${username}@company.local`,
-        role: 'company'
-      });
-      
-      // Try personnel login
-      loginAttempts.push({
-        email: `${username}@personnel.local`,
-        role: 'personnel'
-      });
-      
-      // Try admin login as fallback - try multiple admin email formats
-      loginAttempts.push({
-        email: `${username}@apartmecra.com`,
-        role: 'admin'
-      });
-      loginAttempts.push({
-        email: `${username}@example.com`,
-        role: 'admin'
-      });
+      // If username is "admin", try admin login first
+      if (username.toLowerCase() === 'admin') {
+        loginAttempts.push({
+          email: 'admin@apartmecra.com',
+          role: 'admin'
+        });
+        loginAttempts.push({
+          email: 'admin@example.com',
+          role: 'admin'
+        });
+      } else {
+        // Try site login first
+        loginAttempts.push({
+          email: `${username}@site.local`,
+          role: 'site_user'
+        });
+        
+        // Try company login
+        loginAttempts.push({
+          email: `${username}@company.local`,
+          role: 'company'
+        });
+        
+        // Try personnel login
+        loginAttempts.push({
+          email: `${username}@personnel.local`,
+          role: 'personnel'
+        });
+      }
     }
     
     // Try each login attempt

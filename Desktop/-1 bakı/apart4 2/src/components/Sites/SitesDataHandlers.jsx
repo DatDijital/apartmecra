@@ -121,14 +121,46 @@ const SitesDataHandlers = ({
     
     const siteName = siteToDelete?.name || 'Bilinmeyen Site';
     
+    // If site not found in state, try to delete directly (deleteSite handles ID lookup)
     if (!siteToDelete) {
-      console.error('Site not found in state:', siteId);
-      console.error('Available site IDs:', sites.map(s => ({ id: s.id, _docId: s._docId, name: s.name })));
-      await window.showAlert(
-        'Hata',
-        'Site state\'te bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.',
+      console.warn('Site not found in state, but attempting deletion anyway:', siteId);
+      console.warn('Available site IDs:', sites.map(s => ({ id: s.id, _docId: s._docId, name: s.name })));
+      
+      // Still ask for confirmation
+      const result = await window.showConfirm(
+        'Site Sil',
+        `Siteyi kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`,
         'error'
       );
+      
+      if (result) {
+        try {
+          // Try deletion directly - deleteSite function handles both custom ID and document ID lookup
+          const success = await deleteSite(siteId);
+          console.log('deleteSite result:', success, 'siteId:', siteId);
+          
+          if (success) {
+            // Refresh data to update state
+            if (refreshData) {
+              await refreshData();
+            } else {
+              // Fallback: manually refresh sites
+              const updatedSites = await getSites();
+              setSites(updatedSites);
+            }
+            
+            await window.showAlert('Başarılı', 'Site başarıyla silindi.', 'success');
+            return true;
+          } else {
+            await window.showAlert('Hata', 'Site silinirken bir hata oluştu.', 'error');
+            return false;
+          }
+        } catch (error) {
+          console.error('Error deleting site:', error);
+          await window.showAlert('Hata', `Site silinirken bir hata oluştu: ${error.message}`, 'error');
+          return false;
+        }
+      }
       return false;
     }
     

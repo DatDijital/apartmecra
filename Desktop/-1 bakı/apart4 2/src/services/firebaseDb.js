@@ -255,27 +255,43 @@ export const deleteSite = async (siteId) => {
     let siteRecord = null;
     let docId = siteId;
 
+    // First try to get by document ID
     const siteResult = await getDocument(COLLECTIONS.SITES, siteId);
     if (siteResult.success && siteResult.data) {
       siteRecord = siteResult.data;
-      docId = siteResult.data.id || siteId;
+      // siteResult.data.id is the document ID from getDocument
+      docId = siteId; // siteId is the document ID in this case
     } else {
-      // Fallback: some records may use custom id in a field
+      // Fallback: search by custom 'id' field
       const fallback = await getCollection(COLLECTIONS.SITES, [
         { field: 'id', operator: '==', value: siteId }
       ]);
       if (fallback.success && fallback.data && fallback.data.length > 0) {
         siteRecord = fallback.data[0];
-        docId = siteRecord.id;
+        // In getCollection, the first 'id' is doc.id (document ID), but it might be overridden by custom id field
+        // We need to get the actual document ID by querying again with the document reference
+        // Actually, getCollection returns { id: doc.id, ...doc.data() }, so if doc.data() has 'id', it overrides
+        // Let's use a different approach: query by custom id, then get the document ID from the query result
+        const queryRef = collection(db, COLLECTIONS.SITES);
+        const q = query(queryRef, where('id', '==', siteId));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const docSnap = querySnapshot.docs[0];
+          docId = docSnap.id; // This is the actual Firestore document ID
+          siteRecord = { id: docSnap.id, ...docSnap.data() };
+        } else {
+          return { success: false, error: 'Site not found' };
+        }
       } else {
         return { success: false, error: 'Site not found' };
       }
     }
 
-    const logicalSiteId = siteRecord.siteId || siteId;
+    // Get logical site ID for email (could be siteId field or the custom id field)
+    const logicalSiteId = siteRecord.siteId || siteRecord.id || siteId;
     const siteEmail = `${logicalSiteId}@site.local`;
 
-    // Delete from Firestore
+    // Delete from Firestore using the actual document ID
     const deleteResult = await deleteDocument(COLLECTIONS.SITES, docId);
     
     if (deleteResult.success) {
@@ -392,26 +408,30 @@ export const deleteCompany = async (companyId) => {
     let companyRecord = null;
     let docId = companyId;
 
+    // First try to get by document ID
     const companyResult = await getDocument(COLLECTIONS.COMPANIES, companyId);
     if (companyResult.success && companyResult.data) {
       companyRecord = companyResult.data;
-      docId = companyRecord.id || companyId;
+      docId = companyId; // companyId is the document ID in this case
     } else {
-      const fallback = await getCollection(COLLECTIONS.COMPANIES, [
-        { field: 'id', operator: '==', value: companyId }
-      ]);
-      if (fallback.success && fallback.data && fallback.data.length > 0) {
-        companyRecord = fallback.data[0];
-        docId = companyRecord.id;
+      // Fallback: search by custom 'id' field
+      const queryRef = collection(db, COLLECTIONS.COMPANIES);
+      const q = query(queryRef, where('id', '==', companyId));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docSnap = querySnapshot.docs[0];
+        docId = docSnap.id; // This is the actual Firestore document ID
+        companyRecord = { id: docSnap.id, ...docSnap.data() };
       } else {
         return { success: false, error: 'Company not found' };
       }
     }
 
-    const logicalCompanyId = companyRecord.companyId || companyId;
+    // Get logical company ID for email
+    const logicalCompanyId = companyRecord.companyId || companyRecord.id || companyId;
     const companyEmail = `${logicalCompanyId}@company.local`;
     
-    // Delete from Firestore
+    // Delete from Firestore using the actual document ID
     const deleteResult = await deleteDocument(COLLECTIONS.COMPANIES, docId);
     
     if (deleteResult.success) {
@@ -509,23 +529,26 @@ export const deleteAgreement = async (agreementId) => {
     let agreementRecord = null;
     let docId = agreementId;
 
+    // First try to get by document ID
     const agreementResult = await getDocument(COLLECTIONS.AGREEMENTS, agreementId);
     if (agreementResult.success && agreementResult.data) {
       agreementRecord = agreementResult.data;
-      docId = agreementRecord.id || agreementId;
+      docId = agreementId; // agreementId is the document ID in this case
     } else {
-      const fallback = await getCollection(COLLECTIONS.AGREEMENTS, [
-        { field: 'id', operator: '==', value: agreementId }
-      ]);
-      if (fallback.success && fallback.data && fallback.data.length > 0) {
-        agreementRecord = fallback.data[0];
-        docId = agreementRecord.id;
+      // Fallback: search by custom 'id' field
+      const queryRef = collection(db, COLLECTIONS.AGREEMENTS);
+      const q = query(queryRef, where('id', '==', agreementId));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docSnap = querySnapshot.docs[0];
+        docId = docSnap.id; // This is the actual Firestore document ID
+        agreementRecord = { id: docSnap.id, ...docSnap.data() };
       } else {
         return { success: false, error: 'Agreement not found' };
       }
     }
     
-    // Delete from Firestore
+    // Delete from Firestore using the actual document ID
     const deleteResult = await deleteDocument(COLLECTIONS.AGREEMENTS, docId);
     
     if (deleteResult.success) {

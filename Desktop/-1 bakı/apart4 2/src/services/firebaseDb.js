@@ -28,6 +28,7 @@ export const COLLECTIONS = {
   TRANSACTIONS: 'transactions',
   PARTNERS: 'partners',
   ARCHIVED_SITES: 'archivedSites',
+  ACCOUNTING_RECORDS: 'accountingRecords',
   ARCHIVED_COMPANIES: 'archivedCompanies',
   ARCHIVED_AGREEMENTS: 'archivedAgreements',
   LOGS: 'logs',
@@ -701,6 +702,20 @@ export const updatePartner = async (partnerId, partnerData) => {
 
 export const deletePartner = async (partnerId) => {
   return await deleteDocument(COLLECTIONS.PARTNERS, partnerId);
+};
+
+// Accounting Records operations
+export const getAccountingRecords = async () => {
+  const result = await getCollection(COLLECTIONS.ACCOUNTING_RECORDS, [], 'date', 'desc');
+  return result.data || [];
+};
+
+export const createAccountingRecord = async (recordData) => {
+  const result = await createDocument(COLLECTIONS.ACCOUNTING_RECORDS, recordData);
+  if (result.success) {
+    return result.data;
+  }
+  return null;
 };
 
 // Users operations

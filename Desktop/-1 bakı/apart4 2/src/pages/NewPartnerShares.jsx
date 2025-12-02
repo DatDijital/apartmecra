@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getPartners, createPartner, updatePartner, deletePartner } from '../services/api';
 import { getTransactions, createTransaction } from '../services/api';
 import { createLog } from '../services/api';
-import { createAccountingRecord } from '../services/localApi';
+import { createAccountingRecord } from '../services/api';
 
 const PartnerShares = () => {
   const [partners, setPartners] = useState([]);

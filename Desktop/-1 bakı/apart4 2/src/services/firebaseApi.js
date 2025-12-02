@@ -64,7 +64,11 @@ import {
   
   // Collections
   getCollection,
-  deleteDocument
+  deleteDocument,
+  
+  // Accounting Records
+  getAccountingRecords as getAccountingRecordsFromDb,
+  createAccountingRecord as createAccountingRecordInDb
 } from './firebaseDb.js';
 
 // Initialize Firebase services
@@ -812,6 +816,17 @@ export const resetPanelImages = async () => {
       error: error.message
     };
   }
+};
+
+// Accounting Records endpoints
+export const getAccountingRecords = async () => {
+  await initializeFirebase();
+  return await getAccountingRecordsFromDb();
+};
+
+export const createAccountingRecord = async (recordData) => {
+  await initializeFirebase();
+  return await createAccountingRecordInDb(recordData);
 };
 
 // Export Firebase-specific functions

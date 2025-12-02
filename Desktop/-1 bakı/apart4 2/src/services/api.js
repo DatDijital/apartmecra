@@ -94,3 +94,5 @@ export const getCurrentUser = apiService.getCurrentUser;
 export const hasPermission = apiService.hasPermission;
 export const canAccessSite = apiService.canAccessSite;
 export const canAccessCompany = apiService.canAccessCompany;
+export const getAccountingRecords = apiService.getAccountingRecords;
+export const createAccountingRecord = apiService.createAccountingRecord;

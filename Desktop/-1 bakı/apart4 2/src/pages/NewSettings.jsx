@@ -266,21 +266,30 @@ const Settings = () => {
       pdf.setFont('helvetica', 'bold');
       pdf.text(label.panelId, x + 2, y + 12);
 
-      // Contact info (right side - bold, smaller, right-aligned)
+      // Contact info (right side - bold, smaller, 4 fixed lines)
       pdf.setFontSize(5.5);
       pdf.setFont('helvetica', 'bold');
-      const contactText = 'Bu alana reklam vermek için iletişim: 05473652323 APART Mecra';
-      // Calculate right-aligned position
-      const contactMaxWidth = labelWidth - 38; // Leave space for panel ID (35mm) + margin (3mm)
-      const contactLines = pdf.splitTextToSize(contactText, contactMaxWidth);
-      
-      // Right-align each line
-      let contactY = y + 4;
-      contactLines.forEach((line, idx) => {
+      const contactLines = [
+        'Bu Alana',
+        'Reklam Vermek İçin',
+        'İletişim: 05473652323',
+        'Apart MECRA'
+      ];
+
+      // Sağ tarafa, kutudan taşmayacak şekilde konumlandır
+      // Panel alanı için solda yaklaşık 30mm, sağ tarafta kalan alana yaz
+      const contactXBase = x + 32; // 32mm'den itibaren sağ blok
+      let contactY = y + 5;
+      contactLines.forEach(line => {
+        // Satırı sağa yasla ama 2mm içerde bitsin
         const textWidth = pdf.getTextWidth(line);
-        const rightX = x + labelWidth - 2 - textWidth; // Right margin 2mm
+        let rightX = x + labelWidth - 2 - textWidth;
+        // Eğer sağa yaslama panel alanına çok taşarsa, sabit soldan başlat
+        if (rightX < contactXBase) {
+          rightX = contactXBase;
+        }
         pdf.text(line, rightX, contactY);
-        contactY += 3.5;
+        contactY += 3.8;
       });
 
       // Site name (bottom center, small and italic)

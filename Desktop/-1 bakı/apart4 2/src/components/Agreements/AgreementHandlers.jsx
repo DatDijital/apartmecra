@@ -814,7 +814,8 @@ const AgreementHandlers = ({
         }
       }
       
-      // Automatically create/update user for the company if agreement was created/updated successfully
+      // Note: Company user is automatically created by Cloud Function when company is created
+      // No need to create manually here to avoid duplicates
       if (newAgreement) {
         try {
           // Find the company
@@ -823,30 +824,11 @@ const AgreementHandlers = ({
             // Check if a user already exists for this company
             const existingUsers = await getUsers();
             const existingCompanyUser = existingUsers.find(user => 
-              user.role === 'company' && String(user.companyId) === String(company.id)
+              (user.role === 'company' || user.role === 'company_user') && String(user.companyId) === String(company.id)
             );
             
-            // If no user exists for this company, create one
-            if (!existingCompanyUser) {
-              const companyUserData = {
-                username: company.id,
-                password: company.phone || company.id, // Use phone as default password
-                role: 'company',
-                companyId: company.id,
-                status: 'active'
-              };
-              
-              const newCompanyUser = await createUser(companyUserData);
-              if (newCompanyUser) {
-                console.log(`Firma kullanıcısı otomatik olarak oluşturuldu: ${company.name}`);
-                
-                // Log the action
-                await createLog({
-                  user: 'System',
-                  action: `Firma kullanıcısı otomatik oluşturuldu: ${company.name}`
-                });
-              }
-            } else if (existingCompanyUser.status !== 'active') {
+            // Only update status if user exists but is inactive
+            if (existingCompanyUser && existingCompanyUser.status !== 'active') {
               // If user exists but is inactive, activate them
               const updatedUser = {
                 ...existingCompanyUser,

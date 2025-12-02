@@ -423,10 +423,8 @@ export const createCompany = async (companyData) => {
   
   const result = await createDocument(COLLECTIONS.COMPANIES, companyPayload);
   
-  if (result.success) {
-    // Create company user automatically
-    await createCompanyUser(customId, companyData);
-  }
+  // Note: Company user will be automatically created by Cloud Function (createCompanyUser)
+  // No need to create manually here to avoid duplicates
   
   return result;
 };

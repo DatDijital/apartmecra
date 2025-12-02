@@ -552,35 +552,11 @@ const Companies = () => {
         }
       } else {
         // Create new company
+        // Note: Company user will be automatically created by Cloud Function (createCompanyUser)
         const newCompany = await createCompany(formData);
         if (newCompany) {
           setCompanies([...companies, newCompany]);
           setShowAddForm(false);
-          
-          // Automatically create a user for the new company
-          try {
-            const companyUserData = {
-              username: newCompany.id,
-              password: newCompany.phone || newCompany.id, // Use phone as default password
-              role: 'company',
-              companyId: newCompany.id,
-              status: newCompany.status || 'inactive' // Default to inactive until they have an agreement
-            };
-            
-            const newCompanyUser = await createUser(companyUserData);
-            if (newCompanyUser) {
-              console.log(`Firma kullanıcısı otomatik olarak oluşturuldu: ${newCompany.name}`);
-              
-              // Log the action
-              await createLog({
-                user: 'System',
-                action: `Firma kullanıcısı otomatik oluşturuldu: ${newCompany.name}`
-              });
-            }
-          } catch (error) {
-            console.error('Error creating company user:', error);
-            // Don't fail company creation if user creation fails
-          }
           
           // Log the action
           await createLog({
@@ -590,7 +566,7 @@ const Companies = () => {
           
           await window.showAlert(
             'Başarılı',
-            'Yeni firma başarıyla eklendi.',
+            'Yeni firma başarıyla eklendi. Firma kullanıcısı otomatik olarak oluşturuldu.',
             'success'
           );
         }

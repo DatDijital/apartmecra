@@ -43,14 +43,23 @@ export const createDocument = async (collectionName, data) => {
       updatedAt: serverTimestamp()
     });
     
+    // If caller provided a custom id field, keep it.
+    // Always expose the Firestore document ID separately as _docId.
+    const docId = docRef.id;
+    const customId = data && data.id ? data.id : docId;
+
     const result = {
       success: true,
-      id: docRef.id,
-      data: { ...data, id: docRef.id }
+      id: docId,
+      data: {
+        ...data,
+        id: customId,
+        _docId: docId
+      }
     };
     
     // Firebase senkronizasyonu
-    await syncWithFirebase('create', { id: docRef.id, ...data }, collectionName);
+    await syncWithFirebase('create', { id: customId, _docId: docId, ...data }, collectionName);
     
     return result;
   } catch (error) {

@@ -266,39 +266,88 @@ const Settings = () => {
       pdf.setFont('helvetica', 'bold');
       pdf.text(label.panelId, x + 2, y + 12);
 
-      // Contact info (right side - bold, smaller, 4 fixed lines)
-      pdf.setFontSize(5.5);
+      // Contact info (center-right area, bold, smaller, 4 fixed lines)
+      pdf.setFontSize(5);
       pdf.setFont('helvetica', 'bold');
+      
+      // Helper function to fix Turkish characters for PDF
+      const fixTurkishChars = (text) => {
+        if (!text) return '';
+        return text
+          .replace(/ı/g, 'i')
+          .replace(/İ/g, 'I')
+          .replace(/ğ/g, 'g')
+          .replace(/Ğ/g, 'G')
+          .replace(/ü/g, 'u')
+          .replace(/Ü/g, 'U')
+          .replace(/ş/g, 's')
+          .replace(/Ş/g, 'S')
+          .replace(/ö/g, 'o')
+          .replace(/Ö/g, 'O')
+          .replace(/ç/g, 'c')
+          .replace(/Ç/g, 'C');
+      };
+      
       const contactLines = [
         'Bu Alana',
-        'Reklam Vermek İçin',
-        'İletişim: 05473652323',
+        'Reklam Vermek Icin',
+        'Iletisim: 05473652323',
         'Apart MECRA'
       ];
 
-      // Sağ tarafa, kutudan taşmayacak şekilde konumlandır
-      // Panel alanı için solda yaklaşık 30mm, sağ tarafta kalan alana yaz
-      const contactXBase = x + 32; // 32mm'den itibaren sağ blok
-      let contactY = y + 5;
-      contactLines.forEach(line => {
-        // Satırı sağa yasla ama 2mm içerde bitsin
-        const textWidth = pdf.getTextWidth(line);
-        let rightX = x + labelWidth - 2 - textWidth;
-        // Eğer sağa yaslama panel alanına çok taşarsa, sabit soldan başlat
-        if (rightX < contactXBase) {
-          rightX = contactXBase;
+      // Center-right area: Start from 35mm (leaving ~25mm for panel ID on left)
+      const contactXStart = x + 35;
+      const contactXEnd = x + labelWidth - 2; // 2mm margin from right edge
+      const contactAreaWidth = contactXEnd - contactXStart;
+      
+      let contactY = y + 4.5;
+      const lineHeight = 3.5;
+      
+      contactLines.forEach((line, index) => {
+        // Fix Turkish characters
+        const fixedLine = fixTurkishChars(line);
+        
+        // Calculate text width
+        const textWidth = pdf.getTextWidth(fixedLine);
+        
+        // Center the text in the contact area, but ensure it doesn't overflow
+        let textX;
+        if (textWidth <= contactAreaWidth) {
+          // Center in contact area
+          textX = contactXStart + (contactAreaWidth - textWidth) / 2;
+        } else {
+          // If text is too long, align to left of contact area
+          textX = contactXStart;
         }
-        pdf.text(line, rightX, contactY);
-        contactY += 3.8;
+        
+        // Ensure text doesn't go outside label bounds
+        if (textX + textWidth > contactXEnd) {
+          textX = contactXEnd - textWidth;
+        }
+        if (textX < contactXStart) {
+          textX = contactXStart;
+        }
+        
+        pdf.text(fixedLine, textX, contactY);
+        contactY += lineHeight;
       });
 
       // Site name (bottom center, small and italic)
-      pdf.setFontSize(4.5);
+      pdf.setFontSize(4);
       pdf.setFont('helvetica', 'italic');
-      const siteNameText = label.siteName;
+      const siteNameText = fixTurkishChars(label.siteName);
       const siteNameWidth = pdf.getTextWidth(siteNameText);
-      const siteNameX = x + (labelWidth - siteNameWidth) / 2; // Center horizontally
-      pdf.text(siteNameText, siteNameX, y + labelHeight - 2);
+      
+      // Ensure site name fits within label width
+      let siteNameX = x + (labelWidth - siteNameWidth) / 2; // Center horizontally
+      if (siteNameX < x + 2) {
+        siteNameX = x + 2; // Left align if too long
+      }
+      if (siteNameX + siteNameWidth > x + labelWidth - 2) {
+        siteNameX = x + labelWidth - 2 - siteNameWidth; // Right align if too long
+      }
+      
+      pdf.text(siteNameText, siteNameX, y + labelHeight - 1.5);
 
       labelIndex++;
     }

@@ -141,33 +141,27 @@ exports.createSiteUser = onDocumentCreated(
       const userDoc = await userDocRef.get();
       
       if (userDoc.exists) {
-        // User document already exists (created by createUserDocument), just update it
-        console.log('User document already exists, updating with site data:', userRecord.uid);
-        await userDocRef.update({
-          role: 'site_user',
-          siteId: siteId,
-          username: siteId,
-          password: password,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        console.log('Site user document updated:', userRecord.uid);
-      } else {
-        // User document doesn't exist, create it
-        const userData = {
-          uid: userRecord.uid,
-          email: email,
-          username: siteId,
-          password: password,
-          role: 'site_user',
-          siteId: siteId,
-          status: 'active',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        
-        await userDocRef.set(userData);
-        console.log('Site user document created:', userRecord.uid);
+        // User document already exists (created by createUserDocument), delete it and create new one with correct role
+        // This prevents duplicate "Kullanıcı" and "Site Kullanıcısı" entries
+        console.log('User document already exists with wrong role, deleting and recreating:', userRecord.uid);
+        await userDocRef.delete();
       }
+      
+      // Always create new document with correct role
+      const userData = {
+        uid: userRecord.uid,
+        email: email,
+        username: siteId,
+        password: password,
+        role: 'site_user',
+        siteId: siteId,
+        status: 'active',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await userDocRef.set(userData);
+      console.log('Site user document created:', userRecord.uid);
     } catch (error) {
       console.error('Error creating site user:', error);
     }
@@ -220,33 +214,27 @@ exports.createCompanyUser = onDocumentCreated(
       const userDoc = await userDocRef.get();
       
       if (userDoc.exists) {
-        // User document already exists (created by createUserDocument), just update it
-        console.log('User document already exists, updating with company data:', userRecord.uid);
-        await userDocRef.update({
-          role: 'company_user',
-          companyId: companyId,
-          username: companyId,
-          password: password,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        console.log('Company user document updated:', userRecord.uid);
-      } else {
-        // User document doesn't exist, create it
-        const userData = {
-          uid: userRecord.uid,
-          email: email,
-          username: companyId,
-          password: password,
-          role: 'company_user',
-          companyId: companyId,
-          status: 'active',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        
-        await userDocRef.set(userData);
-        console.log('Company user document created:', userRecord.uid);
+        // User document already exists (created by createUserDocument), delete it and create new one with correct role
+        // This prevents duplicate "Kullanıcı" and "Firma Kullanıcısı" entries
+        console.log('User document already exists with wrong role, deleting and recreating:', userRecord.uid);
+        await userDocRef.delete();
       }
+      
+      // Always create new document with correct role
+      const userData = {
+        uid: userRecord.uid,
+        email: email,
+        username: companyId,
+        password: password,
+        role: 'company_user',
+        companyId: companyId,
+        status: 'active',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await userDocRef.set(userData);
+      console.log('Company user document created:', userRecord.uid);
     } catch (error) {
       console.error('Error creating company user:', error);
     }

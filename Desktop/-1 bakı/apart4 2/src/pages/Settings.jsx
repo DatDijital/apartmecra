@@ -929,4 +929,24 @@ const getCompanyName = (companyId) => {
   return company ? company.name : companyId;
 };
 
+// Format date function to handle Firestore Timestamp
+const formatDate = (timestamp) => {
+  try {
+    // Handle Firestore Timestamp object
+    let date;
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else if (timestamp && timestamp.seconds) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp) {
+      date = new Date(timestamp);
+    } else {
+      return 'Tarih yok';
+    }
+    return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR');
+  } catch (e) {
+    return 'Geçersiz tarih';
+  }
+};
+
 export default Settings;

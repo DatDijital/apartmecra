@@ -104,7 +104,21 @@ const SitesDataHandlers = ({
 
   // Gerçek silme fonksiyonu
   const handleDeleteSite = async (siteId) => {
-    const siteName = sites.find(s => s.id === siteId)?.name || 'Bilinmeyen Site';
+    console.log('handleDeleteSite called with siteId:', siteId);
+    console.log('Current sites:', sites.map(s => ({ id: s.id, name: s.name })));
+    
+    const siteToDelete = sites.find(s => s.id === siteId);
+    const siteName = siteToDelete?.name || 'Bilinmeyen Site';
+    
+    if (!siteToDelete) {
+      console.error('Site not found in state:', siteId);
+      await window.showAlert(
+        'Hata',
+        'Site state\'te bulunamadı.',
+        'error'
+      );
+      return false;
+    }
     
     const result = await window.showConfirm(
       'Site Sil',
@@ -115,8 +129,22 @@ const SitesDataHandlers = ({
     if (result) {
       try {
         const success = await deleteSite(siteId);
+        console.log('deleteSite result:', success);
+        
         if (success) {
-          setSites(sites.filter(site => site.id !== siteId));
+          // Use functional update to ensure we have the latest state
+          setSites(prevSites => {
+            const filtered = prevSites.filter(site => {
+              const matches = site.id !== siteId;
+              if (!matches) {
+                console.log('Removing site from state:', site.id, site.name);
+              }
+              return matches;
+            });
+            console.log('Sites after filter:', filtered.length, 'remaining');
+            return filtered;
+          });
+          
           // Log the action
           await createLog({
             user: 'Admin',

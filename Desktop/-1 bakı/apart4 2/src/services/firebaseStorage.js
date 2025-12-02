@@ -148,6 +148,40 @@ export const deletePanelImage = async (imageId) => {
   }
 };
 
+// Delete all panel images (used for full reset)
+export const resetAllPanelImages = async () => {
+  try {
+    const imagesResult = await getPanelImages();
+    if (!imagesResult.success) {
+      return {
+        success: false,
+        error: 'Failed to fetch images'
+      };
+    }
+    
+    const images = imagesResult.data;
+    let deletedCount = 0;
+    
+    for (const image of images) {
+      const deleteResult = await deletePanelImage(image.id);
+      if (deleteResult.success) {
+        deletedCount++;
+      }
+    }
+    
+    return {
+      success: true,
+      deletedCount
+    };
+  } catch (error) {
+    console.error('Error resetting panel images:', error);
+    return {
+      success: false,
+      error: 'Failed to reset panel images: ' + error.message
+    };
+  }
+};
+
 export const cleanupExpiredImages = async () => {
   try {
     const { getAgreements } = await import('./firebaseDb.js');

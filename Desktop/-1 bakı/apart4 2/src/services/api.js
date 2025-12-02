@@ -88,6 +88,7 @@ export const deleteLog = apiService.deleteLog;
 export const getPanelImages = apiService.getPanelImages;
 export const uploadPanelImage = apiService.uploadPanelImage;
 export const cleanupExpiredImages = apiService.cleanupExpiredImages;
+export const resetPanelImages = apiService.resetPanelImages;
 export const onAuthStateChange = apiService.onAuthStateChange;
 export const getCurrentUser = apiService.getCurrentUser;
 export const hasPermission = apiService.hasPermission;

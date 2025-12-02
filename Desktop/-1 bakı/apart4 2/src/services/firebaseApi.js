@@ -781,5 +781,21 @@ export const cleanupExpiredImages = async () => {
   }
 };
 
+// Reset all panel images (delete every panel image)
+export const resetPanelImages = async () => {
+  try {
+    const { resetAllPanelImages } = await import('./firebaseStorage.js');
+    const result = await resetAllPanelImages();
+    console.log('resetPanelImages called - result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error resetting panel images:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 // Export Firebase-specific functions
 export { onAuthStateChange, getCurrentUser, hasPermission, canAccessSite, canAccessCompany };

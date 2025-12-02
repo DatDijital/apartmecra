@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAgreements, getSites, getCompanies, getPanelImages, uploadPanelImage, cleanupExpiredImages } from '../services/api';
+import { getAgreements, getSites, getCompanies, getPanelImages, uploadPanelImage, cleanupExpiredImages, resetPanelImages } from '../services/api';
 import { getUser } from '../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -222,6 +222,38 @@ const PersonnelDashboard = () => {
     }
   };
 
+  // Handle reset all panel images
+  const handleResetAllPanels = async () => {
+    try {
+      if (window.showConfirm) {
+        const confirm = await window.showConfirm(
+          'Tüm Panel Fotoğraflarını Sıfırla',
+          'Tüm sitelerdeki tüm panel fotoğrafları silinecek. Emin misiniz?',
+          'warning'
+        );
+        if (!confirm) return;
+      } else if (!window.confirm('Tüm panel fotoğraflarını silmek istediğinize emin misiniz?')) {
+        return;
+      }
+
+      const result = await resetPanelImages();
+      await loadPanelImages();
+
+      if (window.showAlert) {
+        window.showAlert(
+          'Başarılı',
+          `Tüm panel fotoğrafları sıfırlandı. Silinen görsel sayısı: ${result?.deletedCount ?? 0}`,
+          'success'
+        );
+      }
+    } catch (error) {
+      console.error('Error resetting panel images:', error);
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Panel fotoğrafları sıfırlanırken bir hata oluştu.', 'error');
+      }
+    }
+  };
+
   // Handle panel click
   const handlePanelClick = (agreement, siteId, blockId, panelId) => {
     const existingImage = getPanelImage(agreement.id.toString(), siteId, blockId, panelId.toString());
@@ -355,6 +387,13 @@ const PersonnelDashboard = () => {
           <p className="text-muted mb-0">Tüm aktif ve gelecek anlaşma panelleri</p>
         </div>
         <div className="text-end">
+          <button
+            className="btn btn-outline-warning me-2"
+            onClick={handleResetAllPanels}
+          >
+            <i className="bi bi-trash3 me-1"></i>
+            Tüm Panelleri Sıfırla
+          </button>
           <button 
             className="btn btn-outline-danger"
             onClick={() => {

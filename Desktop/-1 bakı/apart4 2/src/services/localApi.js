@@ -911,6 +911,38 @@ export const uploadPanelImage = async (formData) => {
   }
 };
 
+// Delete all panel images (local JSON server version)
+export const resetPanelImages = async () => {
+  try {
+    // Fetch all images first
+    const response = await fetch('http://localhost:3001/panelImages');
+    if (!response.ok) {
+      throw new Error('Failed to fetch panel images');
+    }
+    const images = await response.json();
+    
+    // Delete each image
+    await Promise.all(
+      images.map(img =>
+        fetch(`http://localhost:3001/panelImages/${img.id}`, {
+          method: 'DELETE'
+        }).catch(() => null)
+      )
+    );
+    
+    return {
+      success: true,
+      deletedCount: images.length
+    };
+  } catch (error) {
+    console.error('Error resetting panel images (local):', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 export const cleanupExpiredImages = async () => {
   console.log('cleanupExpiredImages called - returning mock response');
   return {

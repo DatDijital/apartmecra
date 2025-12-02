@@ -50,8 +50,9 @@ import {
   // Users
   getUsers as getUsersFromDb,
   createUser as createUserInDb,
-  updateUser as updateUserInDb,
+  updateUser as updateUserFromDb,
   deleteUser as deleteUserFromDb,
+  createPersonnelUser,
   
   // Logs
   getLogs as getLogsFromDb,
@@ -580,6 +581,12 @@ export const getUsers = async () => {
 
 export const createUser = async (userData) => {
   await initializeFirebase();
+  
+  // Eğer rol personnel ise, özel helper kullan (Auth + Firestore)
+  if (userData.role === 'personnel' && userData.username && userData.password) {
+    const created = await createPersonnelUser(userData.username, userData.password, userData);
+    return created;
+  }
   
   const result = await createUserInDb(userData);
   

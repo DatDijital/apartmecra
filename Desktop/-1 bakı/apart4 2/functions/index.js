@@ -1,4 +1,6 @@
-const functions = require('firebase-functions');
+const {beforeUserCreated} = require('firebase-functions/v2/identity');
+const {onDocumentCreated} = require('firebase-functions/v2/firestore');
+const {onCall} = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 
 // Firebase Admin SDK'yı başlat
@@ -7,7 +9,8 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // Yeni kullanıcı oluşturulduğunda otomatik olarak Firestore'a kaydet
-exports.createUserDocument = functions.auth.user().onCreate(async (user) => {
+exports.createUserDocument = beforeUserCreated(async (event) => {
+  const user = event.data;
   try {
     console.log('New user created:', user.uid, user.email);
     
@@ -24,13 +27,19 @@ exports.createUserDocument = functions.auth.user().onCreate(async (user) => {
 
     // Email'den rol belirleme
     if (user.email) {
-      if (user.email.includes('@site.local')) {
+      const email = user.email;
+      const username = email.split('@')[0];
+      
+      if (email.includes('@site.local')) {
         userData.role = 'site_user';
-        userData.siteId = user.email.split('@')[0];
-      } else if (user.email.includes('@company.local')) {
+        userData.siteId = username;
+      } else if (email.includes('@company.local')) {
         userData.role = 'company_user';
-        userData.companyId = user.email.split('@')[0];
-      } else if (user.email.includes('admin@example.com')) {
+        userData.companyId = username;
+      } else if (email.includes('@personnel.local')) {
+        userData.role = 'personnel';
+        userData.username = username;
+      } else if (email === 'admin@apartmecra.com' || email.includes('admin@example.com')) {
         userData.role = 'admin';
       }
     }
@@ -39,20 +48,18 @@ exports.createUserDocument = functions.auth.user().onCreate(async (user) => {
     await db.collection('users').doc(user.uid).set(userData);
     
     console.log('User document created successfully:', user.uid);
-    return null;
   } catch (error) {
     console.error('Error creating user document:', error);
-    return null;
   }
 });
 
 // Site oluşturulduğunda otomatik kullanıcı oluştur
-exports.createSiteUser = functions.firestore
-  .document('sites/{siteId}')
-  .onCreate(async (snap, context) => {
+exports.createSiteUser = onDocumentCreated(
+  {document: 'sites/{siteId}'},
+  async (event) => {
     try {
-      const siteData = snap.data();
-      const siteId = context.params.siteId;
+      const siteData = event.data.data();
+      const siteId = event.params.siteId;
       
       console.log('New site created:', siteId, siteData);
       
@@ -85,20 +92,19 @@ exports.createSiteUser = functions.firestore
       await db.collection('users').doc(userRecord.uid).set(userData);
       
       console.log('Site user document created:', userRecord.uid);
-      return null;
     } catch (error) {
       console.error('Error creating site user:', error);
-      return null;
     }
-  });
+  }
+);
 
 // Company oluşturulduğunda otomatik kullanıcı oluştur
-exports.createCompanyUser = functions.firestore
-  .document('companies/{companyId}')
-  .onCreate(async (snap, context) => {
+exports.createCompanyUser = onDocumentCreated(
+  {document: 'companies/{companyId}'},
+  async (event) => {
     try {
-      const companyData = snap.data();
-      const companyId = context.params.companyId;
+      const companyData = event.data.data();
+      const companyId = event.params.companyId;
       
       console.log('New company created:', companyId, companyData);
       
@@ -131,17 +137,16 @@ exports.createCompanyUser = functions.firestore
       await db.collection('users').doc(userRecord.uid).set(userData);
       
       console.log('Company user document created:', userRecord.uid);
-      return null;
     } catch (error) {
       console.error('Error creating company user:', error);
-      return null;
     }
-  });
+  }
+);
 
 // Admin kullanıcısını oluştur (manuel tetikleme için)
-exports.createAdminUser = functions.https.onCall(async (data, context) => {
+exports.createAdminUser = onCall(async (request) => {
   try {
-    const { email, password, displayName } = data;
+    const { email, password, displayName } = request.data;
     
     // Firebase Authentication'da admin kullanıcısı oluştur
     const userRecord = await admin.auth().createUser({

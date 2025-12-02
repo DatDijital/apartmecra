@@ -700,6 +700,39 @@ const createCompanyUser = async (companyId, companyData) => {
   }
 };
 
+// Create personnel user (manual creation from Settings)
+export const createPersonnelUser = async (username, password, extraData = {}) => {
+  try {
+    const email = `${username}@personnel.local`;
+    
+    const userData = {
+      username,
+      password,
+      role: 'personnel',
+      status: 'active',
+      email,
+      ...extraData
+    };
+    
+    // Create user in Firestore
+    await createUser(userData);
+    
+    // Create user in Firebase Authentication
+    const authResult = await createUserWithEmail(email, password, userData);
+    
+    if (authResult.success) {
+      console.log('Personnel user created in Firebase Auth:', authResult.user.uid);
+    } else {
+      console.error('Failed to create personnel user in Firebase Auth:', authResult.error);
+    }
+    
+    return userData;
+  } catch (error) {
+    console.error('Error creating personnel user:', error);
+    throw error;
+  }
+};
+
 // Batch operations
 export const batchCreate = async (collectionName, documents) => {
   try {

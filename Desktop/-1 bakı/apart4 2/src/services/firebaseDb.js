@@ -762,6 +762,34 @@ const createSiteUser = async (siteId, siteData) => {
     const email = `${siteId}@site.local`;
     const password = siteData.phone || siteId;
     
+    // Check if user already exists (to prevent duplicate creation)
+    // Cloud Function might have already created the user
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const { auth } = await import('../config/firebase.js');
+      
+      // Try to sign in to check if user exists
+      // If user doesn't exist, this will throw an error
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // User exists, skip creation
+        console.log('Site user already exists, skipping creation:', email);
+        return;
+      } catch (checkError) {
+        // If error is not "user-not-found", it might be wrong password
+        // In that case, user exists but we can't verify, so skip creation to be safe
+        if (checkError.code !== 'auth/user-not-found' && checkError.code !== 'auth/wrong-password') {
+          console.log('Site user might already exist, skipping creation:', email);
+          return;
+        }
+        // User doesn't exist, continue with creation
+      }
+    } catch (checkError) {
+      // If we can't check, continue with creation (will fail gracefully if duplicate)
+      console.log('Could not check existing user, attempting creation:', checkError.message);
+    }
+    
     const userData = {
       username: siteId,
       password: password,
@@ -780,11 +808,21 @@ const createSiteUser = async (siteId, siteData) => {
     if (authResult.success) {
       console.log('Site user created in Firebase Auth:', authResult.user.uid);
     } else {
-      console.error('Failed to create site user in Firebase Auth:', authResult.error);
+      // If user already exists, that's okay (Cloud Function might have created it)
+      if (authResult.error && authResult.error.includes('already exists')) {
+        console.log('Site user already exists (likely created by Cloud Function):', email);
+      } else {
+        console.error('Failed to create site user in Firebase Auth:', authResult.error);
+      }
     }
     
   } catch (error) {
-    console.error('Error creating site user:', error);
+    // If user already exists, that's okay (Cloud Function might have created it)
+    if (error.message && error.message.includes('already exists')) {
+      console.log('Site user already exists (likely created by Cloud Function):', `${siteId}@site.local`);
+    } else {
+      console.error('Error creating site user:', error);
+    }
   }
 };
 
@@ -792,6 +830,34 @@ const createCompanyUser = async (companyId, companyData) => {
   try {
     const email = `${companyId}@company.local`;
     const password = companyData.phone || companyId;
+    
+    // Check if user already exists (to prevent duplicate creation)
+    // Cloud Function might have already created the user
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const { auth } = await import('../config/firebase.js');
+      
+      // Try to sign in to check if user exists
+      // If user doesn't exist, this will throw an error
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // User exists, skip creation
+        console.log('Company user already exists, skipping creation:', email);
+        return;
+      } catch (checkError) {
+        // If error is not "user-not-found", it might be wrong password
+        // In that case, user exists but we can't verify, so skip creation to be safe
+        if (checkError.code !== 'auth/user-not-found' && checkError.code !== 'auth/wrong-password') {
+          console.log('Company user might already exist, skipping creation:', email);
+          return;
+        }
+        // User doesn't exist, continue with creation
+      }
+    } catch (checkError) {
+      // If we can't check, continue with creation (will fail gracefully if duplicate)
+      console.log('Could not check existing user, attempting creation:', checkError.message);
+    }
     
     const userData = {
       username: companyId,
@@ -811,11 +877,21 @@ const createCompanyUser = async (companyId, companyData) => {
     if (authResult.success) {
       console.log('Company user created in Firebase Auth:', authResult.user.uid);
     } else {
-      console.error('Failed to create company user in Firebase Auth:', authResult.error);
+      // If user already exists, that's okay (Cloud Function might have created it)
+      if (authResult.error && authResult.error.includes('already exists')) {
+        console.log('Company user already exists (likely created by Cloud Function):', email);
+      } else {
+        console.error('Failed to create company user in Firebase Auth:', authResult.error);
+      }
     }
     
   } catch (error) {
-    console.error('Error creating company user:', error);
+    // If user already exists, that's okay (Cloud Function might have created it)
+    if (error.message && error.message.includes('already exists')) {
+      console.log('Company user already exists (likely created by Cloud Function):', `${companyId}@company.local`);
+    } else {
+      console.error('Error creating company user:', error);
+    }
   }
 };
 

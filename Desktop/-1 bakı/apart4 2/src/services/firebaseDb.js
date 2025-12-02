@@ -15,7 +15,8 @@ import {
   serverTimestamp,
   writeBatch
 } from 'firebase/firestore';
-import { db } from '../config/firebase.js';
+import app, { db } from '../config/firebase.js';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { createUserWithEmail } from './firebaseAuth.js';
 import { syncWithFirebase } from './firebaseSync.js';
 
@@ -251,26 +252,51 @@ export const updateSite = async (siteId, siteData) => {
 
 export const deleteSite = async (siteId) => {
   try {
-    // Get site data first to find associated user
+    const functions = getFunctions(app);
+    const deleteUserByEmail = httpsCallable(functions, 'deleteUserByEmail');
+
+    // Get site data first to find associated user and real document id
+    let siteRecord = null;
+    let docId = siteId;
+
     const siteResult = await getDocument(COLLECTIONS.SITES, siteId);
-    if (siteResult.success) {
-      const site = siteResult.data;
-      const siteEmail = `${siteId}@site.local`;
-      
-      // Delete from Firestore
-      const deleteResult = await deleteDocument(COLLECTIONS.SITES, siteId);
-      
-      if (deleteResult.success) {
-        console.log(`✅ Site ${siteId} deleted from Firestore`);
-        console.log(`⚠️ Please manually delete user ${siteEmail} from Firebase Auth Console`);
-        console.log('Firebase Console: https://console.firebase.google.com/project/apartmecraelazig/authentication/users');
-        return { success: true, message: `Site deleted. Please delete user ${siteEmail} from Firebase Auth Console.` };
+    if (siteResult.success && siteResult.data) {
+      siteRecord = siteResult.data;
+      docId = siteResult.data.id || siteId;
+    } else {
+      // Fallback: some records may use custom id in a field
+      const fallback = await getCollection(COLLECTIONS.SITES, [
+        { field: 'id', operator: '==', value: siteId }
+      ]);
+      if (fallback.success && fallback.data && fallback.data.length > 0) {
+        siteRecord = fallback.data[0];
+        docId = siteRecord.id;
+      } else {
+        return { success: false, error: 'Site not found' };
       }
+    }
+
+    const logicalSiteId = siteRecord.siteId || siteId;
+    const siteEmail = `${logicalSiteId}@site.local`;
+
+    // Delete from Firestore
+    const deleteResult = await deleteDocument(COLLECTIONS.SITES, docId);
+    
+    if (deleteResult.success) {
+      console.log(`✅ Site ${logicalSiteId} (doc: ${docId}) deleted from Firestore`);
       
-      return deleteResult;
+      // Delete associated Auth user (ignore errors, just log)
+      try {
+        await deleteUserByEmail({ email: siteEmail });
+        console.log(`✅ Auth user deleted: ${siteEmail}`);
+      } catch (err) {
+        console.error(`⚠️ Failed to delete Auth user ${siteEmail}:`, err.message || err);
+      }
+
+      return { success: true, message: `Site and associated user ${siteEmail} deleted.` };
     }
     
-    return { success: false, error: 'Site not found' };
+    return deleteResult;
   } catch (error) {
     console.error('Error deleting site:', error);
     return { success: false, error: error.message };
@@ -349,26 +375,50 @@ export const updateCompany = async (companyId, companyData) => {
 
 export const deleteCompany = async (companyId) => {
   try {
-    // Get company data first to find associated user
+    const functions = getFunctions(app);
+    const deleteUserByEmail = httpsCallable(functions, 'deleteUserByEmail');
+
+    // Get company data first to find associated user and real document id
+    let companyRecord = null;
+    let docId = companyId;
+
     const companyResult = await getDocument(COLLECTIONS.COMPANIES, companyId);
-    if (companyResult.success) {
-      const company = companyResult.data;
-      const companyEmail = `${companyId}@company.local`;
-      
-      // Delete from Firestore
-      const deleteResult = await deleteDocument(COLLECTIONS.COMPANIES, companyId);
-      
-      if (deleteResult.success) {
-        console.log(`✅ Company ${companyId} deleted from Firestore`);
-        console.log(`⚠️ Please manually delete user ${companyEmail} from Firebase Auth Console`);
-        console.log('Firebase Console: https://console.firebase.google.com/project/apartmecraelazig/authentication/users');
-        return { success: true, message: `Company deleted. Please delete user ${companyEmail} from Firebase Auth Console.` };
+    if (companyResult.success && companyResult.data) {
+      companyRecord = companyResult.data;
+      docId = companyRecord.id || companyId;
+    } else {
+      const fallback = await getCollection(COLLECTIONS.COMPANIES, [
+        { field: 'id', operator: '==', value: companyId }
+      ]);
+      if (fallback.success && fallback.data && fallback.data.length > 0) {
+        companyRecord = fallback.data[0];
+        docId = companyRecord.id;
+      } else {
+        return { success: false, error: 'Company not found' };
       }
+    }
+
+    const logicalCompanyId = companyRecord.companyId || companyId;
+    const companyEmail = `${logicalCompanyId}@company.local`;
+    
+    // Delete from Firestore
+    const deleteResult = await deleteDocument(COLLECTIONS.COMPANIES, docId);
+    
+    if (deleteResult.success) {
+      console.log(`✅ Company ${logicalCompanyId} (doc: ${docId}) deleted from Firestore`);
       
-      return deleteResult;
+      // Delete associated Auth user (ignore errors, just log)
+      try {
+        await deleteUserByEmail({ email: companyEmail });
+        console.log(`✅ Auth user deleted: ${companyEmail}`);
+      } catch (err) {
+        console.error(`⚠️ Failed to delete Auth user ${companyEmail}:`, err.message || err);
+      }
+
+      return { success: true, message: `Company and associated user ${companyEmail} deleted.` };
     }
     
-    return { success: false, error: 'Company not found' };
+    return deleteResult;
   } catch (error) {
     console.error('Error deleting company:', error);
     return { success: false, error: error.message };
@@ -428,23 +478,35 @@ export const updateAgreement = async (agreementId, agreementData) => {
 
 export const deleteAgreement = async (agreementId) => {
   try {
-    // Get agreement data first
+    // Get agreement data first and determine real document id
+    let agreementRecord = null;
+    let docId = agreementId;
+
     const agreementResult = await getDocument(COLLECTIONS.AGREEMENTS, agreementId);
-    if (agreementResult.success) {
-      const agreement = agreementResult.data;
-      
-      // Delete from Firestore
-      const deleteResult = await deleteDocument(COLLECTIONS.AGREEMENTS, agreementId);
-      
-      if (deleteResult.success) {
-        console.log(`✅ Agreement ${agreementId} deleted from Firestore`);
-        return { success: true, message: `Agreement deleted successfully.` };
+    if (agreementResult.success && agreementResult.data) {
+      agreementRecord = agreementResult.data;
+      docId = agreementRecord.id || agreementId;
+    } else {
+      const fallback = await getCollection(COLLECTIONS.AGREEMENTS, [
+        { field: 'id', operator: '==', value: agreementId }
+      ]);
+      if (fallback.success && fallback.data && fallback.data.length > 0) {
+        agreementRecord = fallback.data[0];
+        docId = agreementRecord.id;
+      } else {
+        return { success: false, error: 'Agreement not found' };
       }
-      
-      return deleteResult;
     }
     
-    return { success: false, error: 'Agreement not found' };
+    // Delete from Firestore
+    const deleteResult = await deleteDocument(COLLECTIONS.AGREEMENTS, docId);
+    
+    if (deleteResult.success) {
+      console.log(`✅ Agreement ${agreementId} (doc: ${docId}) deleted from Firestore`);
+      return { success: true, message: `Agreement deleted successfully.` };
+    }
+    
+    return deleteResult;
   } catch (error) {
     console.error('Error deleting agreement:', error);
     return { success: false, error: error.message };

@@ -195,11 +195,13 @@ export const getCollection = async (collectionName, filters = [], orderByField =
 
 // Sites operations
 export const getSites = async () => {
-  // Sadece aktif siteleri getir (status !== 'archived')
-  const result = await getCollection(COLLECTIONS.SITES, [
-    { field: 'status', operator: '!=', value: 'archived' }
-  ], 'name', 'asc');
-  return result.data || [];
+  // Tüm siteleri getir ve status alanına göre filtreyi kod tarafında yap
+  // Böylece status alanı olmayan eski kayıtlar da görünebilir
+  const result = await getCollection(COLLECTIONS.SITES, [], 'name', 'asc');
+  const allSites = result.data || [];
+
+  // status !== 'archived' olanları (ve status alanı olmayanları) göster
+  return allSites.filter(site => site.status !== 'archived');
 };
 
 export const getArchivedSites = async () => {

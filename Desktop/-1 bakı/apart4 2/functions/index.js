@@ -15,7 +15,54 @@ exports.createUserDocument = beforeUserCreated(async (event) => {
   try {
     console.log('New user created:', user.uid, user.email);
     
-    // Kullanıcı verilerini Firestore'a kaydet
+    // Check if user document already exists (might be created by createSiteUser or createCompanyUser)
+    const userDocRef = db.collection('users').doc(user.uid);
+    const userDoc = await userDocRef.get();
+    
+    if (userDoc.exists) {
+      // User document already exists, just update it with any missing fields
+      console.log('User document already exists, updating if needed:', user.uid);
+      const existingData = userDoc.data();
+      
+      // Only update if role is incorrect or missing
+      const email = user.email;
+      let shouldUpdate = false;
+      const updateData = {};
+      
+      if (email) {
+        const username = email.split('@')[0];
+        
+        // Check if role needs to be updated
+        if (email.includes('@site.local') && existingData.role !== 'site_user') {
+          updateData.role = 'site_user';
+          updateData.siteId = username;
+          shouldUpdate = true;
+        } else if (email.includes('@company.local') && existingData.role !== 'company_user') {
+          updateData.role = 'company_user';
+          updateData.companyId = username;
+          shouldUpdate = true;
+        } else if (email.includes('@personnel.local') && existingData.role !== 'personnel') {
+          updateData.role = 'personnel';
+          updateData.username = username;
+          shouldUpdate = true;
+        } else if ((email === 'admin@apartmecra.com' || email.includes('admin@example.com')) && existingData.role !== 'admin') {
+          updateData.role = 'admin';
+          shouldUpdate = true;
+        }
+      }
+      
+      // Update only if needed
+      if (shouldUpdate) {
+        updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+        await userDocRef.update(updateData);
+        console.log('User document updated:', user.uid, updateData);
+      } else {
+        console.log('User document already correct, no update needed:', user.uid);
+      }
+      return; // Don't create a new document
+    }
+    
+    // User document doesn't exist, create it
     const userData = {
       uid: user.uid,
       email: user.email,
@@ -46,7 +93,7 @@ exports.createUserDocument = beforeUserCreated(async (event) => {
     }
 
     // Firestore'a kaydet
-    await db.collection('users').doc(user.uid).set(userData);
+    await userDocRef.set(userData);
     
     console.log('User document created successfully:', user.uid);
   } catch (error) {
@@ -95,22 +142,38 @@ exports.createSiteUser = onDocumentCreated(
       
       console.log('Site user created in Firebase Auth:', userRecord.uid);
       
-      // Kullanıcı verilerini Firestore'a kaydet
-      const userData = {
-        uid: userRecord.uid,
-        email: email,
-        username: siteId,
-        password: password,
-        role: 'site_user',
-        siteId: siteId,
-        status: 'active',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      };
+      // Check if user document already exists (might be created by createUserDocument)
+      const userDocRef = db.collection('users').doc(userRecord.uid);
+      const userDoc = await userDocRef.get();
       
-      await db.collection('users').doc(userRecord.uid).set(userData);
-      
-      console.log('Site user document created:', userRecord.uid);
+      if (userDoc.exists) {
+        // User document already exists (created by createUserDocument), just update it
+        console.log('User document already exists, updating with site data:', userRecord.uid);
+        await userDocRef.update({
+          role: 'site_user',
+          siteId: siteId,
+          username: siteId,
+          password: password,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('Site user document updated:', userRecord.uid);
+      } else {
+        // User document doesn't exist, create it
+        const userData = {
+          uid: userRecord.uid,
+          email: email,
+          username: siteId,
+          password: password,
+          role: 'site_user',
+          siteId: siteId,
+          status: 'active',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await userDocRef.set(userData);
+        console.log('Site user document created:', userRecord.uid);
+      }
     } catch (error) {
       console.error('Error creating site user:', error);
     }
@@ -158,22 +221,38 @@ exports.createCompanyUser = onDocumentCreated(
       
       console.log('Company user created in Firebase Auth:', userRecord.uid);
       
-      // Kullanıcı verilerini Firestore'a kaydet
-      const userData = {
-        uid: userRecord.uid,
-        email: email,
-        username: companyId,
-        password: password,
-        role: 'company_user',
-        companyId: companyId,
-        status: 'active',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      };
+      // Check if user document already exists (might be created by createUserDocument)
+      const userDocRef = db.collection('users').doc(userRecord.uid);
+      const userDoc = await userDocRef.get();
       
-      await db.collection('users').doc(userRecord.uid).set(userData);
-      
-      console.log('Company user document created:', userRecord.uid);
+      if (userDoc.exists) {
+        // User document already exists (created by createUserDocument), just update it
+        console.log('User document already exists, updating with company data:', userRecord.uid);
+        await userDocRef.update({
+          role: 'company_user',
+          companyId: companyId,
+          username: companyId,
+          password: password,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('Company user document updated:', userRecord.uid);
+      } else {
+        // User document doesn't exist, create it
+        const userData = {
+          uid: userRecord.uid,
+          email: email,
+          username: companyId,
+          password: password,
+          role: 'company_user',
+          companyId: companyId,
+          status: 'active',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await userDocRef.set(userData);
+        console.log('Company user document created:', userRecord.uid);
+      }
     } catch (error) {
       console.error('Error creating company user:', error);
     }

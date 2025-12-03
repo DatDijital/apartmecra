@@ -67,7 +67,7 @@ exports.createUserDocument = beforeUserCreated(async (event) => {
       uid: user.uid,
       email: user.email,
       username: user.email ? user.email.split('@')[0] : user.uid,
-      role: 'user', // Varsayılan rol
+      role: null, // Varsayılan generic "user" rolünü kullanma
       status: 'active',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -84,6 +84,12 @@ exports.createUserDocument = beforeUserCreated(async (event) => {
       } else if (email === 'admin@apartmecra.com' || email.includes('admin@example.com')) {
         userData.role = 'admin';
       }
+    }
+
+    // Eğer özel bir rol atanmadıysa (null kaldıysa), generic kullanıcı belgesi oluşturma
+    if (!userData.role) {
+      console.log('Generic user role is null, skipping Firestore user document creation for:', user.uid);
+      return;
     }
 
     // Firestore'a kaydet
@@ -182,11 +188,39 @@ exports.createCompanyUser = onDocumentCreated(
       console.log('New company created - Document ID:', documentId, 'Custom ID:', companyId, 'Data:', companyData);
       
       // Check if user already exists (to prevent duplicate creation)
-      // This can happen if both Cloud Function and manual creation run
+      // This can happen if both Cloud Function and older manual creation run
       try {
         const existingUser = await admin.auth().getUserByEmail(`${companyId}@company.local`);
         if (existingUser) {
-          console.log('Company user already exists, skipping creation:', `${companyId}@company.local`);
+          console.log('Company user already exists in Auth, cleaning duplicates and skipping creation:', `${companyId}@company.local`);
+          
+          // Clean up any duplicate Firestore docs for this company (same companyId or email but different uid)
+          const duplicateByCompanyId = await db.collection('users')
+            .where('companyId', '==', companyId)
+            .get();
+          
+          duplicateByCompanyId.forEach(docSnap => {
+            if (docSnap.id !== existingUser.uid) {
+              console.log('Deleting duplicate company user doc with companyId match:', docSnap.id);
+              docSnap.ref.delete().catch(err => {
+                console.error('Error deleting duplicate company user doc (companyId match):', err);
+              });
+            }
+          });
+
+          const duplicateByEmail = await db.collection('users')
+            .where('email', '==', `${companyId}@company.local`)
+            .get();
+
+          duplicateByEmail.forEach(docSnap => {
+            if (docSnap.id !== existingUser.uid) {
+              console.log('Deleting duplicate company user doc with email match:', docSnap.id);
+              docSnap.ref.delete().catch(err => {
+                console.error('Error deleting duplicate company user doc (email match):', err);
+              });
+            }
+          });
+
           return;
         }
       } catch (error) {
@@ -209,7 +243,7 @@ exports.createCompanyUser = onDocumentCreated(
       
       console.log('Company user created in Firebase Auth:', userRecord.uid);
       
-      // Check if user document already exists (might be created by createUserDocument)
+      // Check if user document already exists (might be created by createUserDocument or old logic)
       const userDocRef = db.collection('users').doc(userRecord.uid);
       const userDoc = await userDocRef.get();
       

@@ -701,7 +701,7 @@ const AgreementHelpers = ({
       y = addText('Madde 2 – Sözleşmenin Konusu', margin, y, pageWidth - 2 * margin, 12, 'bold');
       y += 2;
       y = addText(
-        'Bu sözleşmenin konusu; HİZMET SAĞLAYICI'ya ait ve/veya kullanım hakkı kendisinde bulunan apartman ve site asansörleri içerisine yerleştirilen reklam panolarında, REKLAM VEREN'e ait reklam görsellerinin belirtilen süre boyunca asılması, muhafaza edilmesi ve yayında tutulmasına ilişkin şartların belirlenmesidir.',
+        "Bu sözleşmenin konusu; HİZMET SAĞLAYICI'ya ait ve/veya kullanım hakkı kendisinde bulunan apartman ve site asansörleri içerisine yerleştirilen reklam panolarında, REKLAM VEREN'e ait reklam görsellerinin belirtilen süre boyunca asılması, muhafaza edilmesi ve yayında tutulmasına ilişkin şartların belirlenmesidir.",
         margin,
         y,
         pageWidth - 2 * margin
@@ -712,12 +712,12 @@ const AgreementHelpers = ({
       checkNewPage(40);
       y = addText('Madde 3 – Reklam Alanları ve Panel Sayısı', margin, y, pageWidth - 2 * margin, 12, 'bold');
       y += 2;
-      y = addText(
-        'Reklam yayını yapılacak site ve paneller işbu sözleşmenin ayrılmaz parçası olan EK-1 Liste'de belirtilmiştir.',
-        margin,
-        y,
-        pageWidth - 2 * margin
-      );
+        y = addText(
+          "Reklam yayını yapılacak site ve paneller işbu sözleşmenin ayrılmaz parçası olan EK-1 Liste'de belirtilmiştir.",
+          margin,
+          y,
+          pageWidth - 2 * margin
+        );
       y += 3;
 
       y = addText(`Toplam Panel Sayısı: ${totalPanels} adet`, margin, y, pageWidth - 2 * margin);
@@ -802,7 +802,7 @@ const AgreementHelpers = ({
         {
           title: 'Madde 5 – Ödeme Şartları',
           body:
-            'REKLAM VEREN, toplam sözleşme bedelini reklam yayınının başlayacağı haftadan önceki CUMA günü saat 17:00'ye kadar HİZMET SAĞLAYICI'nın bildireceği banka hesabına veya nakit / çek / kredi kartı ile eksiksiz ödemekle yükümlüdür. Ödeme yapılmadığı sürece reklam asımı yapılmaz, yayın süresi başlamaz ve gecikmeden HİZMET SAĞLAYICI sorumlu tutulamaz. Ödeme günü geçirilirse HİZMET SAĞLAYICI'nın sözleşmeyi tek taraflı ve tazminatsız fesih hakkı doğar.'
+            "REKLAM VEREN, toplam sözleşme bedelini reklam yayınının başlayacağı haftadan önceki CUMA günü saat 17:00'ye kadar HİZMET SAĞLAYICI'nın bildireceği banka hesabına veya nakit / çek / kredi kartı ile eksiksiz ödemekle yükümlüdür. Ödeme yapılmadığı sürece reklam asımı yapılmaz, yayın süresi başlamaz ve gecikmeden HİZMET SAĞLAYICI sorumlu tutulamaz. Ödeme günü geçirilirse HİZMET SAĞLAYICI'nın sözleşmeyi tek taraflı ve tazminatsız fesih hakkı doğar."
         },
         {
           title: 'Madde 6 – Reklam Asımı ve Muhafaza',
@@ -812,12 +812,12 @@ const AgreementHelpers = ({
         {
           title: 'Madde 7 – Reklam İçeriği Sorumluluğu',
           body:
-            'Reklam içeriğinin mevzuata, genel ahlaka ve ilgili reklam yönetmeliklerine uygunluğundan tamamen REKLAM VEREN sorumludur. Doğabilecek her türlü idari para cezası, dava, tazminat ve yaptırımdan REKLAM VEREN sorumludur; HİZMET SAĞLAYICI'ya rücu edilemez.'
+            "Reklam içeriğinin mevzuata, genel ahlaka ve ilgili reklam yönetmeliklerine uygunluğundan tamamen REKLAM VEREN sorumludur. Doğabilecek her türlü idari para cezası, dava, tazminat ve yaptırımdan REKLAM VEREN sorumludur; HİZMET SAĞLAYICI'ya rücu edilemez."
         },
         {
           title: 'Madde 8 – Görsel Teslimi',
           body:
-            'Reklam baskıları en geç Perşembe günü saat 17:00'ye kadar HİZMET SAĞLAYICI'ya teslim edilmek zorundadır. Geç teslimden doğacak gecikmeler yayın süresinden düşülmez, ücret iadesi yapılmaz.'
+            "Reklam baskıları en geç Perşembe günü saat 17:00'ye kadar HİZMET SAĞLAYICI'ya teslim edilmek zorundadır. Geç teslimden doğacak gecikmeler yayın süresinden düşülmez, ücret iadesi yapılmaz."
         },
         {
           title: 'Madde 9 – Fesih',
@@ -832,7 +832,7 @@ const AgreementHelpers = ({
         {
           title: 'Madde 11 – Devir Yasağı',
           body:
-            'REKLAM VEREN, bu sözleşmeden doğan hak ve yükümlülüklerini HİZMET SAĞLAYICI'nın yazılı izni olmadan üçüncü kişilere devredemez.'
+            "REKLAM VEREN, bu sözleşmeden doğan hak ve yükümlülüklerini HİZMET SAĞLAYICI'nın yazılı izni olmadan üçüncü kişilere devredemez."
         },
         {
           title: 'Madde 12 – Tebligat',
@@ -937,7 +937,9 @@ const AgreementHelpers = ({
       }
 
       // Save PDF
-      const fileName = `sozlesme_${agreement.id}_${fixTurkishChars(companyName || '').replace(/\s+/g, '_')}.pdf`;
+      // Create filename without Turkish character replacement
+      const safeCompanyName = (companyName || '').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const fileName = `sozlesme_${agreement.id}_${safeCompanyName}.pdf`;
       pdf.save(fileName);
 
       return true;

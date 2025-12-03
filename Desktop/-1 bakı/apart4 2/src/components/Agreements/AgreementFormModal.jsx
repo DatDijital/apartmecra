@@ -96,32 +96,64 @@ const AgreementFormModal = ({
                           </select>
                         </div>
                         
-                        <div className="row">
-                          <div className="col-md-6 mb-4">
-                            <label htmlFor="startDate" className="form-label fw-medium mb-2">Başlangıç Tarihi <span className="text-danger">*</span></label>
-                            <input
-                              type="date"
-                              id="startDate"
-                              name="startDate"
-                              value={formData.startDate}
-                              onChange={uiHandlers.handleFormChange}
-                              className="form-control agreement-form-control py-2"
-                              required
-                            />
+                        <div className="mb-4">
+                          <div className="d-flex justify-content-between align-items-center mb-3">
+                            <label className="form-label fw-medium mb-0">Tarih Aralıkları <span className="text-danger">*</span></label>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-success"
+                              onClick={uiHandlers.handleAddDateRange}
+                              title="Yeni tarih aralığı ekle"
+                            >
+                              <i className="bi bi-plus-circle me-1"></i>
+                              Tarih Aralığı Ekle
+                            </button>
                           </div>
+                          <small className="text-muted d-block mb-3">
+                            Birden fazla tarih aralığı ekleyebilirsiniz (örn: Ocak 1-7, Şubat 7-14)
+                          </small>
                           
-                          <div className="col-md-6 mb-4">
-                            <label htmlFor="endDate" className="form-label fw-medium mb-2">Bitiş Tarihi <span className="text-danger">*</span></label>
-                            <input
-                              type="date"
-                              id="endDate"
-                              name="endDate"
-                              value={formData.endDate}
-                              onChange={uiHandlers.handleFormChange}
-                              className="form-control agreement-form-control py-2"
-                              required
-                            />
-                          </div>
+                          {(formData.dateRanges || [{ startDate: '', endDate: '' }]).map((range, index) => (
+                            <div key={index} className="card border mb-3">
+                              <div className="card-body p-3">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                  <span className="badge bg-primary">Aralık {index + 1}</span>
+                                  {(formData.dateRanges || []).length > 1 && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-danger"
+                                      onClick={() => uiHandlers.handleRemoveDateRange(index)}
+                                      title="Bu tarih aralığını kaldır"
+                                    >
+                                      <i className="bi bi-trash"></i>
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="row g-2">
+                                  <div className="col-md-6">
+                                    <label className="form-label small mb-1">Başlangıç Tarihi</label>
+                                    <input
+                                      type="date"
+                                      value={range.startDate || ''}
+                                      onChange={(e) => uiHandlers.handleDateRangeChange(index, 'startDate', e.target.value)}
+                                      className="form-control form-control-sm"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="col-md-6">
+                                    <label className="form-label small mb-1">Bitiş Tarihi</label>
+                                    <input
+                                      type="date"
+                                      value={range.endDate || ''}
+                                      onChange={(e) => uiHandlers.handleDateRangeChange(index, 'endDate', e.target.value)}
+                                      className="form-control form-control-sm"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                         
                         <div className="mb-4">
@@ -459,7 +491,7 @@ const AgreementFormModal = ({
                                               const panelKey = `panel-${panelId}`;
                                               const isPanelSelected = selectedPanels.includes(panelKey);
                                               const panelName = generatePanelName(siteId, blockLabel, panelId);
-                                              const isAvailable = helpers.isPanelAvailable(siteId, blockKey, panelKey, formData.startDate, formData.endDate);
+                                              const isAvailable = helpers.isPanelAvailable(siteId, blockKey, panelKey, formData.startDate, formData.endDate, formData.dateRanges);
                                               const usageInfo = !isAvailable ? helpers.getPanelUsageInfo(siteId, blockKey, panelKey, formData.startDate, formData.endDate) : null;
                                               
                                               return (
@@ -549,7 +581,14 @@ const AgreementFormModal = ({
                   <button
                     type="submit"
                     className="btn btn-agreement-primary px-4 py-2"
-                    disabled={!formData.companyId || !formData.startDate || !formData.endDate || !formData.weeklyRatePerPanel || selectedSites.length === 0}
+                    disabled={
+                      !formData.companyId || 
+                      !formData.weeklyRatePerPanel || 
+                      selectedSites.length === 0 ||
+                      !formData.dateRanges || 
+                      formData.dateRanges.length === 0 ||
+                      formData.dateRanges.some(range => !range.startDate || !range.endDate)
+                    }
                   >
                     <i className="bi bi-save me-1"></i>
                     {currentAgreement ? 'Güncelle' : 'Kaydet'}

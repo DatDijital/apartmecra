@@ -17,6 +17,7 @@ const AgreementUIHandlers = ({
       companyId: '',
       startDate: '',
       endDate: '',
+      dateRanges: [{ startDate: '', endDate: '' }],
       weeklyRatePerPanel: '',
       totalAmount: '',
       notes: ''
@@ -31,10 +32,20 @@ const AgreementUIHandlers = ({
   };
 
   const handleEditAgreement = (agreement) => {
+    // Geriye uyumluluk: Eğer dateRanges yoksa, startDate/endDate'den oluştur
+    let dateRanges = agreement.dateRanges || [];
+    if (dateRanges.length === 0 && agreement.startDate && agreement.endDate) {
+      dateRanges = [{ startDate: agreement.startDate, endDate: agreement.endDate }];
+    }
+    if (dateRanges.length === 0) {
+      dateRanges = [{ startDate: '', endDate: '' }];
+    }
+    
     setFormData({
       companyId: agreement.companyId || '',
       startDate: agreement.startDate || '',
       endDate: agreement.endDate || '',
+      dateRanges: dateRanges,
       weeklyRatePerPanel: agreement.weeklyRatePerPanel || '',
       totalAmount: agreement.totalAmount || '',
       notes: agreement.notes || ''
@@ -80,10 +91,8 @@ const AgreementUIHandlers = ({
           (sum, count) => sum + (parseInt(count) || 0),
           0
         );
-        const totalWeeks = helpers.calculateTotalWeeks(
-          updated.startDate,
-          updated.endDate
-        );
+        // Birden fazla tarih aralığı için toplam hafta hesapla
+        const totalWeeks = helpers.calculateTotalWeeksFromRanges(updated.dateRanges || []);
 
         if (totalAmount > 0 && totalPanels > 0 && totalWeeks > 0) {
           const weeklyRate = totalAmount / (totalPanels * totalWeeks);
@@ -371,7 +380,7 @@ const AgreementUIHandlers = ({
         for (let i = 1; i <= totalPanels; i++) {
           const panelKey = `panel-${i}`;
           const isAvailable = helpers && helpers.isPanelAvailable 
-            ? helpers.isPanelAvailable(siteId, blockKey, panelKey, formData.startDate, formData.endDate)
+            ? helpers.isPanelAvailable(siteId, blockKey, panelKey, formData.startDate, formData.endDate, formData.dateRanges)
             : true;
           
           if (isAvailable && !currentSelections.includes(panelKey)) {
@@ -552,6 +561,46 @@ const AgreementUIHandlers = ({
     }
   };
 
+  // Handle adding a new date range
+  const handleAddDateRange = () => {
+    setFormData(prev => ({
+      ...prev,
+      dateRanges: [...(prev.dateRanges || []), { startDate: '', endDate: '' }]
+    }));
+  };
+
+  // Handle removing a date range
+  const handleRemoveDateRange = (index) => {
+    setFormData(prev => {
+      const newRanges = [...(prev.dateRanges || [])];
+      if (newRanges.length > 1) {
+        newRanges.splice(index, 1);
+        return {
+          ...prev,
+          dateRanges: newRanges
+        };
+      }
+      return prev; // En az bir tarih aralığı olmalı
+    });
+  };
+
+  // Handle date range field change
+  const handleDateRangeChange = (index, field, value) => {
+    setFormData(prev => {
+      const newRanges = [...(prev.dateRanges || [])];
+      if (newRanges[index]) {
+        newRanges[index] = {
+          ...newRanges[index],
+          [field]: value
+        };
+      }
+      return {
+        ...prev,
+        dateRanges: newRanges
+      };
+    });
+  };
+
   return {
     handleAddAgreement,
     handleEditAgreement,
@@ -564,7 +613,10 @@ const AgreementUIHandlers = ({
     handleWeekSelection,
     handleSelectHalf,
     handleSelectHalfForAll,
-    handleSelectAllBlocks
+    handleSelectAllBlocks,
+    handleAddDateRange,
+    handleRemoveDateRange,
+    handleDateRangeChange
   };
 };
 

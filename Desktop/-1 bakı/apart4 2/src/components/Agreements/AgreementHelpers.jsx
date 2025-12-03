@@ -154,6 +154,20 @@ const AgreementHelpers = ({
     return Math.ceil(diffDays / 7);
   };
 
+  // Calculate total weeks from multiple date ranges
+  const calculateTotalWeeksFromRanges = (dateRanges) => {
+    if (!dateRanges || dateRanges.length === 0) return 0;
+    
+    let totalWeeks = 0;
+    dateRanges.forEach(range => {
+      if (range.startDate && range.endDate) {
+        totalWeeks += calculateTotalWeeks(range.startDate, range.endDate);
+      }
+    });
+    
+    return totalWeeks;
+  };
+
   // Calculate total amount for the agreement
   const calculateTotalAmount = (sitePanelCounts, weeklyRatePerPanel) => {
     const totalWeeks = calculateTotalWeeks(formData.startDate, formData.endDate);
@@ -164,8 +178,19 @@ const AgreementHelpers = ({
   };
 
   // Check if a specific panel is available for the selected date range - Updated for new system
-  const isPanelAvailable = (siteId, blockKey, panelKey, startDate, endDate) => {
-    if (!startDate || !endDate) return true;
+  // Supports both single date range (startDate, endDate) and multiple date ranges (dateRanges array)
+  const isPanelAvailable = (siteId, blockKey, panelKey, startDate, endDate, dateRanges = null) => {
+    // Use dateRanges if provided, otherwise fall back to startDate/endDate
+    let rangesToCheck = [];
+    if (dateRanges && dateRanges.length > 0) {
+      rangesToCheck = dateRanges.filter(r => r.startDate && r.endDate);
+    } else if (startDate && endDate) {
+      rangesToCheck = [{ startDate, endDate }];
+    } else {
+      return true; // No date range specified, assume available
+    }
+    
+    if (rangesToCheck.length === 0) return true;
     
     // Find all active agreements that include this site
     const siteAgreements = agreements.filter(agreement => 
@@ -173,26 +198,43 @@ const AgreementHelpers = ({
       (agreement.status === 'active' || agreement.status === 'completed')
     );
     
-    const newStart = new Date(startDate);
-    const newEnd = new Date(endDate);
+    // Get date ranges from existing agreement (support both old and new format)
+    const getAgreementRanges = (agreement) => {
+      if (agreement.dateRanges && agreement.dateRanges.length > 0) {
+        return agreement.dateRanges.filter(r => r.startDate && r.endDate);
+      } else if (agreement.startDate && agreement.endDate) {
+        return [{ startDate: agreement.startDate, endDate: agreement.endDate }];
+      }
+      return [];
+    };
     
-    // Check each existing agreement for date overlap and panel usage
-    for (const agreement of siteAgreements) {
-      const existingStart = new Date(agreement.startDate);
-      const existingEnd = new Date(agreement.endDate);
+    // Check each date range we want to use
+    for (const newRange of rangesToCheck) {
+      const newStart = new Date(newRange.startDate);
+      const newEnd = new Date(newRange.endDate);
       
-      // Check if date ranges overlap
-      if (dateRangesOverlap(newStart, newEnd, existingStart, existingEnd)) {
-        // Check if this specific panel is used in the overlapping agreement
-        if (agreement.siteBlockSelections && agreement.siteBlockSelections[siteId]) {
-          const usedBlocks = agreement.siteBlockSelections[siteId];
-          if (usedBlocks.includes(blockKey)) {
-            // Check if this specific panel is used in this block
-            if (agreement.sitePanelSelections && 
-                agreement.sitePanelSelections[siteId] && 
-                agreement.sitePanelSelections[siteId][blockKey] &&
-                agreement.sitePanelSelections[siteId][blockKey].includes(panelKey)) {
-              return false; // Panel is not available
+      // Check each existing agreement for date overlap and panel usage
+      for (const agreement of siteAgreements) {
+        const existingRanges = getAgreementRanges(agreement);
+        
+        for (const existingRange of existingRanges) {
+          const existingStart = new Date(existingRange.startDate);
+          const existingEnd = new Date(existingRange.endDate);
+          
+          // Check if date ranges overlap
+          if (dateRangesOverlap(newStart, newEnd, existingStart, existingEnd)) {
+            // Check if this specific panel is used in the overlapping agreement
+            if (agreement.siteBlockSelections && agreement.siteBlockSelections[siteId]) {
+              const usedBlocks = agreement.siteBlockSelections[siteId];
+              if (usedBlocks.includes(blockKey)) {
+                // Check if this specific panel is used in this block
+                if (agreement.sitePanelSelections && 
+                    agreement.sitePanelSelections[siteId] && 
+                    agreement.sitePanelSelections[siteId][blockKey] &&
+                    agreement.sitePanelSelections[siteId][blockKey].includes(panelKey)) {
+                  return false; // Panel is not available
+                }
+              }
             }
           }
         }
@@ -721,14 +763,54 @@ const AgreementHelpers = ({
       checkNewPage(40);
       y = addText('Madde 4 – Sozlesme Suresi', margin, y, pageWidth - 2 * margin, 12, 'bold');
       y += 2;
-      const startStr = formatDate(agreement.startDate);
-      const endStr = formatDate(agreement.endDate);
-      y = addText(
-        `Sozlesme ${startStr} – ${endStr} tarihleri arasinda gecerlidir. Belirtilen sureler disinda reklam yayini yapilmaz. Sure bitiminde sozlesme kendiliginden sona erer.`,
-        margin,
-        y,
-        pageWidth - 2 * margin
-      );
+      
+      // Get date ranges (support both old and new format)
+      let dateRanges = agreement.dateRanges || [];
+      if (dateRanges.length === 0 && agreement.startDate && agreement.endDate) {
+        dateRanges = [{ startDate: agreement.startDate, endDate: agreement.endDate }];
+      }
+      
+      if (dateRanges.length > 0) {
+        y = addText(
+          'Sozlesme asagida belirtilen tarih araliklarinda gecerlidir:',
+          margin,
+          y,
+          pageWidth - 2 * margin
+        );
+        y += 3;
+        
+        dateRanges.forEach((range, index) => {
+          if (range.startDate && range.endDate) {
+            const startStr = formatDate(range.startDate);
+            const endStr = formatDate(range.endDate);
+            y = addText(
+              `* ${startStr} – ${endStr}`,
+              margin + 4,
+              y,
+              pageWidth - 2 * margin - 4
+            );
+            y += 2;
+          }
+        });
+        
+        y += 2;
+        y = addText(
+          'Belirtilen sureler disinda reklam yayini yapilmaz. Sure bitiminde sozlesme kendiliginden sona erer.',
+          margin,
+          y,
+          pageWidth - 2 * margin
+        );
+      } else {
+        // Fallback to old format if no date ranges
+        const startStr = formatDate(agreement.startDate);
+        const endStr = formatDate(agreement.endDate);
+        y = addText(
+          `Sozlesme ${startStr} – ${endStr} tarihleri arasinda gecerlidir. Belirtilen sureler disinda reklam yayini yapilmaz. Sure bitiminde sozlesme kendiliginden sona erer.`,
+          margin,
+          y,
+          pageWidth - 2 * margin
+        );
+      }
       y += 4;
 
       // Devam eden maddeler - sabit metin
@@ -893,6 +975,7 @@ const AgreementHelpers = ({
     generateWeekOptions,
     updateSitePanelCount,
     calculateTotalWeeks,
+    calculateTotalWeeksFromRanges,
     calculateTotalAmount,
     isPanelAvailable,
     getPanelUsageInfo,

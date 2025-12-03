@@ -19,7 +19,9 @@ const AgreementSummary = ({
             <div className="border rounded-3 p-3 h-100">
               <p className="mb-1 text-muted small">Toplam Hafta</p>
               <p className="text-primary fw-bold fs-4 mb-0">
-                {helpers.calculateTotalWeeks(formData.startDate, formData.endDate)}
+                {helpers.calculateTotalWeeksFromRanges 
+                  ? helpers.calculateTotalWeeksFromRanges(formData.dateRanges || [])
+                  : helpers.calculateTotalWeeks(formData.startDate, formData.endDate)}
               </p>
             </div>
           </div>

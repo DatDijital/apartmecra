@@ -694,8 +694,15 @@ const AgreementHandlers = ({
     console.log('Site panel selections:', sitePanelSelections);
     console.log('Site panel counts:', sitePanelCounts);
     
-    if (!formData.companyId || !formData.startDate || !formData.endDate) {
-      console.log('Please fill in all required fields');
+    // Validate date ranges
+    const dateRanges = formData.dateRanges || [];
+    if (dateRanges.length === 0 || dateRanges.some(range => !range.startDate || !range.endDate)) {
+      console.log('Please fill in at least one valid date range');
+      return;
+    }
+    
+    if (!formData.companyId) {
+      console.log('Please select a company');
       return;
     }
     
@@ -732,11 +739,17 @@ const AgreementHandlers = ({
     try {
       // Calculate agreement details
       console.log('Calculating agreement details');
-      const totalWeeks = helpers.calculateTotalWeeks(formData.startDate, formData.endDate);
+      // Birden fazla tarih aralığı için toplam hafta hesapla
+      const totalWeeks = helpers.calculateTotalWeeksFromRanges(dateRanges);
       const totalPanels = Object.values(sitePanelCounts || {}).reduce(
         (sum, count) => sum + (parseInt(count) || 0),
         0
       );
+      
+      // Geriye uyumluluk için ilk tarih aralığını startDate/endDate olarak da kaydet
+      const firstRange = dateRanges[0];
+      const startDate = firstRange.startDate;
+      const endDate = dateRanges[dateRanges.length - 1].endDate; // Son aralığın bitiş tarihi
 
       let weeklyRate = parseFloat(formData.weeklyRatePerPanel) || 0;
       let totalAmount = 0;
@@ -760,6 +773,9 @@ const AgreementHandlers = ({
       
       const agreementData = {
         ...formData,
+        startDate: startDate, // Geriye uyumluluk için
+        endDate: endDate, // Geriye uyumluluk için
+        dateRanges: dateRanges, // Birden fazla tarih aralığı
         siteIds: selectedSites,
         sitePanelCounts: sitePanelCounts,
         siteBlockSelections: siteBlockSelections,
@@ -819,7 +835,9 @@ const AgreementHandlers = ({
             companyId: '',
             startDate: '',
             endDate: '',
+            dateRanges: [{ startDate: '', endDate: '' }],
             weeklyRatePerPanel: '',
+            totalAmount: '',
             notes: ''
           });
           setSelectedSites([]);

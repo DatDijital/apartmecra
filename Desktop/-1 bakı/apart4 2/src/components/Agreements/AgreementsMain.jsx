@@ -39,8 +39,9 @@ const AgreementsMain = () => {
   
   const [formData, setFormData] = useState({
     companyId: '',
-    startDate: '',
-    endDate: '',
+    startDate: '', // Geriye uyumluluk için
+    endDate: '', // Geriye uyumluluk için
+    dateRanges: [{ startDate: '', endDate: '' }], // Birden fazla tarih aralığı
     weeklyRatePerPanel: '',
     totalAmount: '', // Opsiyonel: Toplam anlaşma bedeli
     notes: ''

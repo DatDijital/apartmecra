@@ -589,19 +589,15 @@ export const getUsers = async () => {
 export const createUser = async (userData) => {
   await initializeFirebase();
   
-  // Eğer rol personnel ise, özel helper kullan (Auth + Firestore)
+  // Kullanıcı oluşturma tamamen backend/Functions'a devredildi.
+  // Frontend üzerinden sadece personel kullanıcıları oluşturulabilir.
   if (userData.role === 'personnel' && userData.username && userData.password) {
     const created = await createPersonnelUser(userData.username, userData.password, userData);
     return created;
   }
-  
-  const result = await createUserInDb(userData);
-  
-  if (result.success) {
-    return result.data;
-  } else {
-    throw new Error(result.error);
-  }
+
+  console.error('createUser: Only personnel users can be created from frontend. Requested role:', userData.role);
+  throw new Error('Sadece personel kullanıcıları bu ekrandan oluşturulabilir. Firma ve Site kullanıcıları otomatik olarak eklenir.');
 };
 
 export const updateUser = async (userId, userData) => {

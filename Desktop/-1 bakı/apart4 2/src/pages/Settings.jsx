@@ -807,11 +807,12 @@ const Settings = () => {
                       className="form-select form-control-custom"
                     >
                       <option value="personnel">Personel</option>
-                      <option value="company">Firma Kullanıcısı</option>
-                      <option value="site_user">Site Kullanıcısı</option>
-                      <option value="observer">Gözlemci</option>
-                      <option value="admin">Yönetici</option>
                     </select>
+                    <div className="form-text text-muted">
+                      <small>
+                        <em>Not: Firma ve Site kullanıcıları otomatik olarak oluşturulur. Buradan sadece personel kullanıcıları ekleyin.</em>
+                      </small>
+                    </div>
                   </div>
                   
                   {!editingUser && (

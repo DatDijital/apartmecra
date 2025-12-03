@@ -8,36 +8,106 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // Helper to get current user document
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasUserDoc() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     // Helper function to check if user is admin
     function isAdmin() {
       return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             hasUserDoc() &&
+             getUserDoc().data.role == 'admin';
+    }
+
+    function isCompanyUser() {
+      return isAuthenticated() &&
+             hasUserDoc() &&
+             getUserDoc().data.role == 'company_user';
+    }
+
+    function isSiteUser() {
+      return isAuthenticated() &&
+             hasUserDoc() &&
+             getUserDoc().data.role == 'site_user';
+    }
+
+    function isPersonnel() {
+      return isAuthenticated() &&
+             hasUserDoc() &&
+             getUserDoc().data.role == 'personnel';
+    }
+
+    function getUserCompanyId() {
+      return hasUserDoc() ? getUserDoc().data.companyId : null;
+    }
+
+    function getUserSiteId() {
+      return hasUserDoc() ? getUserDoc().data.siteId : null;
     }
     
     // Users collection
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // Kullanıcı listesi sadece admin'e açık
+      allow list: if false;
+
+      // Kendisini veya admin olan herkes görebilir
+      allow get: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+
+      // Yeni kullanıcılar backend (Functions) tarafından oluşturulmalı; frontend create kapalı
+      allow create: if false;
+
+      // Kullanıcı kendi profilini güncelleyebilir (sınırlı) veya admin her şeyi güncelleyebilir
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+
+      // Silme sadece admin
+      allow delete: if isAdmin();
     }
     
     // Sites collection
     match /sites/{siteId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
+      // Admin her siteyi görebilir
+      // Site kullanıcısı sadece kendi sitesini görebilir
+      allow get: if isAdmin() ||
+                  (isSiteUser() && (siteId == getUserSiteId() || resource.data.id == getUserSiteId()));
+
+      // Listeleme sadece admin'e açık
+      allow list: if isAdmin();
+
+      // Oluşturma/güncelleme/silme sadece admin
+      allow create, update, delete: if isAdmin();
     }
     
     // Companies collection
     match /companies/{companyId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
+      // Admin her firmayı görebilir
+      // Firma kullanıcısı sadece kendi firmasını görebilir
+      allow get: if isAdmin() ||
+                  (isCompanyUser() && (companyId == getUserCompanyId() || resource.data.id == getUserCompanyId()));
+
+      allow list: if isAdmin();
+
+      // Oluşturma/güncelleme/silme sadece admin
+      allow create, update, delete: if isAdmin();
     }
     
     // Agreements collection
     match /agreements/{agreementId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
+      // Admin tüm anlaşmaları görebilir
+      // Firma kullanıcısı: sadece kendi firmasıyla ilgili anlaşmaları görebilir
+      // Site kullanıcısı: siteIds içinde kendi siteId'si olan anlaşmaları görebilir
+      allow get: if isAdmin() ||
+                  (isCompanyUser() && resource.data.companyId == getUserCompanyId()) ||
+                  (isSiteUser() && resource.data.siteIds != null && getUserSiteId() in resource.data.siteIds);
+
+      allow list: if isAdmin();
+
+      // Oluşturma/güncelleme/silme sadece admin
+      allow create, update, delete: if isAdmin();
     }
     
     // Transactions collection
@@ -77,14 +147,31 @@ service cloud.firestore {
     
     // Panel images metadata
     match /panelImages/{imageId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
+      // Admin ve personel tüm görselleri okuyabilir
+      // Firma kullanıcısı: sadece kendi companyId'sine ait görselleri görebilir
+      // Site kullanıcısı: sadece kendi siteId'sine ait görselleri görebilir
+      allow get: if isAdmin() ||
+                  isPersonnel() ||
+                  (isCompanyUser() && resource.data.companyId == getUserCompanyId()) ||
+                  (isSiteUser() && resource.data.siteId == getUserSiteId());
+
+      allow list: if isAdmin() || isPersonnel();
+
+      // Yazma: sadece admin ve personel
+      allow create, update, delete: if isAdmin() || isPersonnel();
     }
     
     // Agreement documents metadata
     match /agreementDocuments/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
+      // Admin tüm dokümanları görebilir
+      // Firma kullanıcısı sadece kendi anlaşmalarına ait dokümanları görebilmeli
+      allow get: if isAdmin() ||
+                  (isCompanyUser() && resource.data.companyId == getUserCompanyId());
+
+      allow list: if isAdmin();
+
+      // Yazma: sadece admin
+      allow create, update, delete: if isAdmin();
     }
     
     // Default: deny all other collections

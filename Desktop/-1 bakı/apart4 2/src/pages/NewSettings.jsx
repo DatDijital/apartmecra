@@ -1060,15 +1060,11 @@ const Settings = () => {
                       className="form-select form-control-custom"
                     >
                       <option key="personnel" value="personnel">Personel</option>
-                      <option key="observer" value="observer">Gözlemci</option>
-                      <option key="admin" value="admin">Yönetici</option>
                     </select>
                     <div className="form-text text-muted">
                       <small>
                         <strong>Personel:</strong> Panel yönetimi ve görsel yükleme yetkisi.<br/>
-                        <strong>Gözlemci:</strong> Tüm verileri görüntüleyebilir, ancak hiçbir değişiklik yapamaz.<br/>
-                        <strong>Yönetici:</strong> Tüm sistem özelliklerine erişim ve düzeneleme yetkisi vardır.<br/>
-                        <em>Not: Firma ve Site kullanıcıları otomatik olarak eklenir.</em>
+                        <em>Not: Firma ve Site kullanıcıları otomatik olarak eklenir. Gözlemci ve yönetici hesapları teknik kuruluma özeldir.</em>
                       </small>
                     </div>
                   </div>

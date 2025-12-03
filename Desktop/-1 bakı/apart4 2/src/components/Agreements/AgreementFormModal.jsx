@@ -125,7 +125,9 @@ const AgreementFormModal = ({
                         </div>
                         
                         <div className="mb-4">
-                          <label htmlFor="weeklyRatePerPanel" className="form-label fw-medium mb-2">Haftalık Panel Ücreti <span className="text-danger">*</span></label>
+                          <label htmlFor="weeklyRatePerPanel" className="form-label fw-medium mb-2">
+                            Haftalık Panel Ücreti <span className="text-danger">*</span>
+                          </label>
                           <div className="input-group">
                             <span className="input-group-text bg-light border-end-0">₺</span>
                             <input
@@ -141,6 +143,33 @@ const AgreementFormModal = ({
                               placeholder="0.00"
                             />
                           </div>
+                          <small className="text-muted">
+                            1 panelin 1 haftalık ücreti. Alternatif olarak aşağıya toplam tutarı yazabilirsiniz.
+                          </small>
+                        </div>
+
+                        <div className="mb-4">
+                          <label htmlFor="totalAmount" className="form-label fw-medium mb-2">
+                            Toplam Anlaşma Bedeli (İsteğe Bağlı)
+                          </label>
+                          <div className="input-group">
+                            <span className="input-group-text bg-light border-end-0">₺</span>
+                            <input
+                              type="number"
+                              id="totalAmount"
+                              name="totalAmount"
+                              value={formData.totalAmount || ''}
+                              onChange={uiHandlers.handleFormChange}
+                              className="form-control agreement-form-control border-start-0 py-2"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <small className="text-muted">
+                            Müşteriyle anlaşılan toplam tutarı buraya yazarsanız, seçilen panel sayısı ve hafta süresine göre
+                            haftalık panel ücreti otomatik hesaplanır.
+                          </small>
                         </div>
                         
                         <div className="mb-3">

@@ -42,6 +42,7 @@ const AgreementsMain = () => {
     startDate: '',
     endDate: '',
     weeklyRatePerPanel: '',
+    totalAmount: '', // Opsiyonel: Toplam anlaşma bedeli
     notes: ''
   });
   

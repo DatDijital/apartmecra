@@ -18,6 +18,7 @@ const AgreementUIHandlers = ({
       startDate: '',
       endDate: '',
       weeklyRatePerPanel: '',
+      totalAmount: '',
       notes: ''
     });
     setSelectedSites([]);
@@ -35,6 +36,7 @@ const AgreementUIHandlers = ({
       startDate: agreement.startDate || '',
       endDate: agreement.endDate || '',
       weeklyRatePerPanel: agreement.weeklyRatePerPanel || '',
+      totalAmount: agreement.totalAmount || '',
       notes: agreement.notes || ''
     });
     // For editing, we would need to populate selectedSites and sitePanelCounts
@@ -64,10 +66,33 @@ const AgreementUIHandlers = ({
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+
+      // Kullanıcı toplam tutarı girerse, panel sayısı ve hafta sayısına göre
+      // haftalık panel ücretini otomatik hesapla
+      if (name === 'totalAmount') {
+        const totalAmount = parseFloat(value);
+        const totalPanels = Object.values(sitePanelCounts || {}).reduce(
+          (sum, count) => sum + (parseInt(count) || 0),
+          0
+        );
+        const totalWeeks = helpers.calculateTotalWeeks(
+          updated.startDate,
+          updated.endDate
+        );
+
+        if (totalAmount > 0 && totalPanels > 0 && totalWeeks > 0) {
+          const weeklyRate = totalAmount / (totalPanels * totalWeeks);
+          updated.weeklyRatePerPanel = weeklyRate.toFixed(2);
+        }
+      }
+
+      return updated;
+    });
   };
 
   const handleSiteSelection = (siteId, selectedSites, sitePanelSelections) => {

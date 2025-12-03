@@ -694,7 +694,7 @@ const AgreementHandlers = ({
     console.log('Site panel selections:', sitePanelSelections);
     console.log('Site panel counts:', sitePanelCounts);
     
-    if (!formData.companyId || !formData.startDate || !formData.endDate || !formData.weeklyRatePerPanel) {
+    if (!formData.companyId || !formData.startDate || !formData.endDate) {
       console.log('Please fill in all required fields');
       return;
     }
@@ -733,7 +733,30 @@ const AgreementHandlers = ({
       // Calculate agreement details
       console.log('Calculating agreement details');
       const totalWeeks = helpers.calculateTotalWeeks(formData.startDate, formData.endDate);
-      const totalAmount = helpers.calculateTotalAmount(sitePanelCounts, formData.weeklyRatePerPanel);
+      const totalPanels = Object.values(sitePanelCounts || {}).reduce(
+        (sum, count) => sum + (parseInt(count) || 0),
+        0
+      );
+
+      let weeklyRate = parseFloat(formData.weeklyRatePerPanel) || 0;
+      let totalAmount = 0;
+
+      if (weeklyRate > 0 && totalPanels > 0 && totalWeeks > 0) {
+        // Klasik yol: haftalık panel ücretinden toplam tutarı hesapla
+        totalAmount = totalWeeks * totalPanels * weeklyRate;
+      } else if (formData.totalAmount) {
+        // Alternatif yol: toplam tutardan haftalık panel ücretini hesapla
+        const manualTotal = parseFloat(formData.totalAmount) || 0;
+        if (manualTotal > 0 && totalPanels > 0 && totalWeeks > 0) {
+          weeklyRate = manualTotal / (totalPanels * totalWeeks);
+          totalAmount = manualTotal;
+        }
+      }
+
+      if (!weeklyRate || !totalAmount) {
+        console.log('Weekly rate or total amount is invalid');
+        return;
+      }
       
       const agreementData = {
         ...formData,
@@ -743,6 +766,7 @@ const AgreementHandlers = ({
         sitePanelSelections: sitePanelSelections,
         totalWeeks: totalWeeks,
         totalAmount: totalAmount,
+        weeklyRatePerPanel: weeklyRate,
         status: 'active'
       };
       

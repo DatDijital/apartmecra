@@ -106,13 +106,30 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
                     <i className="bi bi-eye"></i>
                   </button>
                   <button
-                    className="btn btn-sm btn-outline-danger"
-                    title="PDF İndir"
+                    className="btn btn-sm btn-outline-secondary"
+                    title="Anlaşma Özeti (PDF)"
                     onClick={() => {
                       if (helpers.generateAgreementPDF) {
                         const success = helpers.generateAgreementPDF(agreement);
                         if (success && window.showAlert) {
-                          window.showAlert('Başarılı', 'PDF dosyası başarıyla oluşturuldu ve indirildi.', 'success');
+                          window.showAlert('Başarılı', 'Anlaşma özeti PDF olarak indirildi.', 'success');
+                        }
+                      }
+                    }}
+                  >
+                    <i className="bi bi-file-earmark-text"></i>
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    title="Sözleşme PDF"
+                    onClick={() => {
+                      if (helpers.generateContractPDF) {
+                        const success = helpers.generateContractPDF(agreement);
+                        if (success && window.sendAnalyticsEvent) {
+                          window.sendAnalyticsEvent('contract_pdf_generated', { agreementId: agreement.id });
+                        }
+                        if (success && window.showAlert) {
+                          window.showAlert('Başarılı', 'Sözleşme PDF\'i başarıyla oluşturuldu ve indirildi.', 'success');
                         }
                       }
                     }}

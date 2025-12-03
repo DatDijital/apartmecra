@@ -266,7 +266,7 @@ const AgreementHelpers = ({
       .replace(/Ç/g, 'C');
   };
 
-  // Generate PDF for agreement
+  // Generate detailed "Anlaşma Özeti" PDF (mevcut fonksiyon)
   const generateAgreementPDF = (agreement) => {
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -591,6 +591,296 @@ const AgreementHelpers = ({
     }
   };
 
+  // Generate legal contract PDF using the provided contract template
+  const generateContractPDF = (agreement) => {
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let y = margin;
+
+      // Helper function to fix Turkish characters
+      const fixTurkishChars = (text) => {
+        if (!text) return '';
+        return String(text)
+          .replace(/ı/g, 'i')
+          .replace(/İ/g, 'I')
+          .replace(/ğ/g, 'g')
+          .replace(/Ğ/g, 'G')
+          .replace(/ü/g, 'u')
+          .replace(/Ü/g, 'U')
+          .replace(/ş/g, 's')
+          .replace(/Ş/g, 'S')
+          .replace(/ö/g, 'o')
+          .replace(/Ö/g, 'O')
+          .replace(/ç/g, 'c')
+          .replace(/Ç/g, 'C');
+      };
+
+      const addText = (text, x, yPos, maxWidth, fontSize = 11, fontStyle = 'normal') => {
+        pdf.setFontSize(fontSize);
+        pdf.setFont('helvetica', fontStyle);
+        const fixed = fixTurkishChars(text);
+        const lines = pdf.splitTextToSize(fixed, maxWidth);
+        pdf.text(lines, x, yPos);
+        return yPos + lines.length * (fontSize * 0.45);
+      };
+
+      const checkNewPage = (needed = 20) => {
+        if (y + needed > pageHeight - margin) {
+          pdf.addPage();
+          y = margin;
+        }
+      };
+
+      // Agreement & company data
+      const company = getCompany(agreement.companyId);
+      const companyName = getCompanyName(agreement.companyId);
+      const totalPanels = Object.values(agreement.sitePanelCounts || {}).reduce(
+        (sum, count) => sum + (parseInt(count) || 0),
+        0
+      );
+      const totalWeeks = calculateTotalWeeks(agreement.startDate, agreement.endDate);
+
+      // Header
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(fixTurkishChars('ASANSOR ICI REKLAM PANELI YAYIN SOZLESMESI'), pageWidth / 2, y, { align: 'center' });
+      y += 10;
+
+      // Madde 1 – Taraflar
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      y = addText('Madde 1 – Taraflar', margin, y, pageWidth - 2 * margin, 12, 'bold');
+      y += 2;
+
+      pdf.setFont('helvetica', 'normal');
+      y = addText('Isbu sozlesme;', margin, y, pageWidth - 2 * margin);
+      y += 2;
+
+      // Hizmet Saglayici
+      y = addText('Reklam Hizmeti Veren:', margin, y, pageWidth - 2 * margin, 11, 'bold');
+      y = addText('Firma Unvani: DAT DIJITAL', margin + 4, y, pageWidth - 2 * margin);
+      y = addText('Adres: CARSI MAHALLESI BOSNA HERSEK BULVARI ELAZIG IS MERKEZI NO:11 KAT:5 DAIRE:20 MERKEZ/ELAZIG', margin + 4, y, pageWidth - 2 * margin);
+      y = addText('Vergi Dairesi / No: [BILGI]', margin + 4, y, pageWidth - 2 * margin);
+      y = addText('Telefon: 0540 365 23 23', margin + 4, y, pageWidth - 2 * margin);
+      y += 2;
+
+      // Reklam Veren (company)
+      y = addText('Reklam Veren:', margin, y, pageWidth - 2 * margin, 11, 'bold');
+      y = addText(`Firma Unvani: ${companyName || '[REKLAM VEREN ADI]'}`, margin + 4, y, pageWidth - 2 * margin);
+      y = addText(`Adres: ${company?.address || '[ADRES]'}`, margin + 4, y, pageWidth - 2 * margin);
+      y = addText(`Vergi Dairesi / No: ${company?.taxInfo || '[BILGI]'}`, margin + 4, y, pageWidth - 2 * margin);
+      y = addText(`Telefon: ${company?.phone || '[TELEFON]'}`, margin + 4, y, pageWidth - 2 * margin);
+      y += 4;
+
+      y = addText('Arasinda asagidaki sartlarla akdedilmistir.', margin, y, pageWidth - 2 * margin);
+      y += 4;
+
+      // Madde 2 – Sozlesmenin Konusu
+      checkNewPage(40);
+      y = addText('Madde 2 – Sozlesmenin Konusu', margin, y, pageWidth - 2 * margin, 12, 'bold');
+      y += 2;
+      y = addText(
+        'Bu sozlesmenin konusu; HIZMET SAGLAYICI’ya ait ve/veya kullanim hakki kendisinde bulunan apartman ve site asansorleri icerisine yerlestirilen reklam panolarinda, REKLAM VEREN’e ait reklam gorsellerinin belirtilen sure boyunca asIlmasi, muhafaza edilmesi ve yayinda tutulmasina iliskin sartlarin belirlenmesidir.',
+        margin,
+        y,
+        pageWidth - 2 * margin
+      );
+      y += 4;
+
+      // Madde 3 – Reklam Alanlari ve Panel Sayisi
+      checkNewPage(40);
+      y = addText('Madde 3 – Reklam Alanlari ve Panel Sayisi', margin, y, pageWidth - 2 * margin, 12, 'bold');
+      y += 2;
+      y = addText(
+        'Reklam yayini yapilacak site ve paneller isbu sozlesmenin ayrilmaz parcasi olan EK-1 Liste’de belirtilmistir.',
+        margin,
+        y,
+        pageWidth - 2 * margin
+      );
+      y += 3;
+
+      y = addText(`Toplam Panel Sayisi: ${totalPanels} adet`, margin, y, pageWidth - 2 * margin);
+      y = addText(
+        `1 Panel 1 Haftalik Birim Ucreti: ${formatCurrency(agreement.weeklyRatePerPanel)} + KDV`,
+        margin,
+        y,
+        pageWidth - 2 * margin
+      );
+      y = addText(
+        `Toplam Sozlesme Bedeli: ${formatCurrency(agreement.totalAmount)} + KDV`,
+        margin,
+        y,
+        pageWidth - 2 * margin
+      );
+      y += 4;
+
+      // Madde 4 – Sozlesme Suresi
+      checkNewPage(40);
+      y = addText('Madde 4 – Sozlesme Suresi', margin, y, pageWidth - 2 * margin, 12, 'bold');
+      y += 2;
+      const startStr = formatDate(agreement.startDate);
+      const endStr = formatDate(agreement.endDate);
+      y = addText(
+        `Sozlesme ${startStr} – ${endStr} tarihleri arasinda gecerlidir. Belirtilen sureler disinda reklam yayini yapilmaz. Sure bitiminde sozlesme kendiliginden sona erer.`,
+        margin,
+        y,
+        pageWidth - 2 * margin
+      );
+      y += 4;
+
+      // Devam eden maddeler - sabit metin
+      const maddeTexts = [
+        {
+          title: 'Madde 5 – Odeme Sartlari',
+          body:
+            'REKLAM VEREN, toplam sozlesme bedelini reklam yayininin baslayacagi haftadan onceki CUMA gunu saat 17:00’ye kadar HIZMET SAGLAYICI’nin bildirecegi banka hesabina veya nakit / cek / kredi karti ile eksiksiz odemekle yukumludur. Odeme yapilmadigi surece reklam asimi yapilmaz, yayin suresi baslamaz ve gecikmeden HIZMET SAGLAYICI sorumlu tutulamaz. Odeme gunu gecirilirse HIZMET SAGLAYICI’nin sozlesmeyi tek tarafli ve tazminatsiz fesih hakki dogar.'
+        },
+        {
+          title: 'Madde 6 – Reklam Asimi ve Muhafaza',
+          body:
+            'HIZMET SAGLAYICI; reklam asimini Pazar gunu gerceklestirmeyi, reklam gorsellerini sozlesme suresi boyunca panolarda muhafaza etmeyi ve kasit veya agir ihmal disinda dogabilecek zararlar haricinde yayini surdurmeyi taahhut eder. Apartman yonetimi, ucuncu sahislar, vandalizm, dogal afet, yangin, su baskini, sabotaj ve benzeri mucbir sebeplerden kaynaklanan sokulme, zarar ve kayiplardan HIZMET SAGLAYICI sorumlu degildir.'
+        },
+        {
+          title: 'Madde 7 – Reklam Icerigi Sorumlulugu',
+          body:
+            'Reklam iceriginin mevzuata, genel ahlaka ve ilgili reklam yonetmeliklerine uygunlugundan tamamen REKLAM VEREN sorumludur. Dogabilecek her turlu idari para cezasi, dava, tazminat ve yaptirimdan REKLAM VEREN sorumludur; HIZMET SAGLAYICI’ya rucu edilemez.'
+        },
+        {
+          title: 'Madde 8 – Gorsel Teslimi',
+          body:
+            'Reklam baskilari en gec Persembe gunu saat 17:00’ye kadar HIZMET SAGLAYICI’ya teslim edilmek zorundadir. Gec teslimden dogacak gecikmeler yayin suresinden dusulmez, ucret iadesi yapilmaz.'
+        },
+        {
+          title: 'Madde 9 – Fesih',
+          body:
+            'Taraflar, sozlesme suresi icinde tek tarafli, gerekcesiz ve ucret iadesi talep ederek fesih haklarina sahip degildir. Mucbir sebep halleri bu hukmun istisnasidir.'
+        },
+        {
+          title: 'Madde 10 – Gizlilik',
+          body:
+            'Taraflar, bu sozlesme kapsaminda ogrendikleri ticari sirlarI ve mali bilgileri ucuncu kisilerle paylasamaz.'
+        },
+        {
+          title: 'Madde 11 – Devir Yasagi',
+          body:
+            'REKLAM VEREN, bu sozlesmeden dogan hak ve yukumluluklerini HIZMET SAGLAYICI’nin yazili izni olmadan ucuncu kisilere devredemez.'
+        },
+        {
+          title: 'Madde 12 – Tebligat',
+          body:
+            'Taraflarin isbu sozlesmede belirtilen adresleri yasal tebligat adresleridir. Adres degisiklikleri yazili bildirilmedikce eski adrese yapilan tebligatlar gecerli sayilir.'
+        },
+        {
+          title: 'Madde 13 – Yetkili Mahkeme',
+          body:
+            'Isbu sozlesmeden dogacak uyusmazliklarda ELAZIG MERKEZ Mahkemeleri ve Icra Daireleri yetkilidir.'
+        }
+      ];
+
+      maddeTexts.forEach((m) => {
+        checkNewPage(40);
+        y = addText(m.title, margin, y, pageWidth - 2 * margin, 12, 'bold');
+        y += 2;
+        y = addText(m.body, margin, y, pageWidth - 2 * margin);
+        y += 4;
+      });
+
+      // Madde 14 – Yururluk
+      checkNewPage(30);
+      const todayStr = new Date().toLocaleDateString('tr-TR');
+      y = addText('Madde 14 – Yururluk', margin, y, pageWidth - 2 * margin, 12, 'bold');
+      y += 2;
+      y = addText(
+        `14 (ondort) maddeden ibaret isbu sozlesme ${todayStr} tarihinde 2 (iki) nusha olarak imzalanmis olup yururluge girmistir.`,
+        margin,
+        y,
+        pageWidth - 2 * margin
+      );
+      y += 10;
+
+      // Imza bolumu
+      checkNewPage(40);
+      const centerX = pageWidth / 2;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.text(fixTurkishChars('HIZMET SAGLAYICI'), margin + 10, y);
+      pdf.text(fixTurkishChars('REKLAM VEREN'), centerX + 10, y);
+      y += 8;
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(fixTurkishChars('DAT DIJITAL'), margin + 10, y);
+      pdf.text(fixTurkishChars(companyName || ''), centerX + 10, y);
+      y += 20;
+
+      // EK-1: Site ve paneller listesi
+      pdf.addPage();
+      y = margin;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(13);
+      pdf.text(fixTurkishChars('EK-1: REKLAM ALANLARI VE PANEL LISTESI'), pageWidth / 2, y, { align: 'center' });
+      y += 8;
+
+      if (agreement.siteIds && agreement.siteIds.length > 0) {
+        const selectedSites = agreement.siteIds;
+        let siteIndex = 1;
+
+        selectedSites.forEach(siteId => {
+          const site = sites.find(s => String(s.id) === String(siteId));
+          const siteName = site ? site.name : `Site ${siteId}`;
+          const panelCount = agreement.sitePanelCounts?.[siteId] || 0;
+
+          if (panelCount > 0) {
+            checkNewPage(30);
+            y = addText(`${siteIndex}. ${siteName}`, margin, y, pageWidth - 2 * margin, 12, 'bold');
+            y += 2;
+
+            y = addText(`Toplam Panel: ${panelCount}`, margin + 4, y, pageWidth - 2 * margin);
+
+            if (agreement.siteBlockSelections?.[siteId] && agreement.sitePanelSelections?.[siteId]) {
+              const selectedBlocks = agreement.siteBlockSelections[siteId];
+              const blockPanelMap = {};
+
+              selectedBlocks.forEach(blockKey => {
+                const blockLabel = blockKey.split('-')[2];
+                const selectedPanels = agreement.sitePanelSelections[siteId][blockKey] || [];
+
+                selectedPanels.forEach(panelKey => {
+                  const match = panelKey.match(/panel-(\d+)/);
+                  const panelNumber = match ? match[1] : panelKey;
+                  if (!blockPanelMap[blockLabel]) {
+                    blockPanelMap[blockLabel] = [];
+                  }
+                  blockPanelMap[blockLabel].push(panelNumber);
+                });
+              });
+
+              Object.keys(blockPanelMap).sort().forEach(blockLabel => {
+                const panels = blockPanelMap[blockLabel].sort((a, b) => parseInt(a) - parseInt(b));
+                y = addText(`Blok ${blockLabel}: Panel ${panels.join(', ')}`, margin + 4, y, pageWidth - 2 * margin);
+              });
+            }
+
+            y += 4;
+            siteIndex++;
+          }
+        });
+      } else {
+        y = addText('Secili site bulunmamaktadir.', margin, y, pageWidth - 2 * margin);
+      }
+
+      // Save PDF
+      const fileName = `sozlesme_${agreement.id}_${fixTurkishChars(companyName || '').replace(/\s+/g, '_')}.pdf`;
+      pdf.save(fileName);
+
+      return true;
+    } catch (error) {
+      console.error('Error generating contract PDF:', error);
+      return false;
+    }
+  };
+
   return {
     getCompanyName,
     getSiteName,
@@ -606,7 +896,8 @@ const AgreementHelpers = ({
     calculateTotalAmount,
     isPanelAvailable,
     getPanelUsageInfo,
-    generateAgreementPDF
+    generateAgreementPDF,
+    generateContractPDF
   };
 };
 

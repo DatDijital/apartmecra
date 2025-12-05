@@ -9,12 +9,8 @@ const BootstrapLayout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { alertState, showAlert, showConfirm, hideAlert } = useCustomAlert();
-  // Use ref to store user and prevent unnecessary re-renders
-  const userRef = useRef(null);
-  if (userRef.current === null) {
-    userRef.current = getUser();
-  }
-  const user = userRef.current;
+  // Get user from localStorage (will be updated when user logs in)
+  const user = getUser();
   const isSiteUser = user && user.role === 'site_user';
   const isObserver = user && user.role === 'observer';
   const isCompany = user && user.role === 'company';

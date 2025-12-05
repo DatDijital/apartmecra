@@ -159,21 +159,29 @@ export const login = async (username, password) => {
       
       try {
         // Check if user is archived before attempting login
+        let siteData = null;
         if (attempt.role === 'site_user') {
           const siteId = attempt.email.replace('@site.local', '');
           const siteResult = await getDocument('sites', siteId);
-          if (siteResult.success && siteResult.data.status === 'archived') {
-            console.log('Site user is archived, login denied:', siteId);
-            return { error: 'Bu site arşivlenmiş, giriş yapılamaz' };
+          if (siteResult.success) {
+            if (siteResult.data.status === 'archived') {
+              console.log('Site user is archived, login denied:', siteId);
+              return { error: 'Bu site arşivlenmiş, giriş yapılamaz' };
+            }
+            siteData = siteResult.data;
           }
         }
         
+        let companyData = null;
         if (attempt.role === 'company') {
           const companyId = attempt.email.replace('@company.local', '');
           const companyResult = await getDocument('companies', companyId);
-          if (companyResult.success && companyResult.data.status === 'archived') {
-            console.log('Company user is archived, login denied:', companyId);
-            return { error: 'Bu firma arşivlenmiş, giriş yapılamaz' };
+          if (companyResult.success) {
+            if (companyResult.data.status === 'archived') {
+              console.log('Company user is archived, login denied:', companyId);
+              return { error: 'Bu firma arşivlenmiş, giriş yapılamaz' };
+            }
+            companyData = companyResult.data;
           }
         }
         
@@ -181,15 +189,31 @@ export const login = async (username, password) => {
         
         if (result.success) {
           console.log('API login successful with role:', attempt.role);
+          
+          // Build user object with name for company and site users
+          const userObj = {
+            username: result.user.username,
+            role: attempt.role,
+            siteId: result.user.siteId || null,
+            companyId: result.user.companyId || null,
+            id: result.user.uid
+          };
+          
+          // Add name field for company users
+          if (attempt.role === 'company' && companyData) {
+            userObj.name = companyData.name || companyData.id || result.user.username;
+            userObj.id = companyData.id || result.user.uid; // Use company custom ID instead of Firebase UID
+          }
+          
+          // Add name field for site users
+          if (attempt.role === 'site_user' && siteData) {
+            userObj.name = siteData.name || siteData.id || result.user.username;
+            userObj.id = siteData.id || result.user.uid; // Use site custom ID instead of Firebase UID
+          }
+          
           return {
             token: result.token,
-            user: {
-              username: result.user.username,
-              role: attempt.role,
-              siteId: result.user.siteId || null,
-              companyId: result.user.companyId || null,
-              id: result.user.uid
-            }
+            user: userObj
           };
         }
       } catch (error) {

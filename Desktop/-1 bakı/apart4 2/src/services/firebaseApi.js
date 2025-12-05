@@ -154,8 +154,12 @@ export const login = async (username, password) => {
     }
     
     // Try each login attempt
+    const loginErrors = [];
     for (const attempt of loginAttempts) {
-      console.log('Attempting login with email:', attempt.email, 'role:', attempt.role);
+      // Only log if it's the first attempt or if we're debugging
+      if (loginAttempts.indexOf(attempt) === 0) {
+        console.log('Attempting login with email:', attempt.email, 'role:', attempt.role);
+      }
       
       try {
         // Check if user is archived before attempting login
@@ -253,9 +257,15 @@ export const login = async (username, password) => {
           };
         }
       } catch (error) {
-        console.log('Login attempt failed for:', attempt.email, error.message);
+        // Store error for final reporting, but don't log each failed attempt
+        loginErrors.push({ email: attempt.email, error: error.message });
         continue; // Try next attempt
       }
+    }
+    
+    // If all attempts failed, log the errors
+    if (loginErrors.length > 0 && loginAttempts.length === loginErrors.length) {
+      console.error('All login attempts failed:', loginErrors);
     }
     
     // All attempts failed

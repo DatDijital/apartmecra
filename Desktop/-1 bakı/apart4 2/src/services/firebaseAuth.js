@@ -68,9 +68,13 @@ export const loginWithEmail = async (email, password) => {
     };
     
   } catch (error) {
-    console.error('❌ Login error:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
+    // Only log error details if it's a critical error (not just invalid credentials during multi-attempt login)
+    // Invalid credentials during login attempts are expected and will be handled by the caller
+    if (error.code !== 'auth/invalid-credential') {
+      console.error('❌ Login error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+    }
     
     return {
       success: false,

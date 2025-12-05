@@ -308,7 +308,7 @@ export const updateSite = async (siteId, siteData) => {
         
         if (!userSnapshot.empty) {
           const userDoc = userSnapshot.docs[0];
-          await userDoc.ref.update({
+          await updateDoc(userDoc.ref, {
             password: newPhone,
             updatedAt: new Date()
           });
@@ -558,7 +558,7 @@ export const updateCompany = async (companyId, companyData) => {
         
         if (!userSnapshot.empty) {
           const userDoc = userSnapshot.docs[0];
-          await userDoc.ref.update({
+          await updateDoc(userDoc.ref, {
             password: newPhone,
             updatedAt: new Date()
           });

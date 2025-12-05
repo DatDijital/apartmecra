@@ -150,13 +150,18 @@ const CompanyDashboard = () => {
       }
 
       try {
-        const [allAgreements, allSites, allCompanies, allTransactions, allPanelImages] = await Promise.all([
+        const [allAgreements, allSites, allCompanies, allTransactions, panelImagesResult] = await Promise.all([
           getAgreements(),
           getSites(),
           getCompanies(),
           getTransactions(),
-          getPanelImages()
+          getPanelImages({ companyId: companyId }).catch(err => {
+            console.warn('Error fetching panel images (non-critical):', err);
+            return [];
+          })
         ]);
+        
+        const allPanelImages = Array.isArray(panelImagesResult) ? panelImagesResult : (panelImagesResult?.data || []);
         
         if (!isMounted) return;
         

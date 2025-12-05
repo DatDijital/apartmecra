@@ -2,7 +2,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Helper function to check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
@@ -136,7 +136,11 @@ service cloud.firestore {
                   (isCompanyUser() && resource.data.companyId == getUserCompanyId()) ||
                   (isSiteUser() && resource.data.siteId == getUserSiteId());
 
-      allow list: if isAdmin() || isPersonnel();
+      // List: Admin, personel ve firma kullanıcıları (kendi companyId'sine ait olanlar)
+      // Firma kullanıcıları sadece kendi companyId'sine ait görselleri listeleyebilir
+      allow list: if isAdmin() || 
+                    isPersonnel() ||
+                    isCompanyUser();
 
       // Yazma: sadece admin ve personel
       allow create, update, delete: if isAdmin() || isPersonnel();

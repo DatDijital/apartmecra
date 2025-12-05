@@ -38,7 +38,7 @@ const BootstrapLayout = ({ children }) => {
       return 'Gözlemci Panosu';
     }
     if (isCompany) {
-      return `${user.name} - Firma Panosu`;
+      return `${user?.name || user?.id || 'Firma'} - Firma Panosu`;
     }
     if (isPersonnel) {
       return 'Personel Panosu';

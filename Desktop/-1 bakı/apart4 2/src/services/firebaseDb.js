@@ -374,6 +374,22 @@ export const deleteSite = async (siteId) => {
     if (deleteResult.success) {
       console.log(`✅ Site ${logicalSiteId} (doc: ${docId}) deleted from Firestore`);
       
+      // Delete associated user from users collection first
+      try {
+        const usersRef = collection(db, COLLECTIONS.USERS);
+        const userQuery = query(usersRef, where('email', '==', siteEmail));
+        const userSnapshot = await getDocs(userQuery);
+        
+        if (!userSnapshot.empty) {
+          // Delete all matching user documents (should be only one, but handle multiple just in case)
+          const deleteUserPromises = userSnapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deleteUserPromises);
+          console.log(`✅ User document(s) deleted from Firestore: ${siteEmail}`);
+        }
+      } catch (err) {
+        console.error(`⚠️ Failed to delete user document ${siteEmail}:`, err.message || err);
+      }
+      
       // Delete associated Auth user using fetch (onRequest endpoint)
       try {
         const functionUrl = `https://us-central1-apartmecra-elz.cloudfunctions.net/deleteUserByEmail`;
@@ -590,6 +606,22 @@ export const deleteCompany = async (companyId) => {
     
     if (deleteResult.success) {
       console.log(`✅ Company ${logicalCompanyId} (doc: ${docId}) deleted from Firestore`);
+      
+      // Delete associated user from users collection first
+      try {
+        const usersRef = collection(db, COLLECTIONS.USERS);
+        const userQuery = query(usersRef, where('email', '==', companyEmail));
+        const userSnapshot = await getDocs(userQuery);
+        
+        if (!userSnapshot.empty) {
+          // Delete all matching user documents (should be only one, but handle multiple just in case)
+          const deleteUserPromises = userSnapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deleteUserPromises);
+          console.log(`✅ User document(s) deleted from Firestore: ${companyEmail}`);
+        }
+      } catch (err) {
+        console.error(`⚠️ Failed to delete user document ${companyEmail}:`, err.message || err);
+      }
       
       // Delete associated Auth user using fetch (onRequest endpoint)
       try {

@@ -369,7 +369,7 @@ const CompanyDashboard = () => {
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="h3 fw-bold">{company?.name || company?.id || 'Firma'} - Firma Panosu</h2>
+          <h2 className="h3 fw-bold">{company?.name || user?.name || company?.id || companyId || 'Firma'} - Firma Panosu</h2>
           <p className="text-muted mb-0">Firma ID: {companyId}</p>
         </div>
         <div className="text-end">

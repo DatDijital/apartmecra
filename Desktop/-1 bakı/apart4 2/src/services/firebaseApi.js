@@ -162,7 +162,25 @@ export const login = async (username, password) => {
         let siteData = null;
         if (attempt.role === 'site_user') {
           const siteId = attempt.email.replace('@site.local', '');
-          const siteResult = await getDocument('sites', siteId);
+          // Try to get site by document ID first
+          let siteResult = await getDocument('sites', siteId);
+          
+          // If not found by document ID, try to find by custom 'id' field
+          if (!siteResult.success) {
+            const { collection, query, where, getDocs } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase.js');
+            const sitesRef = collection(db, 'sites');
+            const q = query(sitesRef, where('id', '==', siteId));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              const docSnap = querySnapshot.docs[0];
+              siteResult = {
+                success: true,
+                data: { id: docSnap.id, ...docSnap.data() }
+              };
+            }
+          }
+          
           if (siteResult.success) {
             if (siteResult.data.status === 'archived') {
               console.log('Site user is archived, login denied:', siteId);
@@ -175,7 +193,25 @@ export const login = async (username, password) => {
         let companyData = null;
         if (attempt.role === 'company') {
           const companyId = attempt.email.replace('@company.local', '');
-          const companyResult = await getDocument('companies', companyId);
+          // Try to get company by document ID first
+          let companyResult = await getDocument('companies', companyId);
+          
+          // If not found by document ID, try to find by custom 'id' field
+          if (!companyResult.success) {
+            const { collection, query, where, getDocs } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase.js');
+            const companiesRef = collection(db, 'companies');
+            const q = query(companiesRef, where('id', '==', companyId));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              const docSnap = querySnapshot.docs[0];
+              companyResult = {
+                success: true,
+                data: { id: docSnap.id, ...docSnap.data() }
+              };
+            }
+          }
+          
           if (companyResult.success) {
             if (companyResult.data.status === 'archived') {
               console.log('Company user is archived, login denied:', companyId);

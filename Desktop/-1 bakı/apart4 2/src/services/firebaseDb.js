@@ -295,7 +295,11 @@ export const updateSite = async (siteId, siteData) => {
     // If phone changed, update user password in Auth and users collection
     if (phoneChanged && updateResult.success) {
       try {
-        const email = `${siteId}@site.local`;
+        // Use custom ID from oldSiteData, fallback to siteId parameter
+        const logicalSiteId = oldSiteData?.id || siteId;
+        const email = `${logicalSiteId}@site.local`;
+        
+        console.log(`Updating site user password: ${email} (siteId: ${logicalSiteId}, oldPhone: ${oldPhone}, newPhone: ${newPhone})`);
         
         // Update user in users collection
         const usersRef = collection(db, COLLECTIONS.USERS);
@@ -308,6 +312,7 @@ export const updateSite = async (siteId, siteData) => {
             password: newPhone,
             updatedAt: new Date()
           });
+          console.log(`✅ User document password updated in Firestore: ${email}`);
           
           // Update password in Firebase Auth via Cloud Function
           const { getFunctions, httpsCallable } = await import('firebase/functions');
@@ -315,9 +320,14 @@ export const updateSite = async (siteId, siteData) => {
           const functions = getFunctions();
           const updateUserPassword = httpsCallable(functions, 'updateUserPasswordByEmail');
           
-          await updateUserPassword({ email, newPassword: newPhone });
-          
-          console.log(`Site user password updated: ${email}`);
+          const updateResult = await updateUserPassword({ email, newPassword: newPhone });
+          if (updateResult.data && updateResult.data.success) {
+            console.log(`✅ Site user password updated in Firebase Auth: ${email}`);
+          } else {
+            console.error(`⚠️ Failed to update password in Firebase Auth: ${email}`, updateResult.data);
+          }
+        } else {
+          console.warn(`⚠️ Site user not found in users collection: ${email}`);
         }
       } catch (error) {
         console.error('Error updating site user password:', error);
@@ -535,7 +545,11 @@ export const updateCompany = async (companyId, companyData) => {
     // If phone changed, update user password in Auth and users collection
     if (phoneChanged && updateResult.success) {
       try {
-        const email = `${companyId}@company.local`;
+        // Use custom ID from oldCompanyData, fallback to companyId parameter
+        const logicalCompanyId = oldCompanyData?.id || companyId;
+        const email = `${logicalCompanyId}@company.local`;
+        
+        console.log(`Updating company user password: ${email} (companyId: ${logicalCompanyId}, oldPhone: ${oldPhone}, newPhone: ${newPhone})`);
         
         // Update user in users collection
         const usersRef = collection(db, COLLECTIONS.USERS);
@@ -548,6 +562,7 @@ export const updateCompany = async (companyId, companyData) => {
             password: newPhone,
             updatedAt: new Date()
           });
+          console.log(`✅ User document password updated in Firestore: ${email}`);
           
           // Update password in Firebase Auth via Cloud Function
           const { getFunctions, httpsCallable } = await import('firebase/functions');
@@ -555,9 +570,14 @@ export const updateCompany = async (companyId, companyData) => {
           const functions = getFunctions();
           const updateUserPassword = httpsCallable(functions, 'updateUserPasswordByEmail');
           
-          await updateUserPassword({ email, newPassword: newPhone });
-          
-          console.log(`Company user password updated: ${email}`);
+          const updateResult = await updateUserPassword({ email, newPassword: newPhone });
+          if (updateResult.data && updateResult.data.success) {
+            console.log(`✅ Company user password updated in Firebase Auth: ${email}`);
+          } else {
+            console.error(`⚠️ Failed to update password in Firebase Auth: ${email}`, updateResult.data);
+          }
+        } else {
+          console.warn(`⚠️ Company user not found in users collection: ${email}`);
         }
       } catch (error) {
         console.error('Error updating company user password:', error);

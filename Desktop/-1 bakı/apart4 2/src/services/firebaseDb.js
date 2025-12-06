@@ -1011,7 +1011,8 @@ const generateAgreementId = (date, sequenceNumber) => {
 const createSiteUser = async (siteId, siteData) => {
   try {
     const email = `${siteId}@site.local`;
-    const password = siteData.phone || siteId;
+    // Şifre kontrolü: phone boşsa 123456, değilse phone değeri
+    const password = (siteData.phone && siteData.phone.trim() !== '') ? siteData.phone : '123456';
     
     // Check if user already exists (to prevent duplicate creation)
     // Cloud Function might have already created the user

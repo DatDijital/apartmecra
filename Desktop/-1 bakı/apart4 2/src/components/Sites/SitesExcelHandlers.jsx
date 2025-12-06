@@ -124,12 +124,16 @@ const SitesExcelHandlers = ({
           console.log(`Processing row ${i + 1}:`, cleanRow);
           
           // Map Excel columns to site data (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12)
+          // E1 sütununda 1 = site, 2 = iş merkezi
+          const e1Value = cleanRow[4] ? String(cleanRow[4]).trim() : '';
+          const siteType = (e1Value === '2' || e1Value === '2.0') ? 'business_center' : 'site';
+          
           const siteData = {
             name: cleanRow[0] || '',                    // A: Site Adı
             neighborhood: cleanRow[1] || '',             // B: Mahalle
             manager: cleanRow[2] || '',                 // C: Yönetici Adı
-            phone: cleanRow[3] || '',                   // D: Yönetici İletişim
-            siteType: (cleanRow[4] || '').toLowerCase().includes('iş merkezi') ? 'business_center' : 'site', // E: Site Türü
+            phone: cleanRow[3] || '',                   // D: Yönetici İletişim (şifre olarak kullanılacak)
+            siteType: siteType,                         // E: Site Türü (1=site, 2=iş merkezi)
             blocks: cleanRow[5] || '',                   // F: Blok Sayısı
             elevatorsPerBlock: cleanRow[6] || '',        // G: 1 Blok için Asansör Sayısı
             agreementPercentage: cleanRow[7] || '',     // H: Anlaşma Yüzdesi
@@ -139,6 +143,11 @@ const SitesExcelHandlers = ({
             peopleCount: cleanRow[11] || '',           // L: İş Merkezine Giren Kişi Sayısı (İş Merkezi için)
             notes: cleanRow[12] || ''                   // M: Not
           };
+          
+          // Şifre kontrolü: phone boşsa 123456, değilse phone değeri
+          if (!siteData.phone || siteData.phone.trim() === '') {
+            siteData.phone = '123456';
+          }
           
           console.log(`Parsed site data for row ${i + 1}:`, siteData);
           
@@ -241,11 +250,14 @@ const SitesExcelHandlers = ({
             siteData.averagePeople = '';
           }
           
-          // Calculate elevators and panels only if both blocks and elevatorsPerBlock are provided
-          const blocks = parseInt(siteData.blocks) || 0;
-          const elevatorsPerBlock = parseInt(siteData.elevatorsPerBlock) || 0;
-          siteData.elevators = blocks * elevatorsPerBlock;
-          siteData.panels = siteData.elevators * 2;
+          // Calculate elevators and panels only for sites (not business centers)
+          // İş merkezleri için panels manuel girilir, bu yüzden hesaplama yapılmaz
+          if (siteData.siteType === 'site') {
+            const blocks = parseInt(siteData.blocks) || 0;
+            const elevatorsPerBlock = parseInt(siteData.elevatorsPerBlock) || 0;
+            siteData.elevators = blocks * elevatorsPerBlock;
+            siteData.panels = siteData.elevators * 2;
+          }
           
           sitesToImport.push(siteData);
         }

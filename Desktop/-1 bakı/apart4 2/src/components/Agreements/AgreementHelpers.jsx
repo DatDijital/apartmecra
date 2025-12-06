@@ -169,9 +169,16 @@ const AgreementHelpers = ({
   };
 
   // Calculate total amount for the agreement
-  const calculateTotalAmount = (sitePanelCounts, weeklyRatePerPanel) => {
-    const totalWeeks = calculateTotalWeeks(formData.startDate, formData.endDate);
-    const totalPanels = Object.values(sitePanelCounts).reduce((sum, count) => sum + count, 0);
+  const calculateTotalAmount = (sitePanelCounts, weeklyRatePerPanel, dateRanges = null) => {
+    // Use dateRanges if provided, otherwise fall back to formData.startDate/endDate
+    let totalWeeks = 0;
+    if (dateRanges && dateRanges.length > 0) {
+      totalWeeks = calculateTotalWeeksFromRanges(dateRanges);
+    } else if (formData.startDate && formData.endDate) {
+      totalWeeks = calculateTotalWeeks(formData.startDate, formData.endDate);
+    }
+    
+    const totalPanels = Object.values(sitePanelCounts || {}).reduce((sum, count) => sum + (parseInt(count) || 0), 0);
     const weeklyRate = parseFloat(weeklyRatePerPanel) || 0;
     
     return totalWeeks * totalPanels * weeklyRate;

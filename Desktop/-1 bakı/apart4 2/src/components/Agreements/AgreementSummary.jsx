@@ -50,10 +50,10 @@ const AgreementSummary = ({
                 const manualTotal = parseFloat(formData.totalAmount);
                 const total = manualTotal > 0
                   ? manualTotal
-                  : helpers.calculateTotalAmount(sitePanelCounts, formData.weeklyRatePerPanel);
+                  : helpers.calculateTotalAmount(sitePanelCounts, formData.weeklyRatePerPanel, formData.dateRanges);
                 return (
                   <p className="text-primary fw-bold fs-3 mb-0">
-                    {helpers.formatCurrency(total)}
+                    {helpers.formatCurrency(total || 0)}
                   </p>
                 );
               })()}

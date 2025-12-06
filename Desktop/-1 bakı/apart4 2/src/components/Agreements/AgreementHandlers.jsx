@@ -783,10 +783,14 @@ const AgreementHandlers = ({
         totalWeeks: totalWeeks,
         totalAmount: totalAmount,
         weeklyRatePerPanel: weeklyRate,
-        status: 'active',
-        // If editing an order, remove isOrder flag and set status to active
-        isOrder: currentAgreement?.isOrder ? false : undefined
+        status: 'active'
       };
+      
+      // If editing an order, remove isOrder flag
+      if (currentAgreement?.isOrder) {
+        agreementData.isOrder = false;
+      }
+      // Don't add isOrder field if it's undefined (new agreement, not an order)
       
       console.log('Agreement data to be sent:', agreementData);
       

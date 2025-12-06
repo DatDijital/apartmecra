@@ -77,7 +77,7 @@ export const uploadPanelImage = async (file, metadata) => {
 
 export const getPanelImages = async (filters = {}) => {
   try {
-    let q = collection(db, 'panelImages');
+    let q = query(collection(db, 'panelImages'));
     
     // Apply filters
     if (filters.agreementId) {

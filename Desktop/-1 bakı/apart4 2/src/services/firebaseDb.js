@@ -117,13 +117,17 @@ export const updateDocument = async (collectionName, docId, data) => {
       updatedAt: serverTimestamp()
     });
     
+    // Get updated document to return complete data
+    const updatedDocSnap = await getDoc(docRef);
+    const updatedData = updatedDocSnap.exists() ? updatedDocSnap.data() : data;
+    
     const result = {
       success: true,
-      data: { id: docId, ...data }
+      data: { id: docId, _docId: docId, ...updatedData }
     };
     
     // Firebase senkronizasyonu
-    await syncWithFirebase('update', { id: docId, ...data }, collectionName);
+    await syncWithFirebase('update', { id: docId, ...updatedData }, collectionName);
     
     return result;
   } catch (error) {

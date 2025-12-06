@@ -632,16 +632,21 @@ const CurrentStatus = () => {
         </div>
       </div>
 
-      {/* Sites Grid */}
-      <div className="row g-4">
-        {sites.map(site => {
-          const isBusinessCenter = site.siteType === 'business_center';
-          const blockCount = isBusinessCenter ? 1 : (parseInt(site.blocks) || 0);
-          const elevatorsPerBlock = isBusinessCenter ? 0 : (parseInt(site.elevatorsPerBlock) || 0);
-          const panelsPerBlock = isBusinessCenter
-            ? (parseInt(site.panels) || 0)
-            : (elevatorsPerBlock * 2);
-          const blockLabels = isBusinessCenter ? ['A'] : generateBlockLabels(blockCount);
+      {/* Regular Sites */}
+      <div className="card custom-card shadow-sm mb-4">
+        <div className="card-header bg-primary-subtle">
+          <h5 className="mb-0 fw-bold">
+            <i className="bi bi-building me-2"></i>
+            Siteler
+          </h5>
+        </div>
+        <div className="card-body">
+          <div className="row g-4">
+            {sites.filter(site => site.siteType !== 'business_center').map(site => {
+              const blockCount = parseInt(site.blocks) || 0;
+              const elevatorsPerBlock = parseInt(site.elevatorsPerBlock) || 0;
+              const panelsPerBlock = elevatorsPerBlock * 2;
+              const blockLabels = generateBlockLabels(blockCount);
 
           return (
             <div key={site.id} className="col-12">
@@ -663,7 +668,7 @@ const CurrentStatus = () => {
                         {elevatorsPerBlock} Asansör/Blok
                       </span>
                       <span className="badge bg-secondary">
-                        {site.panels} Panel
+                        {panelsPerBlock * blockCount} Panel
                       </span>
                     </div>
                   </div>
@@ -682,7 +687,7 @@ const CurrentStatus = () => {
                         return (
                           <div key={blockId} className="col-md-6 col-lg-4 col-xl-3">
                             <div className="card border-success h-100">
-                            <div className="card-header bg-success-subtle text-center">
+                              <div className="card-header bg-success-subtle text-center">
                                 <h6 className="mb-0 fw-bold">
                                   <i className="bi bi-grid-3x3-gap me-1"></i>
                                   {blockLabel} Blok
@@ -829,19 +834,164 @@ const CurrentStatus = () => {
               </div>
             </div>
           );
-        })}
-        {sites.length === 0 && (
-          <div className="col-12">
-            <div className="text-center py-5">
-              <div className="empty-state">
-                <i className="bi bi-building"></i>
-                <p className="mb-3">Henüz site bulunmamaktadır.</p>
+            })}
+            {sites.filter(site => site.siteType !== 'business_center').length === 0 && (
+              <div className="col-12">
+                <div className="text-center py-5">
+                  <div className="empty-state">
+                    <i className="bi bi-building"></i>
+                    <p className="mb-3">Henüz site bulunmamaktadır.</p>
+                  </div>
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Business Centers */}
+      {sites.filter(site => site.siteType === 'business_center').length > 0 && (
+        <div className="card custom-card shadow-sm mb-4">
+          <div className="card-header bg-info-subtle">
+            <h5 className="mb-0 fw-bold">
+              <i className="bi bi-briefcase me-2"></i>
+              İş Merkezleri
+            </h5>
+          </div>
+          <div className="card-body">
+            <div className="row g-4">
+              {sites.filter(site => site.siteType === 'business_center').map(site => {
+                const blockCount = 1;
+                const panelsPerBlock = parseInt(site.panels) || 0;
+                const blockLabels = ['A'];
+
+                return (
+                  <div key={site.id} className="col-12">
+                    <div className="card custom-card shadow-sm">
+                      <div className="card-header bg-info-subtle">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <h5 className="mb-0 fw-bold">
+                            <i className="bi bi-briefcase me-2"></i>
+                            {site.name}
+                            {site.neighborhood && (
+                              <small className="text-muted ms-2">({site.neighborhood})</small>
+                            )}
+                          </h5>
+                          <div className="small text-muted">
+                            <span className="badge bg-info me-2">
+                              İş Merkezi
+                            </span>
+                            <span className="badge bg-secondary">
+                              {panelsPerBlock} Panel
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="card-body">
+                        {panelsPerBlock === 0 ? (
+                          <div className="text-center py-4 text-muted">
+                            <i className="bi bi-exclamation-triangle fs-1"></i>
+                            <p className="mt-2 mb-0">Bu iş merkezi için panel bilgisi tanımlanmamış</p>
+                          </div>
+                        ) : (
+                          <div className="row g-3">
+                            {blockLabels.map((blockLabel, blockIndex) => {
+                              const blockId = `block-${blockIndex}`;
+                              
+                              return (
+                                <div key={blockId} className="col-md-6 col-lg-4 col-xl-3">
+                                  <div className="card border-info h-100">
+                                    <div className="card-header bg-info-subtle text-center">
+                                      <h6 className="mb-0 fw-bold">
+                                        <i className="bi bi-briefcase me-1"></i>
+                                        {blockLabel} Blok
+                                      </h6>
+                                    </div>
+                                    <div className="card-body p-2">
+                                      <div className="d-flex flex-wrap gap-1 justify-content-center">
+                                        {Array.from({ length: panelsPerBlock }, (_, panelIndex) => {
+                                          const panelId = `panel-${panelIndex + 1}`;
+                                          const panelNumber = panelIndex + 1;
+                                          const panelInfo = getPanelInfo(site.id, blockLabel, panelId);
+
+                                          return (
+                                            <div
+                                              key={panelId}
+                                              className={`panel-${site.id}-${blockId}-${panelId} position-relative d-flex align-items-center justify-content-center border rounded ${
+                                                panelInfo.isUsed 
+                                                  ? (filteredMode && panelInfo.status !== 'active' 
+                                                      ? 'bg-warning text-dark' 
+                                                      : 'bg-primary text-white')
+                                                  : 'bg-light text-muted'
+                                              }`}
+                                              style={{
+                                                width: '60px',
+                                                height: '80px',
+                                                fontSize: '10px',
+                                                fontWeight: 'bold',
+                                                flexDirection: 'column',
+                                                padding: '2px',
+                                                cursor: panelInfo.isUsed ? 'pointer' : 'default'
+                                              }}
+                                              title={
+                                                panelInfo.isUsed 
+                                                  ? `Panel ${panelNumber} - ${panelInfo.companyName}${filteredMode ? ` (${panelInfo.startDate} - ${panelInfo.endDate})` : ` (Bitiş: ${panelInfo.endDate})`}${panelInfo.status ? ` [${panelInfo.status === 'active' ? 'Aktif' : 'Pasif'}]` : ''}`
+                                                  : `Panel ${panelNumber} - Boş`
+                                              }
+                                              onClick={() => {
+                                                if (panelInfo.isUsed && window.showAlert) {
+                                                  window.showAlert(
+                                                    `Panel ${panelNumber} - ${site.name}`,
+                                                    `<div class="text-start">
+                                                      <div class="mb-3"><strong>Reklam Veren Firma:</strong> ${panelInfo.companyName}</div>
+                                                      <div class="mb-3"><strong>Anlaşma Süresi:</strong> ${formatDate(panelInfo.startDate)} - ${formatDate(panelInfo.endDate)}</div>
+                                                      <div class="mb-3"><strong>Anlaşma ID:</strong> ${panelInfo.agreementId}</div>
+                                                    </div>`,
+                                                    'info'
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              {panelNumber}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                      <div className="text-center mt-2 small text-muted">
+                                        {panelsPerBlock} Panel
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        )}
-      </div>
-      </div>
+        </div>
+      )}
+
+      {/* Business Centers */}
+      {sites.filter(site => site.siteType === 'business_center').length > 0 && (
+        <div className="card custom-card shadow-sm mb-4">
+          <div className="card-header bg-info-subtle">
+            <h5 className="mb-0 fw-bold">
+              <i className="bi bi-briefcase me-2"></i>
+              İş Merkezleri
+            </h5>
+          </div>
+          <div className="card-body">
+            <div className="row g-4">
+              {sites.filter(site => site.siteType === 'business_center').map(site => {
+                const blockCount = 1;
+                const panelsPerBlock = parseInt(site.panels) || 0;
+                const blockLabels = ['A'];
     </>
   );
 };

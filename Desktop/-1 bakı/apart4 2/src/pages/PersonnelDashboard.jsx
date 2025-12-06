@@ -71,6 +71,8 @@ const PersonnelDashboard = () => {
   const [showSiteEditModal, setShowSiteEditModal] = useState(false);
   const [siteEditForm, setSiteEditForm] = useState({
     location: '',
+    locationLat: '',
+    locationLng: '',
     manager: '',
     janitorPhones: '',
     notes: ''
@@ -374,6 +376,8 @@ const PersonnelDashboard = () => {
     setSelectedSite(site);
     setSiteEditForm({
       location: site.location || '',
+      locationLat: site.locationLat || '',
+      locationLng: site.locationLng || '',
       manager: site.manager || '',
       janitorPhones: Array.isArray(site.janitorPhones) ? site.janitorPhones.join(', ') : (site.janitorPhones || ''),
       notes: site.notes || ''
@@ -402,6 +406,8 @@ const PersonnelDashboard = () => {
 
       const updateData = {
         location: siteEditForm.location,
+        locationLat: siteEditForm.locationLat || null,
+        locationLng: siteEditForm.locationLng || null,
         manager: siteEditForm.manager,
         janitorPhones: janitorPhonesArray,
         notes: siteEditForm.notes
@@ -429,8 +435,69 @@ const PersonnelDashboard = () => {
     }
   };
 
+  // Get current location using geolocation API
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by your browser'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    });
+  };
+
+  // Handle get current location button
+  const handleGetCurrentLocation = async () => {
+    try {
+      if (window.showAlert) {
+        window.showAlert('Bilgi', 'Konumunuz alınıyor, lütfen bekleyin...', 'info');
+      }
+
+      const location = await getCurrentLocation();
+      
+      setSiteEditForm(prev => ({
+        ...prev,
+        locationLat: location.lat.toString(),
+        locationLng: location.lng.toString()
+      }));
+
+      if (window.showAlert) {
+        window.showAlert('Başarılı', `Konumunuz alındı: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`, 'success');
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Konumunuz alınamadı. Lütfen tarayıcınızın konum iznini kontrol edin.', 'error');
+      }
+    }
+  };
+
   // Open Google Maps with directions to site location
   const openGoogleMaps = (site) => {
+    // Prefer coordinates if available
+    if (site.locationLat && site.locationLng) {
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${site.locationLat},${site.locationLng}`;
+      window.open(mapsUrl, '_blank');
+      return;
+    }
+
+    // Fallback to address
     if (!site.location || !site.location.trim()) {
       if (window.showAlert) {
         window.showAlert('Uyarı', 'Bu site için konum bilgisi bulunmamaktadır. Lütfen önce konum bilgisini ekleyin.', 'warning');
@@ -506,10 +573,12 @@ const PersonnelDashboard = () => {
                               {site.manager}
                             </small>
                           )}
-                          {site.location && (
+                          {(site.location || (site.locationLat && site.locationLng)) && (
                             <small className="text-success d-block mt-1">
                               <i className="bi bi-map me-1"></i>
-                              Konum: {site.location}
+                              {site.locationLat && site.locationLng 
+                                ? `Konum: ${parseFloat(site.locationLat).toFixed(6)}, ${parseFloat(site.locationLng).toFixed(6)}`
+                                : `Konum: ${site.location}`}
                             </small>
                           )}
                         </div>
@@ -1192,32 +1261,71 @@ const PersonnelDashboard = () => {
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <label className="form-label fw-medium mb-0">
                         <i className="bi bi-geo-alt me-1"></i>
-                        Konum Bilgisi
+                        Konum Bilgisi (Koordinatlar)
                       </label>
-                      {siteEditForm.location && (
+                      <div>
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => {
-                            const siteWithLocation = { ...selectedSite, location: siteEditForm.location };
-                            openGoogleMaps(siteWithLocation);
-                          }}
-                          title="Google Maps'te Yol Tarifi Al"
+                          className="btn btn-sm btn-outline-success me-2"
+                          onClick={handleGetCurrentLocation}
+                          title="Mevcut Konumunuzu Al"
                         >
                           <i className="bi bi-geo-alt-fill me-1"></i>
-                          Haritada Aç
+                          Konumumu Al
                         </button>
-                      )}
+                        {(siteEditForm.locationLat && siteEditForm.locationLng) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => {
+                              const siteWithLocation = { 
+                                ...selectedSite, 
+                                locationLat: siteEditForm.locationLat,
+                                locationLng: siteEditForm.locationLng
+                              };
+                              openGoogleMaps(siteWithLocation);
+                            }}
+                            title="Google Maps'te Yol Tarifi Al"
+                          >
+                            <i className="bi bi-map me-1"></i>
+                            Haritada Aç
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="row g-2">
+                      <div className="col-md-6">
+                        <label className="form-label small">Enlem (Latitude)</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="locationLat"
+                          value={siteEditForm.locationLat}
+                          onChange={handleSiteEditChange}
+                          placeholder="Örn: 41.0082"
+                        />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label small">Boylam (Longitude)</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="locationLng"
+                          value={siteEditForm.locationLng}
+                          onChange={handleSiteEditChange}
+                          placeholder="Örn: 28.9784"
+                        />
+                      </div>
                     </div>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control mt-2"
                       name="location"
                       value={siteEditForm.location}
                       onChange={handleSiteEditChange}
-                      placeholder="Örn: İstanbul, Kadıköy, Acıbadem Mahallesi..."
+                      placeholder="Adres (Opsiyonel - Örn: İstanbul, Kadıköy, Acıbadem Mahallesi...)"
                     />
-                    <small className="text-muted">Konum bilgisini girdikten sonra "Haritada Aç" butonu ile Google Maps'te yol tarifi alabilirsiniz</small>
+                    <small className="text-muted">"Konumumu Al" butonuna tıklayarak mevcut konumunuzu otomatik alabilir veya manuel olarak koordinatları girebilirsiniz</small>
                   </div>
                   
                   <div className="col-md-12">

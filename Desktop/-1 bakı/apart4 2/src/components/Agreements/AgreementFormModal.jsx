@@ -253,15 +253,15 @@ const AgreementFormModal = ({
                             return (
                               <>
                                 {/* Regular Sites Grouped by Neighborhood */}
-                                {sortedNeighborhoods.map(neighborhood => (
+                                {(sortedNeighborhoods || []).map(neighborhood => (
                                   <div key={neighborhood} className="mb-4">
                                     <h6 className="text-primary mb-3 d-flex align-items-center">
                                       <i className="bi bi-geo-alt-fill me-2"></i>
                                       <span className="fw-bold">{neighborhood}</span>
-                                      <span className="badge bg-primary ms-2">{sitesByNeighborhood[neighborhood].length}</span>
+                                      <span className="badge bg-primary ms-2">{(sitesByNeighborhood[neighborhood] || []).length}</span>
                                     </h6>
                                     <div className="row g-3">
-                                      {sitesByNeighborhood[neighborhood].map(site => (
+                                      {(sitesByNeighborhood[neighborhood] || []).map(site => (
                                         <div key={site.id} className="col-md-6 col-sm-12">
                                           <div className="form-check-card h-100">
                                             <input

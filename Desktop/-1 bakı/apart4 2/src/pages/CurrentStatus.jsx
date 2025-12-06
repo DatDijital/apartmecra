@@ -917,7 +917,8 @@ const CurrentStatus = () => {
             <div className="row g-4">
               {(sites || []).filter(site => site.siteType === 'business_center').map(site => {
                 const blockCount = 1;
-                const panelsPerBlock = parseInt(site.panels) || 0;
+                // İş merkezleri için manuel girilen panel sayısını kullan
+                const panelsPerBlock = parseInt(site.manualPanels) || parseInt(site.panels) || 0;
                 const blockLabels = ['A'];
 
                 return (

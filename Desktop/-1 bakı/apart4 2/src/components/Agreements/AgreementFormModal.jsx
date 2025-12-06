@@ -406,25 +406,31 @@ const AgreementFormModal = ({
                                   </label>
                                   <div className="row g-2 mb-3">
                                     {site.siteType === 'business_center' ? (
-                                      // İş merkezi için tek blok göster
-                                      <div className="col-md-3 col-sm-4 col-6">
-                                        <div className="card h-100 border-2 border-primary bg-primary bg-opacity-10">
-                                          <div className="card-body p-2">
-                                            <div className="form-check text-center">
-                                              <input
-                                                type="checkbox"
-                                                id={`${siteId}-block-A`}
-                                                checked={true}
-                                                readOnly
-                                                className="form-check-input"
-                                              />
-                                              <label htmlFor={`${siteId}-block-A`} className="form-check-label fw-bold">
-                                                İş Merkezi
-                                              </label>
+                                      // İş merkezi için tek blok göster (seçilebilir)
+                                      (() => {
+                                        const blockKey = `${siteId}-block-A`;
+                                        const isSelected = selectedBlocks.includes(blockKey);
+                                        return (
+                                          <div className="col-md-3 col-sm-4 col-6">
+                                            <div className={`card h-100 border-2 ${isSelected ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}>
+                                              <div className="card-body p-2">
+                                                <div className="form-check text-center">
+                                                  <input
+                                                    type="checkbox"
+                                                    id={`${siteId}-block-A`}
+                                                    checked={isSelected}
+                                                    onChange={() => uiHandlers.handleBlockSelection(siteId, blockKey, siteBlockSelections, sitePanelSelections)}
+                                                    className="form-check-input"
+                                                  />
+                                                  <label htmlFor={`${siteId}-block-A`} className="form-check-label fw-bold">
+                                                    İş Merkezi
+                                                  </label>
+                                                </div>
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      </div>
+                                        );
+                                      })()
                                     ) : (
                                       // Normal site için blok seçimi
                                       blockLabels.map((label, index) => {

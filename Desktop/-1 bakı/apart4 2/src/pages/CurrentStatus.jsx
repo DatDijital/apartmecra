@@ -976,22 +976,7 @@ const CurrentStatus = () => {
           </div>
         </div>
       )}
-
-      {/* Business Centers */}
-      {sites.filter(site => site.siteType === 'business_center').length > 0 && (
-        <div className="card custom-card shadow-sm mb-4">
-          <div className="card-header bg-info-subtle">
-            <h5 className="mb-0 fw-bold">
-              <i className="bi bi-briefcase me-2"></i>
-              İş Merkezleri
-            </h5>
-          </div>
-          <div className="card-body">
-            <div className="row g-4">
-              {sites.filter(site => site.siteType === 'business_center').map(site => {
-                const blockCount = 1;
-                const panelsPerBlock = parseInt(site.panels) || 0;
-                const blockLabels = ['A'];
+      </div>
     </>
   );
 };

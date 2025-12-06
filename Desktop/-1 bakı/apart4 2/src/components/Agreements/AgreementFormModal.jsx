@@ -456,9 +456,19 @@ const AgreementFormModal = ({
                                   </div>
                                   
                                   {/* Panel Selection for Selected Blocks */}
-                                  {(site.siteType === 'business_center' ? [`${siteId}-block-A`] : selectedBlocks
-                                    .filter(blockKey => blockKey && blockKey.startsWith(`${siteId}-block-`)))
-                                    .map(blockKey => {
+                                  {(() => {
+                                    // İş merkezi için blok seçimini kontrol et
+                                    if (site.siteType === 'business_center') {
+                                      const blockKey = `${siteId}-block-A`;
+                                      const isBlockSelected = (siteBlockSelections[siteId] || []).includes(blockKey);
+                                      if (!isBlockSelected) {
+                                        return null; // Blok seçilmemişse panel seçimi gösterilmez
+                                      }
+                                      return [blockKey];
+                                    }
+                                    // Normal site için seçili blokları filtrele
+                                    return selectedBlocks.filter(blockKey => blockKey && blockKey.startsWith(`${siteId}-block-`));
+                                  })().map(blockKey => {
                                       const blockLabel = blockKey.split('-')[2]; // Extract block label (A, B, C, etc.)
                                       const selectedPanels = (sitePanelSelections[siteId] && sitePanelSelections[siteId][blockKey]) || [];
                                       

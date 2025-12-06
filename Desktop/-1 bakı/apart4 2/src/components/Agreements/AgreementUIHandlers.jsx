@@ -148,6 +148,14 @@ const AgreementUIHandlers = ({
             [blockKey]: []
           }
         }));
+        // İş merkezi için panel sayısını güncelle
+        setTimeout(() => {
+          const panelCount = parseInt(site.panels) || 0;
+          setSitePanelCounts(prev => ({
+            ...prev,
+            [siteId]: 0 // Başlangıçta 0, panel seçildikçe güncellenecek
+          }));
+        }, 0);
       }
     }
   };
@@ -277,8 +285,11 @@ const AgreementUIHandlers = ({
     const oddPanels = availablePanels.filter(p => p.panelNumber % 2 === 1);
     const evenPanels = availablePanels.filter(p => p.panelNumber % 2 === 0);
 
-    // Calculate how many panels to select (half of total, rounded up)
-    const targetCount = Math.ceil(totalPanels / 2);
+    // Calculate how many panels to select
+    // Özel mantık: 3 panel varsa 1, 5 panel varsa 2 seç
+    // Formül: Math.floor((totalPanels - 1) / 2)
+    // 3 -> Math.floor((3-1)/2) = 1, 5 -> Math.floor((5-1)/2) = 2
+    const targetCount = totalPanels > 0 ? Math.floor((totalPanels - 1) / 2) : 0;
     const alreadySelected = currentSelections.length;
     const needToSelect = Math.max(0, targetCount - alreadySelected);
 

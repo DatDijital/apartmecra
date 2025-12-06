@@ -278,17 +278,29 @@ export const updateSite = async (siteId, siteData) => {
     const newPhone = siteData.phone || '';
     const phoneChanged = oldPhone !== newPhone && newPhone;
     
-    // Calculate elevators and panels
-    const blocks = parseInt(siteData.blocks) || 0;
-    const elevatorsPerBlock = parseInt(siteData.elevatorsPerBlock) || 0;
-    const elevators = blocks * elevatorsPerBlock;
-    const panels = elevators * 2;
+    // Calculate elevators and panels only if blocks/elevatorsPerBlock are provided
+    // Otherwise, keep existing values (for partial updates like location, manager, etc.)
+    let updatedSiteData = { ...siteData };
     
-    const updatedSiteData = {
-      ...siteData,
-      elevators: elevators,
-      panels: panels
-    };
+    if (siteData.blocks !== undefined || siteData.elevatorsPerBlock !== undefined) {
+      const blocks = parseInt(siteData.blocks) || parseInt(oldSiteData?.blocks) || 0;
+      const elevatorsPerBlock = parseInt(siteData.elevatorsPerBlock) || parseInt(oldSiteData?.elevatorsPerBlock) || 0;
+      const elevators = blocks * elevatorsPerBlock;
+      const panels = elevators * 2;
+      
+      updatedSiteData = {
+        ...updatedSiteData,
+        elevators: elevators,
+        panels: panels
+      };
+    } else {
+      // Keep existing elevators and panels if not updating blocks/elevatorsPerBlock
+      updatedSiteData = {
+        ...updatedSiteData,
+        elevators: oldSiteData?.elevators,
+        panels: oldSiteData?.panels
+      };
+    }
     
     const updateResult = await updateDocument(COLLECTIONS.SITES, docId, updatedSiteData);
     

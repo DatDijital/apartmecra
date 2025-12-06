@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAgreements, getSites, getCompanies, getPanelImages, uploadPanelImage, cleanupExpiredImages, resetPanelImages } from '../services/api';
+import { getAgreements, getSites, getCompanies, getPanelImages, uploadPanelImage, cleanupExpiredImages, resetPanelImages, updateSite } from '../services/api';
 import { getUser } from '../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -66,6 +66,15 @@ const PersonnelDashboard = () => {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [selectedPanel, setSelectedPanel] = useState(null);
   const [panelImages, setPanelImages] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedSite, setSelectedSite] = useState(null);
+  const [showSiteEditModal, setShowSiteEditModal] = useState(false);
+  const [siteEditForm, setSiteEditForm] = useState({
+    location: '',
+    manager: '',
+    janitorPhones: '',
+    notes: ''
+  });
   const navigate = useNavigate();
   
   const user = getUser();
@@ -360,6 +369,66 @@ const PersonnelDashboard = () => {
     return `${siteId}${blockLabel}${panelNumber}`;
   };
 
+  // Handle site selection from sidebar
+  const handleSiteSelect = (site) => {
+    setSelectedSite(site);
+    setSiteEditForm({
+      location: site.location || '',
+      manager: site.manager || '',
+      janitorPhones: Array.isArray(site.janitorPhones) ? site.janitorPhones.join(', ') : (site.janitorPhones || ''),
+      notes: site.notes || ''
+    });
+    setShowSiteEditModal(true);
+  };
+
+  // Handle site edit form change
+  const handleSiteEditChange = (e) => {
+    const { name, value } = e.target;
+    setSiteEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle site update
+  const handleSiteUpdate = async () => {
+    if (!selectedSite) return;
+
+    try {
+      // Convert janitorPhones string to array
+      const janitorPhonesArray = siteEditForm.janitorPhones
+        ? siteEditForm.janitorPhones.split(',').map(phone => phone.trim()).filter(phone => phone)
+        : [];
+
+      const updateData = {
+        location: siteEditForm.location,
+        manager: siteEditForm.manager,
+        janitorPhones: janitorPhonesArray,
+        notes: siteEditForm.notes
+      };
+
+      const result = await updateSite(selectedSite.id, updateData);
+      
+      if (result.success) {
+        // Reload sites data
+        await loadData();
+        setShowSiteEditModal(false);
+        setSelectedSite(null);
+        
+        if (window.showAlert) {
+          window.showAlert('Başarılı', 'Site bilgileri başarıyla güncellendi!', 'success');
+        }
+      } else {
+        throw new Error(result.error || 'Güncelleme başarısız');
+      }
+    } catch (error) {
+      console.error('Error updating site:', error);
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Site bilgileri güncellenirken bir hata oluştu.', 'error');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100">
@@ -380,8 +449,80 @@ const PersonnelDashboard = () => {
 
   return (
     <div className="container-fluid">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="row">
+        {/* Left Sidebar - Sites List */}
+        <div className={`col-md-3 ${sidebarOpen ? '' : 'd-none'}`}>
+          <div className="card custom-card shadow-sm sticky-top" style={{ top: '20px', maxHeight: 'calc(100vh - 40px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div className="card-header bg-primary-subtle d-flex justify-content-between align-items-center">
+              <h5 className="mb-0 fw-bold">
+                <i className="bi bi-building me-2"></i>
+                Siteler ({sites.length})
+              </h5>
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setSidebarOpen(false)}
+                title="Menüyü Kapat"
+              >
+                <i className="bi bi-chevron-left"></i>
+              </button>
+            </div>
+            <div className="card-body p-0" style={{ overflowY: 'auto', flex: 1 }}>
+              {sites.length > 0 ? (
+                <div className="list-group list-group-flush">
+                  {sites.map((site) => (
+                    <button
+                      key={site.id}
+                      type="button"
+                      className={`list-group-item list-group-item-action ${
+                        selectedSite?.id === site.id ? 'active' : ''
+                      }`}
+                      onClick={() => handleSiteSelect(site)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div className="flex-grow-1">
+                          <h6 className="mb-1 fw-bold">{site.name}</h6>
+                          <small className="text-muted d-block">
+                            <i className="bi bi-geo-alt me-1"></i>
+                            {site.neighborhood || 'Konum belirtilmemiş'}
+                          </small>
+                          {site.manager && (
+                            <small className="text-muted d-block">
+                              <i className="bi bi-person me-1"></i>
+                              {site.manager}
+                            </small>
+                          )}
+                        </div>
+                        <i className="bi bi-pencil-square ms-2"></i>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 text-muted">
+                  <i className="bi bi-building fs-1"></i>
+                  <p className="mt-2 mb-0">Henüz site bulunmamaktadır</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className={sidebarOpen ? 'col-md-9' : 'col-md-12'}>
+          {/* Sidebar Toggle Button (when closed) */}
+          {!sidebarOpen && (
+            <button
+              className="btn btn-outline-primary mb-3"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <i className="bi bi-list me-2"></i>
+              Site Menüsünü Aç
+            </button>
+          )}
+
+          {/* Header */}
+          <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="h3 fw-bold">Personel Panosu</h2>
           <p className="text-muted mb-0">Tüm aktif ve gelecek anlaşma panelleri</p>
@@ -993,6 +1134,117 @@ const PersonnelDashboard = () => {
         </div>
       )}
 
+      {/* Site Edit Modal */}
+      {showSiteEditModal && selectedSite && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="bi bi-pencil-square me-2"></i>
+                  Site Bilgilerini Düzenle: {selectedSite.name}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => {
+                    setShowSiteEditModal(false);
+                    setSelectedSite(null);
+                  }}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="row g-3">
+                  <div className="col-md-12">
+                    <label className="form-label fw-medium">
+                      <i className="bi bi-geo-alt me-1"></i>
+                      Konum Bilgisi
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      name="location"
+                      value={siteEditForm.location}
+                      onChange={handleSiteEditChange}
+                      placeholder="Örn: İstanbul, Kadıköy, Acıbadem Mahallesi..."
+                    />
+                  </div>
+                  
+                  <div className="col-md-12">
+                    <label className="form-label fw-medium">
+                      <i className="bi bi-person me-1"></i>
+                      Site Yöneticisi
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      name="manager"
+                      value={siteEditForm.manager}
+                      onChange={handleSiteEditChange}
+                      placeholder="Site yöneticisinin adı"
+                    />
+                  </div>
+                  
+                  <div className="col-md-12">
+                    <label className="form-label fw-medium">
+                      <i className="bi bi-telephone me-1"></i>
+                      Kapıcı Telefonları
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      name="janitorPhones"
+                      value={siteEditForm.janitorPhones}
+                      onChange={handleSiteEditChange}
+                      placeholder="Birden fazla telefon için virgülle ayırın (örn: 0532 123 45 67, 0533 987 65 43)"
+                    />
+                    <small className="text-muted">Birden fazla telefon numarasını virgülle ayırarak girebilirsiniz</small>
+                  </div>
+                  
+                  <div className="col-md-12">
+                    <label className="form-label fw-medium">
+                      <i className="bi bi-sticky me-1"></i>
+                      Notlar
+                    </label>
+                    <textarea
+                      className="form-control"
+                      name="notes"
+                      value={siteEditForm.notes}
+                      onChange={handleSiteEditChange}
+                      rows="4"
+                      placeholder="Site hakkında özel notlar..."
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowSiteEditModal(false);
+                    setSelectedSite(null);
+                  }}
+                >
+                  <i className="bi bi-x-circle me-1"></i>
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSiteUpdate}
+                >
+                  <i className="bi bi-check-circle me-1"></i>
+                  Kaydet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+        </div>
+      </div>
     </div>
   );
 };

@@ -500,7 +500,7 @@ const SiteDashboard = () => {
                                 const blockLabel = String.fromCharCode(65 + panel.blockIndex);
                                 const blockId = `${siteId}-block-${blockLabel}`;
                                 const panelId = `panel-${panel.panelInBlock + 1}`;
-                                const personnelImage = panelUsageInfo ? getPanelImage(panelUsageInfo.agreementId, siteId, blockId, panel.panelInBlock + 1) : null;
+                                const personnelImage = panelUsageInfo ? getPanelImage(panelUsageInfo.agreementId, siteId, blockId, (panel.panelInBlock + 1).toString()) : null;
                                 
                                 return (
                                   <div

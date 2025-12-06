@@ -88,7 +88,7 @@ const AgreementFormModal = ({
                             required
                           >
                             <option value="">Firma seçin</option>
-                            {companies.map(company => (
+                            {(companies || []).map(company => (
                               <option key={company.id} value={company.id}>
                                 {company.name}
                               </option>

@@ -54,7 +54,7 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
           </tr>
         </thead>
         <tbody>
-          {agreements.map(agreement => (
+          {(agreements || []).map(agreement => (
             <tr key={agreement.id} className="align-middle">
               <td className="py-3 px-4">
                 <div className="d-flex align-items-center company-info">

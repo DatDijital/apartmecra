@@ -700,7 +700,7 @@ const CompanyDashboard = () => {
                          </tr>
                        </thead>
                        <tbody>
-                         {filteredAgreements.map((agreement) => {
+                         {(filteredAgreements || []).map((agreement) => {
                            // Calculate total panels for this agreement
                            const totalPanels = Object.values(agreement.sitePanelCounts || {}).reduce(
                              (sum, count) => sum + parseInt(count || 0), 0
@@ -761,7 +761,7 @@ const CompanyDashboard = () => {
                </div>
                <div className="card-body">
                  <div className="row g-4">
-                   {companyAgreements.filter(a => a.status === 'active').map((agreement) => (
+                   {(companyAgreements || []).filter(a => a.status === 'active').map((agreement) => (
                      <div key={agreement.id} className="col-lg-12">
                        <div className="card border-success h-100">
                          <div className="card-header bg-success-subtle">

@@ -480,7 +480,7 @@ const SiteDashboard = () => {
               {siteData.site ? (
                 <div>
                   <div className="row g-3">
-                    {getPanelBlockInfo().map((block) => (
+                    {(getPanelBlockInfo() || []).map((block) => (
                       <div key={block.blockNumber} className="col-lg-4 col-md-6">
                         <div className="card h-100">
                           <div className="card-header bg-primary text-white">
@@ -495,7 +495,7 @@ const SiteDashboard = () => {
                               <small>{Math.round((block.activePanels / block.totalPanels) * 100)}% Doluluk</small>
                             </div>
                             <div className="d-flex flex-wrap gap-2">
-                              {block.panels.map((panel) => {
+                              {(block.panels || []).map((panel) => {
                                 const panelUsageInfo = panel.isActive ? getPanelUsageInfo(panel.blockIndex, panel.panelInBlock) : null;
                                 const blockLabel = String.fromCharCode(65 + panel.blockIndex);
                                 const blockId = `${siteId}-block-${blockLabel}`;
@@ -751,7 +751,7 @@ const SiteDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {getFilteredAgreements().map((agreement) => {
+                      {(getFilteredAgreements() || []).map((agreement) => {
                         const isPaid = agreement.paymentReceived || agreement.creditPaymentReceived;
                         return (
                           <tr key={agreement.id}>

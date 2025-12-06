@@ -28,7 +28,7 @@ const SitesTable = ({
               </tr>
             </thead>
             <tbody>
-              {sites.map((site, index) => (
+              {(sites || []).map((site, index) => (
                 <tr key={site.id} className="align-middle">
                   <td className="py-2 px-2">
                     <div className="d-flex align-items-center site-info">

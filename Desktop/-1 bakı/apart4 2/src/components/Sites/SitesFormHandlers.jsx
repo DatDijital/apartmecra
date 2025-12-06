@@ -18,7 +18,7 @@ const SitesFormHandlers = ({
   // Handle form submit
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
+    
     // Eğer şu anda zaten bir kayıt işlemi devam ediyorsa, yeni tıklamayı yok say
     if (isSubmittingSiteForm) {
       console.warn('Site form submit already in progress, ignoring duplicate submit.');

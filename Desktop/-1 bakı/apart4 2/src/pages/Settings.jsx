@@ -31,22 +31,22 @@ const Settings = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showUserInfo, setShowUserInfo] = useState({}); // State to track which user info to show
 
-  const fetchData = async () => {
-    try {
-      const [usersData, logsData, companiesData] = await Promise.all([
-        getUsers(),
-        getLogs(),
-        getCompanies()
-      ]);
-      setUsers(usersData);
-      setLogs(logsData);
-      setCompanies(companiesData); // Set companies data
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchData = async () => {
+      try {
+        const [usersData, logsData, companiesData] = await Promise.all([
+          getUsers(),
+          getLogs(),
+          getCompanies()
+        ]);
+        setUsers(usersData);
+        setLogs(logsData);
+        setCompanies(companiesData); // Set companies data
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     fetchData();

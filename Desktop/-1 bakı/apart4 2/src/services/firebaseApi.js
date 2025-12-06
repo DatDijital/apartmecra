@@ -158,7 +158,7 @@ export const login = async (username, password) => {
     for (const attempt of loginAttempts) {
       // Only log if it's the first attempt or if we're debugging
       if (loginAttempts.indexOf(attempt) === 0) {
-        console.log('Attempting login with email:', attempt.email, 'role:', attempt.role);
+      console.log('Attempting login with email:', attempt.email, 'role:', attempt.role);
       }
       
       try {
@@ -187,8 +187,8 @@ export const login = async (username, password) => {
           
           if (siteResult.success) {
             if (siteResult.data.status === 'archived') {
-              console.log('Site user is archived, login denied:', siteId);
-              return { error: 'Bu site arşivlenmiş, giriş yapılamaz' };
+            console.log('Site user is archived, login denied:', siteId);
+            return { error: 'Bu site arşivlenmiş, giriş yapılamaz' };
             }
             siteData = siteResult.data;
           }
@@ -218,8 +218,8 @@ export const login = async (username, password) => {
           
           if (companyResult.success) {
             if (companyResult.data.status === 'archived') {
-              console.log('Company user is archived, login denied:', companyId);
-              return { error: 'Bu firma arşivlenmiş, giriş yapılamaz' };
+            console.log('Company user is archived, login denied:', companyId);
+            return { error: 'Bu firma arşivlenmiş, giriş yapılamaz' };
             }
             companyData = companyResult.data;
           }
@@ -232,11 +232,11 @@ export const login = async (username, password) => {
           
           // Build user object with name for company and site users
           const userObj = {
-            username: result.user.username,
-            role: attempt.role,
-            siteId: result.user.siteId || null,
-            companyId: result.user.companyId || null,
-            id: result.user.uid
+              username: result.user.username,
+              role: attempt.role,
+              siteId: result.user.siteId || null,
+              companyId: result.user.companyId || null,
+              id: result.user.uid
           };
           
           // Add name field for company users

@@ -555,7 +555,7 @@ const PersonnelDashboard = () => {
             <div className="card-body p-0" style={{ overflowY: 'auto', flex: 1 }}>
               {sites.length > 0 ? (
                 <div className="list-group list-group-flush">
-                  {sites.map((site) => (
+                  {(sites || []).map((site) => (
                     <div
                       key={site.id}
                       className={`list-group-item ${selectedSite?.id === site.id ? 'active' : ''}`}
@@ -623,8 +623,8 @@ const PersonnelDashboard = () => {
             </button>
           )}
 
-          {/* Header */}
-          <div className="d-flex justify-content-between align-items-center mb-4">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="h3 fw-bold">Personel Panosu</h2>
           <p className="text-muted mb-0">Tüm aktif ve gelecek anlaşma panelleri</p>

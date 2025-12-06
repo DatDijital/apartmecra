@@ -15,7 +15,7 @@ const getApiService = async () => {
   } else {
     // Firebase not available - this should not happen in production
     console.error('❌ Firebase is not available - application may not work correctly');
-    return await import('./localApi.js');
+  return await import('./localApi.js');
   }
 };
 

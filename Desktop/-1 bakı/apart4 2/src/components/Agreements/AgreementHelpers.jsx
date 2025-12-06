@@ -212,27 +212,27 @@ const AgreementHelpers = ({
     for (const newRange of rangesToCheck) {
       const newStart = new Date(newRange.startDate);
       const newEnd = new Date(newRange.endDate);
-      
-      // Check each existing agreement for date overlap and panel usage
-      for (const agreement of siteAgreements) {
+    
+    // Check each existing agreement for date overlap and panel usage
+    for (const agreement of siteAgreements) {
         const existingRanges = getAgreementRanges(agreement);
         
         for (const existingRange of existingRanges) {
           const existingStart = new Date(existingRange.startDate);
           const existingEnd = new Date(existingRange.endDate);
-          
-          // Check if date ranges overlap
-          if (dateRangesOverlap(newStart, newEnd, existingStart, existingEnd)) {
-            // Check if this specific panel is used in the overlapping agreement
-            if (agreement.siteBlockSelections && agreement.siteBlockSelections[siteId]) {
-              const usedBlocks = agreement.siteBlockSelections[siteId];
-              if (usedBlocks.includes(blockKey)) {
-                // Check if this specific panel is used in this block
-                if (agreement.sitePanelSelections && 
-                    agreement.sitePanelSelections[siteId] && 
-                    agreement.sitePanelSelections[siteId][blockKey] &&
-                    agreement.sitePanelSelections[siteId][blockKey].includes(panelKey)) {
-                  return false; // Panel is not available
+      
+      // Check if date ranges overlap
+      if (dateRangesOverlap(newStart, newEnd, existingStart, existingEnd)) {
+        // Check if this specific panel is used in the overlapping agreement
+        if (agreement.siteBlockSelections && agreement.siteBlockSelections[siteId]) {
+          const usedBlocks = agreement.siteBlockSelections[siteId];
+          if (usedBlocks.includes(blockKey)) {
+            // Check if this specific panel is used in this block
+            if (agreement.sitePanelSelections && 
+                agreement.sitePanelSelections[siteId] && 
+                agreement.sitePanelSelections[siteId][blockKey] &&
+                agreement.sitePanelSelections[siteId][blockKey].includes(panelKey)) {
+              return false; // Panel is not available
                 }
               }
             }

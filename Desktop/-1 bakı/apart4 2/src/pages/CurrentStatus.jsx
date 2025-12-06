@@ -662,9 +662,10 @@ const CurrentStatus = () => {
         </div>
         <div className="card-body">
           <div className="row g-4">
-            {sites.filter(site => site.siteType !== 'business_center').map(site => {
+            {(sites || []).filter(site => site.siteType !== 'business_center').map(site => {
               const blockCount = parseInt(site.blocks) || 0;
               const elevatorsPerBlock = parseInt(site.elevatorsPerBlock) || 0;
+              // Normal siteler için: elevatorsPerBlock * 2
               const panelsPerBlock = elevatorsPerBlock * 2;
               const blockLabels = generateBlockLabels(blockCount);
 
@@ -688,7 +689,7 @@ const CurrentStatus = () => {
                         {elevatorsPerBlock} Asansör/Blok
                       </span>
                       <span className="badge bg-secondary">
-                        {panelsPerBlock * blockCount} Panel
+                        {site.panels || (panelsPerBlock * blockCount)} Panel
                       </span>
                     </div>
                   </div>
@@ -701,7 +702,7 @@ const CurrentStatus = () => {
                     </div>
                   ) : (
                     <div className="row g-3">
-                      {blockLabels.map((blockLabel, blockIndex) => {
+                      {(blockLabels || []).map((blockLabel, blockIndex) => {
                         const blockId = `block-${blockIndex}`;
                         
                         return (
@@ -914,7 +915,7 @@ const CurrentStatus = () => {
           </div>
           <div className="card-body">
             <div className="row g-4">
-              {sites.filter(site => site.siteType === 'business_center').map(site => {
+              {(sites || []).filter(site => site.siteType === 'business_center').map(site => {
                 const blockCount = 1;
                 const panelsPerBlock = parseInt(site.panels) || 0;
                 const blockLabels = ['A'];

@@ -109,7 +109,7 @@ const AgreementsMain = () => {
         let errorCount = 0;
         
         // Create an array of promises for archiving all agreements
-        const archivePromises = agreements.map(async (agreement) => {
+        const archivePromises = (agreements || []).map(async (agreement) => {
           try {
             const result = await archiveAgreement(agreement.id);
             if (result && result.success) {

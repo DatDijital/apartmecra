@@ -477,12 +477,12 @@ const AgreementFormModal = ({
                                       const blockKey = `${siteId}-block-A`;
                                       const isBlockSelected = (siteBlockSelections[siteId] || []).includes(blockKey);
                                       if (!isBlockSelected) {
-                                        return null; // Blok seçilmemişse panel seçimi gösterilmez
+                                        return []; // Blok seçilmemişse boş array döndür
                                       }
                                       return [blockKey];
                                     }
                                     // Normal site için seçili blokları filtrele
-                                    return selectedBlocks.filter(blockKey => blockKey && blockKey.startsWith(`${siteId}-block-`));
+                                    return (selectedBlocks || []).filter(blockKey => blockKey && blockKey.startsWith(`${siteId}-block-`));
                                   })().map(blockKey => {
                                       const blockLabel = blockKey.split('-')[2]; // Extract block label (A, B, C, etc.)
                                       const selectedPanels = (sitePanelSelections[siteId] && sitePanelSelections[siteId][blockKey]) || [];

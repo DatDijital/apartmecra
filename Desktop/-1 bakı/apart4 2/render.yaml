@@ -25,6 +25,6 @@ services:
         value: 1:669151390046:web:30590b4e09a529d17d47cf
       - key: VITE_FIREBASE_MEASUREMENT_ID
         value: G-4J8KGT8KJ5
-    healthCheckPath: /api/sites
+    healthCheckPath: /health
     autoDeploy: true
 

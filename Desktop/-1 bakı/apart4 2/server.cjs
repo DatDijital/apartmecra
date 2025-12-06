@@ -16,8 +16,8 @@ const rateLimitMap = new Map();
 
 // Rate limiting middleware - More lenient for production
 const rateLimit = (req, res, next) => {
-  // Skip rate limiting for static files and favicon
-  if (req.path === '/favicon.ico' || req.path.startsWith('/assets/') || req.path.startsWith('/uploads/')) {
+  // Skip rate limiting for static files, favicon, and health check
+  if (req.path === '/favicon.ico' || req.path.startsWith('/assets/') || req.path.startsWith('/uploads/') || req.path === '/health' || req.path === '/ping') {
     return next();
   }
   
@@ -68,6 +68,24 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
+
+// Health check endpoint for UptimeRobot (must be before rate limiting)
+server.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'apartmecra'
+  });
+});
+
+// Ping endpoint (alternative to /health)
+server.get('/ping', (req, res) => {
+  res.status(200).json({ 
+    status: 'pong', 
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Apply security middleware
 server.use(rateLimit);

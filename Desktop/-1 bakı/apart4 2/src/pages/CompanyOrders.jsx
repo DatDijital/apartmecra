@@ -524,7 +524,7 @@ const CompanyOrders = () => {
               )}
             </div>
           </div>
-        </div>
+            </div>
 
             {/* Main Content */}
             <div className="col-md-7">
@@ -717,6 +717,7 @@ const CompanyOrders = () => {
                 </div>
               )}
             </div>
+          </div>
             </div>
           </div>
         </div>

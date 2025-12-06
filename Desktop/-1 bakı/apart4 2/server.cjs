@@ -418,7 +418,21 @@ server.use('/uploads', (req, res, next) => {
 // Serve static files from dist directory (production build)
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
-  server.use(express.static(distPath));
+  // Configure static file serving with correct MIME types
+  server.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      // Set correct MIME types for JavaScript modules
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      } else if (filePath.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      }
+    }
+  }));
   
   // Serve index.html for all non-API routes (SPA routing)
   server.get('*', (req, res, next) => {
@@ -426,8 +440,13 @@ if (fs.existsSync(distPath)) {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
       return next();
     }
+    // Skip static assets (they're handled by express.static above)
+    if (req.path.startsWith('/assets/') || req.path.startsWith('/manifest.json') || req.path.startsWith('/sw.js')) {
+      return next();
+    }
     const indexPath = path.join(distPath, 'index.html');
     if (fs.existsSync(indexPath)) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.sendFile(indexPath);
     } else {
       next();

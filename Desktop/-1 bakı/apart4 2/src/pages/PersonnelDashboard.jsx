@@ -429,6 +429,25 @@ const PersonnelDashboard = () => {
     }
   };
 
+  // Open Google Maps with directions to site location
+  const openGoogleMaps = (site) => {
+    if (!site.location || !site.location.trim()) {
+      if (window.showAlert) {
+        window.showAlert('Uyarı', 'Bu site için konum bilgisi bulunmamaktadır. Lütfen önce konum bilgisini ekleyin.', 'warning');
+      }
+      return;
+    }
+
+    // Encode the address for URL
+    const encodedAddress = encodeURIComponent(site.location);
+    
+    // Google Maps Directions URL (opens with route planning)
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+    
+    // Open in new tab
+    window.open(mapsUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100">
@@ -470,17 +489,12 @@ const PersonnelDashboard = () => {
               {sites.length > 0 ? (
                 <div className="list-group list-group-flush">
                   {sites.map((site) => (
-                    <button
+                    <div
                       key={site.id}
-                      type="button"
-                      className={`list-group-item list-group-item-action ${
-                        selectedSite?.id === site.id ? 'active' : ''
-                      }`}
-                      onClick={() => handleSiteSelect(site)}
-                      style={{ cursor: 'pointer' }}
+                      className={`list-group-item ${selectedSite?.id === site.id ? 'active' : ''}`}
                     >
-                      <div className="d-flex justify-content-between align-items-start">
-                        <div className="flex-grow-1">
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <div className="flex-grow-1" style={{ cursor: 'pointer' }} onClick={() => handleSiteSelect(site)}>
                           <h6 className="mb-1 fw-bold">{site.name}</h6>
                           <small className="text-muted d-block">
                             <i className="bi bi-geo-alt me-1"></i>
@@ -492,10 +506,29 @@ const PersonnelDashboard = () => {
                               {site.manager}
                             </small>
                           )}
+                          {site.location && (
+                            <small className="text-success d-block mt-1">
+                              <i className="bi bi-map me-1"></i>
+                              Konum: {site.location}
+                            </small>
+                          )}
                         </div>
-                        <i className="bi bi-pencil-square ms-2"></i>
+                        <i className="bi bi-pencil-square ms-2" style={{ cursor: 'pointer' }} onClick={() => handleSiteSelect(site)}></i>
                       </div>
-                    </button>
+                      {site.location && (
+                        <button
+                          className="btn btn-sm btn-outline-primary w-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openGoogleMaps(site);
+                          }}
+                          title="Google Maps'te Yol Tarifi Al"
+                        >
+                          <i className="bi bi-geo-alt-fill me-1"></i>
+                          Haritada Aç
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -1156,10 +1189,26 @@ const PersonnelDashboard = () => {
               <div className="modal-body">
                 <div className="row g-3">
                   <div className="col-md-12">
-                    <label className="form-label fw-medium">
-                      <i className="bi bi-geo-alt me-1"></i>
-                      Konum Bilgisi
-                    </label>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <label className="form-label fw-medium mb-0">
+                        <i className="bi bi-geo-alt me-1"></i>
+                        Konum Bilgisi
+                      </label>
+                      {siteEditForm.location && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => {
+                            const siteWithLocation = { ...selectedSite, location: siteEditForm.location };
+                            openGoogleMaps(siteWithLocation);
+                          }}
+                          title="Google Maps'te Yol Tarifi Al"
+                        >
+                          <i className="bi bi-geo-alt-fill me-1"></i>
+                          Haritada Aç
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="text"
                       className="form-control"
@@ -1168,6 +1217,7 @@ const PersonnelDashboard = () => {
                       onChange={handleSiteEditChange}
                       placeholder="Örn: İstanbul, Kadıköy, Acıbadem Mahallesi..."
                     />
+                    <small className="text-muted">Konum bilgisini girdikten sonra "Haritada Aç" butonu ile Google Maps'te yol tarifi alabilirsiniz</small>
                   </div>
                   
                   <div className="col-md-12">

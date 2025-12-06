@@ -144,9 +144,15 @@ const SitesModals = ({
                               <strong>Panel Sayısı:</strong>
                             </div>
                             <div className="ps-4">
-                              {currentSite.panels}
+                              {currentSite.siteType === 'business_center'
+                                ? (parseInt(currentSite.manualPanels) || parseInt(currentSite.panels) || 0)
+                                : (parseInt(currentSite.panels) || 0)
+                              }
                               <small className="text-muted d-block">
-                                ({currentSite.elevators || 0} × 2)
+                                {currentSite.siteType === 'business_center'
+                                  ? 'Manuel girilen panel sayısı'
+                                  : `(${currentSite.elevators || 0} × 2)`
+                                }
                               </small>
                             </div>
                           </div>

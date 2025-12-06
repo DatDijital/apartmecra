@@ -77,17 +77,25 @@ export const uploadPanelImage = async (file, metadata) => {
 
 export const getPanelImages = async (filters = {}) => {
   try {
-    let q = query(collection(db, 'panelImages'));
+    let q = collection(db, 'panelImages');
     
-    // Apply filters
+    // Build query with filters
+    const conditions = [];
     if (filters.agreementId) {
-      q = query(q, where('agreementId', '==', filters.agreementId));
+      conditions.push(where('agreementId', '==', filters.agreementId));
     }
     if (filters.siteId) {
-      q = query(q, where('siteId', '==', filters.siteId));
+      conditions.push(where('siteId', '==', filters.siteId));
     }
     if (filters.companyId) {
-      q = query(q, where('companyId', '==', filters.companyId));
+      conditions.push(where('companyId', '==', filters.companyId));
+    }
+    
+    // Apply conditions if any, otherwise get all
+    if (conditions.length > 0) {
+      q = query(q, ...conditions);
+    } else {
+      q = query(q);
     }
     
     const querySnapshot = await getDocs(q);

@@ -415,7 +415,7 @@ const PersonnelDashboard = () => {
 
       const result = await updateSite(selectedSite.id, updateData);
       
-      if (result.success) {
+      if (result) {
         // Reload sites data
         await loadData();
         setShowSiteEditModal(false);
@@ -425,7 +425,7 @@ const PersonnelDashboard = () => {
           window.showAlert('Başarılı', 'Site bilgileri başarıyla güncellendi!', 'success');
         }
       } else {
-        throw new Error(result.error || 'Güncelleme başarısız');
+        throw new Error('Güncelleme başarısız');
       }
     } catch (error) {
       console.error('Error updating site:', error);

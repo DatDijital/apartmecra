@@ -28,6 +28,7 @@ const SiteDashboard = () => {
     showPaid: true,
     showUnpaid: true
   });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const user = getUser();
   const siteId = user?.siteId;
@@ -354,6 +355,46 @@ const SiteDashboard = () => {
 
   return (
     <div className="container-fluid">
+      <div className="row">
+        {/* Left Sidebar - Menu */}
+        <div className={`col-md-3 ${sidebarOpen ? '' : 'd-none'}`}>
+          <div className="card custom-card shadow-sm sticky-top" style={{ top: '20px', maxHeight: 'calc(100vh - 40px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div className="card-header bg-primary-subtle d-flex justify-content-between align-items-center">
+              <h5 className="mb-0 fw-bold">
+                <i className="bi bi-menu-button-wide me-2"></i>
+                Menü
+              </h5>
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setSidebarOpen(false)}
+                title="Menüyü Kapat"
+              >
+                <i className="bi bi-chevron-left"></i>
+              </button>
+            </div>
+            <div className="card-body p-0" style={{ overflowY: 'auto', flex: 1 }}>
+              <div className="list-group list-group-flush">
+                <div className="list-group-item">
+                  <i className="bi bi-speedometer2 me-2"></i>
+                  Site Panosu
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className={sidebarOpen ? 'col-md-9' : 'col-md-12'}>
+          {/* Sidebar Toggle Button (when closed) */}
+          {!sidebarOpen && (
+            <button
+              className="btn btn-outline-primary mb-3"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <i className="bi bi-list me-2"></i>
+              Menüyü Aç
+            </button>
+          )}
       {/* Site Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -911,7 +952,8 @@ const SiteDashboard = () => {
           </div>
         </div>
       </div>
-
+        </div>
+      </div>
     </div>
   );
 };

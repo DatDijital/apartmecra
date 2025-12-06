@@ -34,8 +34,8 @@ const AgreementsMain = () => {
     previewUrl: null
   });
   
-  // State for active/expired tabs
-  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'expired'
+  // State for active/expired/orders tabs
+  const [activeTab, setActiveTab] = useState('active'); // 'active', 'expired', or 'orders'
   
   const [formData, setFormData] = useState({
     companyId: '',
@@ -380,6 +380,20 @@ const AgreementsMain = () => {
   const getFilteredAgreements = () => {
     const currentDate = new Date();
     
+    if (activeTab === 'orders') {
+      // Orders: agreements with isOrder flag or status 'pending'
+      return agreements.filter(agreement => 
+        agreement.isOrder === true || agreement.status === 'pending'
+      ).sort((a, b) => {
+        const aId = typeof a.id === 'string' ? a.id : a.id;
+        const bId = typeof b.id === 'string' ? b.id : b.id;
+        if (typeof aId === 'string' && typeof bId === 'string') {
+          return bId.localeCompare(aId);
+        }
+        return bId - aId;
+      });
+    }
+    
     let filteredAgreements = agreements.filter(agreement => {
       const endDate = new Date(agreement.endDate);
       
@@ -494,6 +508,18 @@ const AgreementsMain = () => {
               <i className="bi bi-clock-history me-2"></i>
               Süresi Bitmiş / Sonlandırılmış Anlaşmalar
               <span className="badge bg-secondary ms-2">{tabStats.count}</span>
+            </button>
+          </li>
+          <li className="nav-item" role="presentation">
+            <button
+              className={`nav-link ${activeTab === 'orders' ? 'active' : ''}`}
+              onClick={() => setActiveTab('orders')}
+              type="button"
+              role="tab"
+            >
+              <i className="bi bi-cart me-2"></i>
+              Siparişler
+              <span className="badge bg-info ms-2">{agreements.filter(a => a.isOrder === true || a.status === 'pending').length}</span>
             </button>
           </li>
         </ul>

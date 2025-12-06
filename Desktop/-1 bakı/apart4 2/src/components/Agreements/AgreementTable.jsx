@@ -137,8 +137,8 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
                     <i className="bi bi-file-earmark-pdf"></i>
                   </button>
                   
-                  {activeTab === 'active' ? (
-                    // Active agreements - show all management buttons
+                  {(activeTab === 'active' || activeTab === 'orders') ? (
+                    // Active agreements or orders - show all management buttons
                     <>
                       <button
                         className="btn btn-sm btn-outline-secondary"
@@ -224,14 +224,19 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
         <div className="text-center py-5">
           <div className="mb-3">
             <div className="bg-light bg-opacity-50 rounded-circle d-flex align-items-center justify-content-center mx-auto" style={{ width: '60px', height: '60px' }}>
-              <i className={`bi ${activeTab === 'active' ? 'bi-check-circle' : 'bi-clock-history'} text-muted fs-1`}></i>
+              <i className={`bi ${activeTab === 'active' ? 'bi-check-circle' : activeTab === 'orders' ? 'bi-cart' : 'bi-clock-history'} text-muted fs-1`}></i>
             </div>
           </div>
           <h6 className="text-muted mb-0">
-            {activeTab === 'active' ? 'Henüz aktif anlaşma bulunmamaktadır' : 'Henüz süresi bitmiş veya sonlandırılmış anlaşma bulunmamaktadır'}
+            {activeTab === 'active' ? 'Henüz aktif anlaşma bulunmamaktadır' : 
+             activeTab === 'orders' ? 'Henüz sipariş bulunmamaktadır' :
+             'Henüz süresi bitmiş veya sonlandırılmış anlaşma bulunmamaktadır'}
           </h6>
           {activeTab === 'active' && (
             <p className="text-muted small mt-2">Yeni anlaşma oluşturmak için "Yeni Anlaşma" butonuna tıklayın</p>
+          )}
+          {activeTab === 'orders' && (
+            <p className="text-muted small mt-2">Firmalar sipariş oluşturduğunda burada görünecektir</p>
           )}
         </div>
       )}

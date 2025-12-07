@@ -141,7 +141,7 @@ const SitesTable = ({
   return (
     <div className="row g-4">
       {/* İş Merkezleri - Üstte */}
-      <div className="col-md-6">
+      <div className="col-12">
         <div className="sites-table-container border-0 shadow-sm">
           <div className="card-header bg-info bg-opacity-10 border-0">
             <h6 className="mb-0 fw-bold text-info">
@@ -184,8 +184,8 @@ const SitesTable = ({
         </div>
       </div>
 
-      {/* Siteler - Altta (yan yana) */}
-      <div className="col-md-6">
+      {/* Siteler - Altta */}
+      <div className="col-12">
         <div className="sites-table-container border-0 shadow-sm">
           <div className="card-header bg-primary bg-opacity-10 border-0">
             <h6 className="mb-0 fw-bold text-primary">

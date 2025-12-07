@@ -7,28 +7,13 @@ const SitesTable = ({
   uiHandlers, 
   handlers 
 }) => {
-  return (
-    <div className="sites-table-container border-0 shadow-sm">
-      <div className="card-body p-0">
-        <div className="table-responsive">
-          <table className="table table-hover mb-0 sites-table">
-            <thead className="sites-table-header">
-              <tr>
-                <th className="border-0 py-2 px-2 small">Site</th>
-                <th className="border-0 py-2 px-2 d-none d-md-table-cell small">Mahalle</th>
-                <th className="border-0 py-2 px-2 d-none d-lg-table-cell small">Yönetici</th>
-                <th className="border-0 py-2 px-2 d-none d-xl-table-cell small">Telefon</th>
-                <th className="border-0 py-2 px-2 text-center small">Blok</th>
-                <th className="border-0 py-2 px-2 text-center small">Asansör</th>
-                <th className="border-0 py-2 px-2 text-center small">Panel</th>
-                <th className="border-0 py-2 px-2 text-center small">Daire/İşyeri</th>
-                <th className="border-0 py-2 px-2 text-center small">İnsan Sayısı</th>
-                <th className="border-0 py-2 px-2 text-center small">Anlaşma %</th>
-                <th className="border-0 py-2 px-2 text-end small">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(sites || []).map((site, index) => (
+  // Separate business centers and regular sites
+  const businessCenters = (sites || []).filter(site => site.siteType === 'business_center');
+  const regularSites = (sites || []).filter(site => site.siteType !== 'business_center');
+
+  // Render table rows
+  const renderTableRows = (siteList) => {
+    return siteList.map((site, index) => (
                 <tr key={site.id} className="align-middle">
                   <td className="py-2 px-2">
                     <div className="d-flex align-items-center site-info">
@@ -53,12 +38,16 @@ const SitesTable = ({
                   <td className="py-2 px-2 d-none d-xl-table-cell small">
                     {site.phone}
                   </td>
-                  <td className="py-2 px-2 text-center small">
-                    {site.blocks}
-                  </td>
-                  <td className="py-2 px-2 text-center small">
-                    {site.elevators}
-                  </td>
+                  {site.siteType !== 'business_center' && (
+                    <>
+                      <td className="py-2 px-2 text-center small">
+                        {site.blocks}
+                      </td>
+                      <td className="py-2 px-2 text-center small">
+                        {site.elevators}
+                      </td>
+                    </>
+                  )}
                   <td className="py-2 px-2 text-center small">
                     {site.siteType === 'business_center' 
                       ? (parseInt(site.manualPanels) || parseInt(site.panels) || 0)
@@ -128,15 +117,6 @@ const SitesTable = ({
                         <i className="bi bi-clipboard-check" style={{fontSize: '10px'}}></i>
                       </button>
                       <button
-                        onClick={() => handlers.handlePaymentSite(site)}
-                        className={`btn btn-xs ${site.hasPendingPayment ? 'btn-outline-success' : 'btn-outline-secondary'}`}
-                        title={site.hasPendingPayment ? "Ödeme Yap" : "Bekleyen ödeme yok"}
-                        disabled={!site.hasPendingPayment}
-                        style={{padding: '2px 6px', fontSize: '10px'}}
-                      >
-                        <i className="bi bi-currency-dollar" style={{fontSize: '10px'}}></i>
-                      </button>
-                      <button
                         onClick={() => handlers.handleArchiveSite(site.id)}
                         className="btn btn-xs btn-outline-warning me-1"
                         title="Arşiv"
@@ -155,25 +135,104 @@ const SitesTable = ({
                     </div>
                   </td>
                 </tr>
-              ))}
-              {sites.length === 0 && (
-                <tr>
-                  <td colSpan="9" className="text-center py-5">
-                    <div className="empty-state">
-                      <i className="bi bi-building"></i>
-                      <p className="mb-3">Henüz site bulunmamaktadır.</p>
-                      <button 
-                        onClick={uiHandlers.handleAddSite}
-                        className="btn btn-sites-primary"
-                      >
-                        Site Ekle
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+    ));
+  };
+
+  return (
+    <div className="row g-4">
+      {/* İş Merkezleri - Üstte */}
+      <div className="col-md-6">
+        <div className="sites-table-container border-0 shadow-sm">
+          <div className="card-header bg-info bg-opacity-10 border-0">
+            <h6 className="mb-0 fw-bold text-info">
+              <i className="bi bi-briefcase me-2"></i>
+              İş Merkezleri ({businessCenters.length})
+            </h6>
+          </div>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 sites-table">
+                <thead className="sites-table-header">
+                  <tr>
+                    <th className="border-0 py-2 px-2 small">İş Merkezi</th>
+                    <th className="border-0 py-2 px-2 d-none d-md-table-cell small">Mahalle</th>
+                    <th className="border-0 py-2 px-2 d-none d-lg-table-cell small">Yönetici</th>
+                    <th className="border-0 py-2 px-2 d-none d-xl-table-cell small">Telefon</th>
+                    <th className="border-0 py-2 px-2 text-center small">Panel</th>
+                    <th className="border-0 py-2 px-2 text-center small">İşyeri</th>
+                    <th className="border-0 py-2 px-2 text-center small">İnsan Sayısı</th>
+                    <th className="border-0 py-2 px-2 text-center small">Anlaşma %</th>
+                    <th className="border-0 py-2 px-2 text-end small">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {renderTableRows(businessCenters)}
+                  {businessCenters.length === 0 && (
+                    <tr>
+                      <td colSpan="9" className="text-center py-5">
+                        <div className="empty-state">
+                          <i className="bi bi-briefcase"></i>
+                          <p className="mb-3 text-muted">Henüz iş merkezi bulunmamaktadır.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Siteler - Altta (yan yana) */}
+      <div className="col-md-6">
+        <div className="sites-table-container border-0 shadow-sm">
+          <div className="card-header bg-primary bg-opacity-10 border-0">
+            <h6 className="mb-0 fw-bold text-primary">
+              <i className="bi bi-building me-2"></i>
+              Siteler ({regularSites.length})
+            </h6>
+          </div>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 sites-table">
+                <thead className="sites-table-header">
+                  <tr>
+                    <th className="border-0 py-2 px-2 small">Site</th>
+                    <th className="border-0 py-2 px-2 d-none d-md-table-cell small">Mahalle</th>
+                    <th className="border-0 py-2 px-2 d-none d-lg-table-cell small">Yönetici</th>
+                    <th className="border-0 py-2 px-2 d-none d-xl-table-cell small">Telefon</th>
+                    <th className="border-0 py-2 px-2 text-center small">Blok</th>
+                    <th className="border-0 py-2 px-2 text-center small">Asansör</th>
+                    <th className="border-0 py-2 px-2 text-center small">Panel</th>
+                    <th className="border-0 py-2 px-2 text-center small">Daire</th>
+                    <th className="border-0 py-2 px-2 text-center small">İnsan Sayısı</th>
+                    <th className="border-0 py-2 px-2 text-center small">Anlaşma %</th>
+                    <th className="border-0 py-2 px-2 text-end small">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {renderTableRows(regularSites)}
+                  {regularSites.length === 0 && (
+                    <tr>
+                      <td colSpan="11" className="text-center py-5">
+                        <div className="empty-state">
+                          <i className="bi bi-building"></i>
+                          <p className="mb-3 text-muted">Henüz site bulunmamaktadır.</p>
+                          <button 
+                            onClick={uiHandlers.handleAddSite}
+                            className="btn btn-sites-primary"
+                          >
+                            Site Ekle
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

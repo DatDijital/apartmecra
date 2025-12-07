@@ -229,10 +229,10 @@ const AgreementFormModal = ({
 
                               {/* Regular Sites Grouped by Neighborhood */}
                               {(sortedNeighborhoods || []).map(neighborhood => {
-                                const neighborhoodSites = (sitesByNeighborhood[neighborhood] || []);
+                                const neighborhoodSites = (sitesByNeighborhood[neighborhood] || []).filter(s => s != null);
                                 const selectedSitesInRange = (uiHandlers.getSelectedSitesForRange && uiHandlers.getSelectedSitesForRange(rangeIndex, sitePanelSelections)) || [];
                                 const allNeighborhoodSelected = neighborhoodSites.length > 0 && 
-                                  neighborhoodSites.every(site => selectedSitesInRange.includes(site.id));
+                                  neighborhoodSites.every(site => site && site.id && selectedSitesInRange.includes(site.id));
                                 
                                 return (
                                   <div key={neighborhood} className="mb-4">
@@ -356,9 +356,31 @@ const AgreementFormModal = ({
 
                                 return (
                                   <div key={siteId} className="mb-4 pb-3 border-bottom">
-                                    <h6 className="mb-3 fw-bold text-primary">
-                                      <i className="bi bi-geo-alt me-2"></i>
-                                      {site.name}
+                                    <h6 className="mb-3 fw-bold text-primary d-flex justify-content-between align-items-center">
+                                      <span>
+                                        <i className="bi bi-geo-alt me-2"></i>
+                                        {site.name}
+                                      </span>
+                                      <div className="d-flex gap-2">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-success"
+                                          onClick={() => uiHandlers.handleSelectAllBlocksForRange(rangeIndex, siteId, site, siteBlockSelections, sitePanelSelections)}
+                                          title="Tüm blokları seç"
+                                        >
+                                          <i className="bi bi-check-square me-1"></i>
+                                          Tüm Blokları Seç
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-primary"
+                                          onClick={() => uiHandlers.handleSelectHalfForAllInRange(rangeIndex, siteId, site, siteBlockSelections, sitePanelSelections, [range])}
+                                          title="Tüm blokların panellerinin yarısını seç"
+                                        >
+                                          <i className="bi bi-check2-all me-1"></i>
+                                          Tümünün Yarısını Seç
+                                        </button>
+                                      </div>
                                     </h6>
                                     
                                     {/* Block Selection */}
@@ -421,91 +443,122 @@ const AgreementFormModal = ({
                                         )}
                                       </div>
                                       
-                                      {/* Panel Selection for Selected Blocks */}
+                                      {/* Panel Selection for Selected Blocks - Accordion */}
                                       {(() => {
-                                        if (site.siteType === 'business_center') {
-                                          const blockKey = `${siteId}-block-A`;
-                                          const isBlockSelected = selectedBlocks.includes(blockKey);
-                                          if (!isBlockSelected) return null;
-                                          return [blockKey];
-                                        }
-                                        return selectedBlocks.filter(blockKey => blockKey && blockKey.startsWith(`${siteId}-block-`));
-                                      })().map(blockKey => {
-                                        const blockLabel = blockKey.split('-')[2];
-                                        const selectedPanels = (sitePanelSelections[siteId] && 
-                                          sitePanelSelections[siteId][blockKey] && 
-                                          sitePanelSelections[siteId][blockKey][rangeKey]) || [];
+                                        const blocksToShow = site.siteType === 'business_center' 
+                                          ? (selectedBlocks.includes(`${siteId}-block-A`) ? [`${siteId}-block-A`] : [])
+                                          : selectedBlocks.filter(blockKey => blockKey && blockKey.startsWith(`${siteId}-block-`));
+                                        
+                                        if (blocksToShow.length === 0) return null;
                                         
                                         return (
-                                          <div key={`${siteId}-${blockKey}-panels-${rangeIndex}`} className="mt-3">
-                                            <div className="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
-                                              <h6 className="mb-0 fw-semibold text-primary">
-                                                <i className="bi bi-grid-3x3-gap me-2"></i>
-                                                {site.siteType === 'business_center' ? 'İş Merkezi Panelleri' : `Blok ${blockLabel} Panelleri`}
-                                              </h6>
-                                              <button
-                                                type="button"
-                                                className="btn btn-primary btn-sm fw-bold"
-                                                onClick={() => {
-                                                  const totalPanels = site.siteType === 'business_center' 
-                                                    ? (parseInt(site.manualPanels) || parseInt(site.panels) || 0) 
-                                                    : (parseInt(site.elevatorsPerBlock) || 0) * 2;
-                                                  uiHandlers.handleSelectHalfForDateRange(siteId, blockKey, rangeIndex, sitePanelSelections, totalPanels, [range]);
-                                                }}
-                                                title="Panellerin yarısını otomatik seç (tek sayılar önce, sonra çift sayılar)"
-                                                style={{ minWidth: '120px' }}
-                                              >
-                                                <i className="bi bi-check2-square me-1"></i>
-                                                Yarısını Seç
-                                              </button>
-                                            </div>
-                                            <div className="row g-2">
-                                              {Array.from({ length: site.siteType === 'business_center' ? (parseInt(site.manualPanels) || parseInt(site.panels) || 0) : (parseInt(site.elevatorsPerBlock) || 0) * 2 }, (_, i) => {
-                                                const panelId = i + 1;
-                                                const panelKey = `panel-${panelId}`;
-                                                const isPanelSelected = selectedPanels.includes(panelKey);
-                                                const panelName = generatePanelName(siteId, blockLabel, panelId);
-                                                const isAvailable = helpers.isPanelAvailable(siteId, blockKey, panelKey, range.startDate, range.endDate, [range]);
-                                                const usageInfo = !isAvailable ? helpers.getPanelUsageInfo(siteId, blockKey, panelKey, range.startDate, range.endDate) : null;
-                                                
-                                                return (
-                                                  <div key={panelKey} className="col-4 col-sm-3 col-md-2">
-                                                    <div 
-                                                      className={`card panel-card h-100 border-2 ${!isAvailable ? 'border-warning bg-warning bg-opacity-10' : isPanelSelected ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`} 
-                                                      style={{ cursor: isAvailable ? 'pointer' : 'not-allowed', transition: 'all 0.2s', position: 'relative' }}
-                                                      onClick={() => { if (isAvailable) uiHandlers.handlePanelSelectionForDateRange(siteId, blockKey, panelKey, rangeIndex, sitePanelSelections); }}
+                                          <div className="accordion mt-3" id={`accordion-${rangeIndex}-${siteId}`}>
+                                            {blocksToShow.map((blockKey, blockIndex) => {
+                                              const blockLabel = blockKey.split('-')[2];
+                                              const selectedPanels = (sitePanelSelections[siteId] && 
+                                                sitePanelSelections[siteId][blockKey] && 
+                                                sitePanelSelections[siteId][blockKey][rangeKey]) || [];
+                                              const accordionId = `panel-accordion-${rangeIndex}-${siteId}-${blockKey}`;
+                                              const totalPanels = site.siteType === 'business_center' 
+                                                ? (parseInt(site.manualPanels) || parseInt(site.panels) || 0) 
+                                                : (parseInt(site.elevatorsPerBlock) || 0) * 2;
+                                              
+                                              return (
+                                                <div key={blockKey} className="accordion-item">
+                                                  <h2 className="accordion-header" id={`heading-${accordionId}`}>
+                                                    <button
+                                                      className="accordion-button collapsed"
+                                                      type="button"
+                                                      data-bs-toggle="collapse"
+                                                      data-bs-target={`#${accordionId}`}
+                                                      aria-expanded="false"
+                                                      aria-controls={accordionId}
                                                     >
-                                                      <div className="card-body p-2 d-flex flex-column align-items-center">
-                                                        <div className="form-check mb-1">
-                                                          <input
-                                                            type="checkbox"
-                                                            id={`${siteId}-${blockKey}-${panelKey}-${rangeIndex}`}
-                                                            checked={isPanelSelected}
-                                                            onChange={() => { if (isAvailable) uiHandlers.handlePanelSelectionForDateRange(siteId, blockKey, panelKey, rangeIndex, sitePanelSelections); }}
-                                                            className="form-check-input"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            disabled={!isAvailable}
-                                                          />
-                                                        </div>
-                                                        <div className="text-center">
-                                                          <div className="fw-bold text-truncate" style={{ fontSize: '10px', maxWidth: '80px' }}>{panelName}</div>
-                                                          <div className="small text-muted mt-1" style={{ fontSize: '9px' }}>Panel {panelId}</div>
-                                                          {!isAvailable && usageInfo && (
-                                                            <div className="small text-muted mt-1" style={{ fontSize: '8px' }}>
-                                                              <i className="bi bi-lock-fill me-1"></i>
-                                                              {usageInfo.companyName}
+                                                      <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                                                        <span className="fw-semibold text-primary">
+                                                          <i className="bi bi-grid-3x3-gap me-2"></i>
+                                                          {site.siteType === 'business_center' ? 'İş Merkezi Panelleri' : `Blok ${blockLabel} Panelleri`}
+                                                        </span>
+                                                        <span className="badge bg-primary ms-2">
+                                                          {selectedPanels.length} / {totalPanels}
+                                                        </span>
+                                                      </div>
+                                                    </button>
+                                                  </h2>
+                                                  <div
+                                                    id={accordionId}
+                                                    className="accordion-collapse collapse"
+                                                    aria-labelledby={`heading-${accordionId}`}
+                                                    data-bs-parent={`#accordion-${rangeIndex}-${siteId}`}
+                                                  >
+                                                    <div className="accordion-body">
+                                                      <div className="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
+                                                        <span className="small text-muted">Panel seçimi için aşağıdaki panelleri tıklayın</span>
+                                                        <button
+                                                          type="button"
+                                                          className="btn btn-primary btn-sm fw-bold"
+                                                          onClick={() => {
+                                                            uiHandlers.handleSelectHalfForDateRange(siteId, blockKey, rangeIndex, sitePanelSelections, totalPanels, [range]);
+                                                          }}
+                                                          title="Panellerin yarısını otomatik seç (tek sayılar önce, sonra çift sayılar)"
+                                                          style={{ minWidth: '120px' }}
+                                                        >
+                                                          <i className="bi bi-check2-square me-1"></i>
+                                                          Yarısını Seç
+                                                        </button>
+                                                      </div>
+                                                      <div className="row g-2">
+                                                        {Array.from({ length: totalPanels }, (_, i) => {
+                                                          const panelId = i + 1;
+                                                          const panelKey = `panel-${panelId}`;
+                                                          const isPanelSelected = selectedPanels.includes(panelKey);
+                                                          const panelName = generatePanelName(siteId, blockLabel, panelId);
+                                                          const isAvailable = helpers.isPanelAvailable(siteId, blockKey, panelKey, range.startDate, range.endDate, [range]);
+                                                          const usageInfo = !isAvailable ? helpers.getPanelUsageInfo(siteId, blockKey, panelKey, range.startDate, range.endDate) : null;
+                                                          
+                                                          return (
+                                                            <div key={panelKey} className="col-4 col-sm-3 col-md-2">
+                                                              <div 
+                                                                className={`card panel-card h-100 border-2 ${!isAvailable ? 'border-warning bg-warning bg-opacity-10' : isPanelSelected ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`} 
+                                                                style={{ cursor: isAvailable ? 'pointer' : 'not-allowed', transition: 'all 0.2s', position: 'relative' }}
+                                                                onClick={() => { if (isAvailable) uiHandlers.handlePanelSelectionForDateRange(siteId, blockKey, panelKey, rangeIndex, sitePanelSelections); }}
+                                                              >
+                                                                <div className="card-body p-2 d-flex flex-column align-items-center">
+                                                                  <div className="form-check mb-1">
+                                                                    <input
+                                                                      type="checkbox"
+                                                                      id={`${siteId}-${blockKey}-${panelKey}-${rangeIndex}`}
+                                                                      checked={isPanelSelected}
+                                                                      onChange={() => { if (isAvailable) uiHandlers.handlePanelSelectionForDateRange(siteId, blockKey, panelKey, rangeIndex, sitePanelSelections); }}
+                                                                      className="form-check-input"
+                                                                      onClick={(e) => e.stopPropagation()}
+                                                                      disabled={!isAvailable}
+                                                                    />
+                                                                  </div>
+                                                                  <div className="text-center">
+                                                                    <div className="fw-bold text-truncate" style={{ fontSize: '10px', maxWidth: '80px' }}>{panelName}</div>
+                                                                    <div className="small text-muted mt-1" style={{ fontSize: '9px' }}>Panel {panelId}</div>
+                                                                    {!isAvailable && usageInfo && (
+                                                                      <div className="small text-muted mt-1" style={{ fontSize: '8px' }}>
+                                                                        <i className="bi bi-lock-fill me-1"></i>
+                                                                        {usageInfo.companyName}
+                                                                      </div>
+                                                                    )}
+                                                                  </div>
+                                                                </div>
+                                                              </div>
                                                             </div>
-                                                          )}
-                                                        </div>
+                                                          );
+                                                        })}
                                                       </div>
                                                     </div>
                                                   </div>
-                                                );
-                                              })}
-                                            </div>
+                                                </div>
+                                              );
+                                            })}
                                           </div>
                                         );
-                                      })}
+                                      })()}
                                     </div>
                                   </div>
                                 );

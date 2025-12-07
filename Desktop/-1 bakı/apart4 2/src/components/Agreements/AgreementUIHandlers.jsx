@@ -817,9 +817,13 @@ const AgreementUIHandlers = ({
 
   // Handle select all sites for a date range
   const handleSelectAllSitesForRange = (rangeIndex, sites, sitePanelSelections) => {
+    if (!sites || !Array.isArray(sites)) {
+      console.warn('handleSelectAllSitesForRange: sites is not an array', sites);
+      return;
+    }
     const rangeKey = `range-${rangeIndex}`;
     const currentSites = (sitePanelSelections && sitePanelSelections[rangeKey] && sitePanelSelections[rangeKey].sites) || [];
-    const allSiteIds = (sites || []).map(s => s.id).filter(id => id != null);
+    const allSiteIds = sites.map(s => s && s.id).filter(id => id != null);
     const allSelected = allSiteIds.length > 0 && allSiteIds.every(id => currentSites.includes(id));
     
     setSitePanelSelections(prev => {
@@ -838,7 +842,7 @@ const AgreementUIHandlers = ({
   const handleSelectNeighborhoodForRange = (rangeIndex, neighborhood, neighborhoodSites, sitePanelSelections) => {
     const rangeKey = `range-${rangeIndex}`;
     const currentSites = (sitePanelSelections && sitePanelSelections[rangeKey] && sitePanelSelections[rangeKey].sites) || [];
-    const neighborhoodSiteIds = (neighborhoodSites || []).map(s => s.id).filter(id => id != null);
+    const neighborhoodSiteIds = (neighborhoodSites || []).map(s => s && s.id).filter(id => id != null);
     const allNeighborhoodSelected = neighborhoodSiteIds.length > 0 && 
       neighborhoodSiteIds.every(id => currentSites.includes(id));
     
@@ -935,6 +939,160 @@ const AgreementUIHandlers = ({
     return [];
   };
 
+  // Handle select all blocks for a site in a date range
+  const handleSelectAllBlocksForRange = (rangeIndex, siteId, site, siteBlockSelections, sitePanelSelections) => {
+    const rangeKey = `range-${rangeIndex}`;
+    const blockLabels = site.siteType === 'business_center' 
+      ? ['A'] 
+      : (helpers.generateBlockLabels(site.blocks) || []);
+    const currentBlocks = (siteBlockSelections && siteBlockSelections[rangeKey] && siteBlockSelections[rangeKey][siteId]) || [];
+    
+    const allBlockKeys = blockLabels.map(label => `${siteId}-block-${label}`);
+    const allSelected = allBlockKeys.length > 0 && allBlockKeys.every(key => currentBlocks.includes(key));
+    
+    const newBlocks = allSelected ? [] : allBlockKeys;
+    
+    setSiteBlockSelections(prev => {
+      const updated = {
+        ...prev,
+        [rangeKey]: {
+          ...(prev[rangeKey] || {}),
+          [siteId]: newBlocks
+        }
+      };
+      return updated;
+    });
+    
+    // Initialize panel selections for new blocks
+    if (!allSelected) {
+      setSitePanelSelections(prev => {
+        const updated = { ...prev };
+        allBlockKeys.forEach(blockKey => {
+          if (!updated[siteId]) updated[siteId] = {};
+          if (!updated[siteId][blockKey]) updated[siteId][blockKey] = {};
+          if (!updated[siteId][blockKey][rangeKey]) {
+            updated[siteId][blockKey][rangeKey] = [];
+          }
+        });
+        return updated;
+      });
+    } else {
+      // Remove panel selections for removed blocks
+      setSitePanelSelections(prev => {
+        const updated = { ...prev };
+        if (updated[siteId]) {
+          allBlockKeys.forEach(blockKey => {
+            if (updated[siteId][blockKey] && updated[siteId][blockKey][rangeKey]) {
+              delete updated[siteId][blockKey][rangeKey];
+            }
+          });
+        }
+        return updated;
+      });
+    }
+  };
+
+  // Handle select half for all blocks in a site for a date range
+  const handleSelectHalfForAllInRange = (rangeIndex, siteId, site, siteBlockSelections, sitePanelSelections, dateRange) => {
+    const rangeKey = `range-${rangeIndex}`;
+    const selectedBlocks = (siteBlockSelections && siteBlockSelections[rangeKey] && siteBlockSelections[rangeKey][siteId]) || [];
+    
+    if (selectedBlocks.length === 0) {
+      if (showAlertModal) {
+        showAlertModal('Bilgi', 'Lütfen önce en az bir blok seçin.', 'info');
+      }
+      return;
+    }
+    
+    let totalSelected = 0;
+    
+    selectedBlocks.forEach(blockKey => {
+      const blockLabel = blockKey.split('-')[2];
+      const totalPanels = site.siteType === 'business_center' 
+        ? (parseInt(site.manualPanels) || parseInt(site.panels) || 0) 
+        : (parseInt(site.elevatorsPerBlock) || 0) * 2;
+      
+      if (totalPanels === 0) return;
+      
+      const currentSelections = (sitePanelSelections[siteId] && 
+        sitePanelSelections[siteId][blockKey] && 
+        sitePanelSelections[siteId][blockKey][rangeKey]) || [];
+      
+      const availablePanels = [];
+      const unavailablePanels = [];
+      
+      for (let i = 1; i <= totalPanels; i++) {
+        const panelKey = `panel-${i}`;
+        const isAvailable = helpers && helpers.isPanelAvailable 
+          ? helpers.isPanelAvailable(siteId, blockKey, panelKey, dateRange[0].startDate, dateRange[0].endDate, dateRange)
+          : true;
+        
+        if (isAvailable && !currentSelections.includes(panelKey)) {
+          availablePanels.push({ panelKey, panelNumber: i });
+        } else if (!isAvailable) {
+          unavailablePanels.push({ panelKey, panelNumber: i });
+        }
+      }
+      
+      if (availablePanels.length === 0) return;
+      
+      const oddAvailablePanels = availablePanels.filter(p => p.panelNumber % 2 === 1);
+      const evenAvailablePanels = availablePanels.filter(p => p.panelNumber % 2 === 0);
+      const oddUnavailablePanels = unavailablePanels.filter(p => p.panelNumber % 2 === 1);
+      const oddPanelsAreUsed = oddUnavailablePanels.length > 0;
+      
+      const targetCount = totalPanels > 0 ? Math.floor((totalPanels - 1) / 2) : 0;
+      const alreadySelected = currentSelections.length;
+      const needToSelect = Math.max(0, targetCount - alreadySelected);
+      
+      if (needToSelect === 0) return;
+      
+      let panelsToSelect = [];
+      
+      if (oddPanelsAreUsed && evenAvailablePanels.length > 0) {
+        const evenToSelect = Math.min(needToSelect, evenAvailablePanels.length);
+        panelsToSelect = evenAvailablePanels.slice(0, evenToSelect).map(p => p.panelKey);
+      } else if (oddAvailablePanels.length > 0) {
+        const oddToSelect = Math.min(needToSelect, oddAvailablePanels.length);
+        panelsToSelect = oddAvailablePanels.slice(0, oddToSelect).map(p => p.panelKey);
+        
+        if (panelsToSelect.length < needToSelect && evenAvailablePanels.length > 0) {
+          const remaining = needToSelect - panelsToSelect.length;
+          const evenToSelect = Math.min(remaining, evenAvailablePanels.length);
+          panelsToSelect = [...panelsToSelect, ...evenAvailablePanels.slice(0, evenToSelect).map(p => p.panelKey)];
+        }
+      } else if (evenAvailablePanels.length > 0) {
+        const evenToSelect = Math.min(needToSelect, evenAvailablePanels.length);
+        panelsToSelect = evenAvailablePanels.slice(0, evenToSelect).map(p => p.panelKey);
+      }
+      
+      if (panelsToSelect.length > 0) {
+        const newSelections = [...currentSelections, ...panelsToSelect];
+        
+        setSitePanelSelections(prev => {
+          const updated = {
+            ...prev,
+            [siteId]: {
+              ...(prev[siteId] || {}),
+              [blockKey]: {
+                ...(prev[siteId]?.[blockKey] || {}),
+                [rangeKey]: newSelections
+              }
+            }
+          };
+          setTimeout(() => updateSitePanelCount(siteId, updated, setSitePanelCounts), 0);
+          return updated;
+        });
+        
+        totalSelected += panelsToSelect.length;
+      }
+    });
+    
+    if (totalSelected > 0 && showAlertModal) {
+      showAlertModal('Başarılı', `${totalSelected} panel otomatik olarak seçildi.`, 'success');
+    }
+  };
+
   return {
     handleAddAgreement,
     handleEditAgreement,
@@ -949,6 +1107,8 @@ const AgreementUIHandlers = ({
     handleBlockSelection,
     handleBlockSelectionForRange,
     getSelectedBlocksForRange,
+    handleSelectAllBlocksForRange,
+    handleSelectHalfForAllInRange,
     handlePanelSelection,
     handlePanelSelectionForDateRange,
     handleWeekSelection,

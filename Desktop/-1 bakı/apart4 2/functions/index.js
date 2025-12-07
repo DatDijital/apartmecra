@@ -350,18 +350,35 @@ exports.deleteUserByEmail = onRequest(
         
         console.log('Deleting user by email:', email);
         
-        // Find user in Auth
-        const userRecord = await admin.auth().getUserByEmail(email);
-        
-        // Delete from Auth
-        await admin.auth().deleteUser(userRecord.uid);
-        
-        // Delete from Firestore users collection (if exists)
-        await db.collection('users').doc(userRecord.uid).delete().catch(() => null);
-        
-        console.log('User deleted successfully:', userRecord.uid);
-        
-        return res.status(200).json({ success: true });
+        try {
+          // Find user in Auth
+          const userRecord = await admin.auth().getUserByEmail(email);
+          
+          // Delete from Auth
+          await admin.auth().deleteUser(userRecord.uid);
+          
+          // Delete from Firestore users collection (if exists)
+          await db.collection('users').doc(userRecord.uid).delete().catch(() => null);
+          
+          // Also delete by email query (in case uid doesn't match)
+          const usersByEmail = await db.collection('users').where('email', '==', email).get();
+          const deletePromises = usersByEmail.docs.map(doc => doc.ref.delete());
+          await Promise.all(deletePromises);
+          
+          console.log('User deleted successfully:', userRecord.uid);
+          
+          return res.status(200).json({ success: true });
+        } catch (authError) {
+          // If user doesn't exist in Auth, try to delete from Firestore only
+          if (authError.code === 'auth/user-not-found') {
+            console.log('User not found in Auth, deleting from Firestore only:', email);
+            const usersByEmail = await db.collection('users').where('email', '==', email).get();
+            const deletePromises = usersByEmail.docs.map(doc => doc.ref.delete());
+            await Promise.all(deletePromises);
+            return res.status(200).json({ success: true, message: 'User not found in Auth, deleted from Firestore only' });
+          }
+          throw authError;
+        }
       } catch (error) {
         console.error('Error deleting user by email:', error);
         return res.status(500).json({ success: false, error: error.message });

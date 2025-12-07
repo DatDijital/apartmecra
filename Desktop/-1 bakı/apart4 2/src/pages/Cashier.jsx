@@ -449,6 +449,114 @@ const Cashier = () => {
     setSitePaymentResults(results);
   };
 
+  // Handle site payment from calculated results
+  const handlePaySitePayment = async (result) => {
+    try {
+      // Show confirmation dialog
+      const confirmed = await window.showConfirm?.(
+        'Ödeme Onayı',
+        `${result.siteName} için ${formatCurrency(result.totalAmount)} tutarında ödeme yapmak istediğinize emin misiniz?`,
+        'warning'
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      // Check cash balance
+      const totalCashBalance = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+      
+      if (totalCashBalance < result.totalAmount) {
+        await window.showAlert?.(
+          'Yetersiz Bakiye',
+          `Kasada yeterli bakiye bulunmamaktadır. Gerekli tutar: ${formatCurrency(result.totalAmount)}, Kasa bakiyesi: ${formatCurrency(totalCashBalance)}`,
+          'warning'
+        );
+        return;
+      }
+
+      // Find the site
+      const site = sites.find(s => String(s.id) === String(result.siteId));
+      if (!site) {
+        await window.showAlert?.(
+          'Hata',
+          'Site bulunamadı.',
+          'error'
+        );
+        return;
+      }
+
+      // Create expense transaction
+      const expenseData = {
+        date: new Date().toISOString().split('T')[0],
+        type: 'expense',
+        source: `Site Ödemesi - ${result.siteName}`,
+        description: `${result.siteName} için hesaplanan site ödemesi (${result.payments.length} anlaşma)`,
+        amount: -Math.abs(result.totalAmount),
+        siteId: result.siteId
+      };
+
+      const newTransaction = await createTransaction(expenseData);
+      
+      if (newTransaction) {
+        // Update transactions state
+        setTransactions([...transactions, newTransaction]);
+
+        // Update site's pending payments - remove paid amounts
+        const updatedSite = { ...site };
+        
+        // Remove pending payments that match the calculated payments
+        if (updatedSite.pendingPayments && updatedSite.pendingPayments.length > 0) {
+          // For each payment in result.payments, try to find and remove matching pending payment
+          const remainingPendingPayments = updatedSite.pendingPayments.filter(pendingPayment => {
+            // Check if this pending payment matches any of the calculated payments
+            return !result.payments.some(calcPayment => 
+              String(calcPayment.agreementId) === String(pendingPayment.agreementId) &&
+              Math.abs(calcPayment.amount - pendingPayment.amount) < 0.01 // Allow small floating point differences
+            );
+          });
+
+          updatedSite.pendingPayments = remainingPendingPayments;
+          updatedSite.hasPendingPayment = remainingPendingPayments.length > 0;
+        } else {
+          // If no pending payments exist, create empty array
+          updatedSite.pendingPayments = [];
+          updatedSite.hasPendingPayment = false;
+        }
+
+        // Update site in backend
+        await updateSite(result.siteId, updatedSite);
+
+        // Update sites state
+        setSites(sites.map(s => s.id === result.siteId ? updatedSite : s));
+
+        // Remove from results (or mark as paid)
+        setSitePaymentResults(sitePaymentResults.filter(r => r.siteId !== result.siteId));
+
+        // Log the action
+        await createLog({
+          user: 'Admin',
+          action: `Site ödemesi yapıldı: ${result.siteName} (${formatCurrency(result.totalAmount)})`
+        });
+
+        await window.showAlert?.(
+          'Başarılı',
+          `${result.siteName} için ${formatCurrency(result.totalAmount)} tutarında ödeme başarıyla yapıldı.`,
+          'success'
+        );
+      } else {
+        throw new Error('Transaction creation failed');
+      }
+    } catch (error) {
+      console.error('Error processing site payment:', error);
+      await window.showAlert?.(
+        'Hata',
+        'Ödeme işlemi sırasında bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'),
+        'error'
+      );
+    }
+  };
+
   // Handle report filter change
   const handleReportFilterChange = (e) => {
     const { name, value } = e.target;

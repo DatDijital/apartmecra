@@ -530,8 +530,10 @@ const Cashier = () => {
         // Update sites state
         setSites(sites.map(s => s.id === result.siteId ? updatedSite : s));
 
-        // Remove from results (or mark as paid)
-        setSitePaymentResults(sitePaymentResults.filter(r => r.siteId !== result.siteId));
+        // Mark as paid instead of removing from results
+        setSitePaymentResults(sitePaymentResults.map(r => 
+          r.siteId === result.siteId ? { ...r, paid: true, paidAt: new Date().toISOString() } : r
+        ));
 
         // Log the action
         await createLog({

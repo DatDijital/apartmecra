@@ -303,7 +303,7 @@ const AgreementUIHandlers = ({
     const oddPanelsAreUsed = oddUnavailablePanels.length > 0;
 
     // Calculate how many panels to select
-    const targetCount = totalPanels > 0 ? Math.floor((totalPanels - 1) / 2) : 0;
+    const targetCount = totalPanels > 0 ? Math.floor(totalPanels / 2) : 0;
     const alreadySelected = currentSelections.length;
     const needToSelect = Math.max(0, targetCount - alreadySelected);
 
@@ -424,10 +424,9 @@ const AgreementUIHandlers = ({
     const oddPanelsAreUsed = oddUnavailablePanels.length > 0;
 
     // Calculate how many panels to select
-    // Özel mantık: 3 panel varsa 1, 5 panel varsa 2 seç
-    // Formül: Math.floor((totalPanels - 1) / 2)
-    // 3 -> Math.floor((3-1)/2) = 1, 5 -> Math.floor((5-1)/2) = 2
-    const targetCount = totalPanels > 0 ? Math.floor((totalPanels - 1) / 2) : 0;
+    // Formül: Math.floor(totalPanels / 2) - yarısını seç
+    // 2 panel → 1 panel, 3 panel → 1 panel, 4 panel → 2 panel, 6 panel → 3 panel
+    const targetCount = totalPanels > 0 ? Math.floor(totalPanels / 2) : 0;
     const alreadySelected = currentSelections.length;
     const needToSelect = Math.max(0, targetCount - alreadySelected);
 
@@ -565,9 +564,9 @@ const AgreementUIHandlers = ({
         const oddPanelsAreUsed = oddUnavailablePanels.length > 0;
 
         // Calculate how many panels to select
-        // Özel mantık: 3 panel varsa 1, 5 panel varsa 2 seç
-        // Formül: Math.floor((totalPanels - 1) / 2)
-        const targetCount = totalPanels > 0 ? Math.floor((totalPanels - 1) / 2) : 0;
+        // Formül: Math.floor(totalPanels / 2) - yarısını seç
+        // 2 panel → 1 panel, 3 panel → 1 panel, 4 panel → 2 panel, 6 panel → 3 panel
+        const targetCount = totalPanels > 0 ? Math.floor(totalPanels / 2) : 0;
         const alreadySelected = currentSelections.length;
         const needToSelect = Math.max(0, targetCount - alreadySelected);
 
@@ -1047,7 +1046,7 @@ const AgreementUIHandlers = ({
       // Check if odd panels are being used (unavailable)
       const oddUnavailablePanels = unavailablePanels.filter(p => p.panelNumber % 2 === 1);
       
-      const targetCount = totalPanels > 0 ? Math.floor((totalPanels - 1) / 2) : 0;
+      const targetCount = totalPanels > 0 ? Math.floor(totalPanels / 2) : 0;
       const alreadySelected = currentSelections.length;
       const needToSelect = Math.max(0, targetCount - alreadySelected);
       

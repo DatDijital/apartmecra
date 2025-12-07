@@ -131,8 +131,8 @@ service cloud.firestore {
                   (isSiteUser() && resource.data.siteId == getUserSiteId()) ||
                   (isAuthenticated() && 
                    request.auth.token.email != null && 
-                   (request.auth.token.email.includes('@company.local') || 
-                    request.auth.token.email.includes('@site.local')));
+                   (request.auth.token.email.split('@')[1] == 'company.local' || 
+                    request.auth.token.email.split('@')[1] == 'site.local'));
 
       // List: Admin, personel, firma ve site kullanıcıları tüm görselleri listeleyebilir
       // Frontend'de filtreleme yapılacak
@@ -143,8 +143,8 @@ service cloud.firestore {
                     isSiteUser() ||
                     (isAuthenticated() && 
                      request.auth.token.email != null && 
-                     (request.auth.token.email.includes('@company.local') || 
-                      request.auth.token.email.includes('@site.local')));
+                     (request.auth.token.email.split('@')[1] == 'company.local' || 
+                      request.auth.token.email.split('@')[1] == 'site.local'));
 
       // Yazma: sadece admin ve personel
       allow create, update, delete: if isAdmin() || isPersonnel();

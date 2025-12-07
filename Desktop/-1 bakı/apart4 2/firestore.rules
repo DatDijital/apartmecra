@@ -128,14 +128,23 @@ service cloud.firestore {
       allow get: if isAdmin() ||
                   isPersonnel() ||
                   (isCompanyUser() && resource.data.companyId == getUserCompanyId()) ||
-                  (isSiteUser() && resource.data.siteId == getUserSiteId());
+                  (isSiteUser() && resource.data.siteId == getUserSiteId()) ||
+                  (isAuthenticated() && 
+                   request.auth.token.email != null && 
+                   (request.auth.token.email.includes('@company.local') || 
+                    request.auth.token.email.includes('@site.local')));
 
       // List: Admin, personel, firma ve site kullanıcıları tüm görselleri listeleyebilir
       // Frontend'de filtreleme yapılacak
+      // Email kontrolü ile company ve site kullanıcılarına da izin ver
       allow list: if isAdmin() || 
                     isPersonnel() ||
                     isCompanyUser() ||
-                    isSiteUser();
+                    isSiteUser() ||
+                    (isAuthenticated() && 
+                     request.auth.token.email != null && 
+                     (request.auth.token.email.includes('@company.local') || 
+                      request.auth.token.email.includes('@site.local')));
 
       // Yazma: sadece admin ve personel
       allow create, update, delete: if isAdmin() || isPersonnel();

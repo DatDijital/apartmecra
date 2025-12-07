@@ -1116,6 +1116,182 @@ const AgreementUIHandlers = ({
     }
   };
 
+  // Handle select all blocks for all selected sites in a date range
+  const handleSelectAllBlocksForAllSitesInRange = (rangeIndex, selectedSites, sites, siteBlockSelections, sitePanelSelections) => {
+    if (!selectedSites || selectedSites.length === 0) {
+      if (showAlertModal) {
+        showAlertModal('Bilgi', 'Lütfen önce en az bir site seçin.', 'info');
+      }
+      return;
+    }
+
+    const rangeKey = `range-${rangeIndex}`;
+    let totalSelected = 0;
+
+    selectedSites.forEach(siteId => {
+      const site = sites.find(s => s.id === siteId);
+      if (!site) return;
+
+      const blockLabels = site.siteType === 'business_center' 
+        ? ['A'] 
+        : (helpers.generateBlockLabels(site.blocks) || []);
+      const currentBlocks = (siteBlockSelections && siteBlockSelections[rangeKey] && siteBlockSelections[rangeKey][siteId]) || [];
+      const allBlockKeys = blockLabels.map(label => `${siteId}-block-${label}`);
+      const allSelected = allBlockKeys.length > 0 && allBlockKeys.every(key => currentBlocks.includes(key));
+      
+      if (!allSelected) {
+        const newBlocks = allBlockKeys;
+        setSiteBlockSelections(prev => {
+          const updated = {
+            ...prev,
+            [rangeKey]: {
+              ...(prev[rangeKey] || {}),
+              [siteId]: newBlocks
+            }
+          };
+          return updated;
+        });
+        
+        // Initialize panel selections for new blocks
+        setSitePanelSelections(prev => {
+          const updated = { ...prev };
+          allBlockKeys.forEach(blockKey => {
+            if (!updated[siteId]) updated[siteId] = {};
+            if (!updated[siteId][blockKey]) updated[siteId][blockKey] = {};
+            if (!updated[siteId][blockKey][rangeKey]) {
+              updated[siteId][blockKey][rangeKey] = [];
+            }
+          });
+          return updated;
+        });
+        
+        totalSelected += newBlocks.length;
+      }
+    });
+
+    if (totalSelected > 0 && showAlertModal) {
+      showAlertModal('Başarılı', `${totalSelected} blok otomatik olarak seçildi.`, 'success');
+    }
+  };
+
+  // Handle select half for all blocks in all selected sites in a date range
+  const handleSelectHalfForAllSitesInRange = (rangeIndex, selectedSites, sites, siteBlockSelections, sitePanelSelections, dateRange) => {
+    if (!selectedSites || selectedSites.length === 0) {
+      if (showAlertModal) {
+        showAlertModal('Bilgi', 'Lütfen önce en az bir site seçin.', 'info');
+      }
+      return;
+    }
+
+    const rangeKey = `range-${rangeIndex}`;
+    let totalSelected = 0;
+
+    selectedSites.forEach(siteId => {
+      const site = sites.find(s => s.id === siteId);
+      if (!site) return;
+
+      const selectedBlocks = (siteBlockSelections && siteBlockSelections[rangeKey] && siteBlockSelections[rangeKey][siteId]) || [];
+      
+      if (selectedBlocks.length === 0) return;
+
+      selectedBlocks.forEach(blockKey => {
+        const currentSelections = (sitePanelSelections[siteId] && 
+          sitePanelSelections[siteId][blockKey] && 
+          sitePanelSelections[siteId][blockKey][rangeKey]) || [];
+        
+        const totalPanels = site.siteType === 'business_center' 
+          ? (parseInt(site.manualPanels) || parseInt(site.panels) || 0) 
+          : (parseInt(site.elevatorsPerBlock) || 0) * 2;
+        
+        if (totalPanels === 0) return;
+
+        // Get available and unavailable panels
+        const availablePanels = [];
+        const unavailablePanels = [];
+        
+        for (let i = 1; i <= totalPanels; i++) {
+          const panelKey = `panel-${i}`;
+          const isAvailable = helpers.isPanelAvailable(siteId, blockKey, panelKey, dateRange[0]?.startDate, dateRange[0]?.endDate, dateRange);
+          
+          if (!currentSelections.includes(panelKey)) {
+            if (isAvailable) {
+              availablePanels.push({ panelKey, panelNumber: i });
+            } else {
+              unavailablePanels.push({ panelKey, panelNumber: i });
+            }
+          }
+        }
+        
+        if (availablePanels.length === 0) return;
+        
+        // Separate odd and even panels
+        const oddAvailablePanels = availablePanels.filter(p => p.panelNumber % 2 === 1);
+        const evenAvailablePanels = availablePanels.filter(p => p.panelNumber % 2 === 0);
+        const oddUnavailablePanels = unavailablePanels.filter(p => p.panelNumber % 2 === 1);
+        
+        const targetCount = totalPanels > 0 ? Math.floor(totalPanels / 2) : 0;
+        const alreadySelected = currentSelections.length;
+        const needToSelect = Math.max(0, targetCount - alreadySelected);
+        
+        if (needToSelect === 0) return;
+        
+        let panelsToSelect = [];
+        
+        // Prioritize odd panels first, then even if odd are used
+        if (oddAvailablePanels.length >= needToSelect) {
+          panelsToSelect = oddAvailablePanels.slice(0, needToSelect).map(p => p.panelKey);
+        } else if (oddUnavailablePanels.length > 0) {
+          // Odd panels are used, select even panels
+          if (evenAvailablePanels.length > 0) {
+            const evenToSelect = Math.min(needToSelect, evenAvailablePanels.length);
+            panelsToSelect = evenAvailablePanels.slice(0, evenToSelect).map(p => p.panelKey);
+          } else if (oddAvailablePanels.length > 0) {
+            const oddToSelect = Math.min(needToSelect, oddAvailablePanels.length);
+            panelsToSelect = oddAvailablePanels.slice(0, oddToSelect).map(p => p.panelKey);
+          }
+        } else {
+          // Odd panels not used, select odd first, then even
+          if (oddAvailablePanels.length > 0) {
+            panelsToSelect = oddAvailablePanels.map(p => p.panelKey);
+            const remaining = needToSelect - panelsToSelect.length;
+            if (remaining > 0 && evenAvailablePanels.length > 0) {
+              const evenToSelect = Math.min(remaining, evenAvailablePanels.length);
+              panelsToSelect = [...panelsToSelect, ...evenAvailablePanels.slice(0, evenToSelect).map(p => p.panelKey)];
+            }
+          } else if (evenAvailablePanels.length > 0) {
+            const evenToSelect = Math.min(needToSelect, evenAvailablePanels.length);
+            panelsToSelect = evenAvailablePanels.slice(0, evenToSelect).map(p => p.panelKey);
+          }
+        }
+        
+        if (panelsToSelect.length > 0) {
+          const newSelections = [...currentSelections, ...panelsToSelect];
+          
+          setSitePanelSelections(prev => {
+            const updated = {
+              ...prev,
+              [siteId]: {
+                ...(prev[siteId] || {}),
+                [blockKey]: {
+                  ...(prev[siteId]?.[blockKey] || {}),
+                  [rangeKey]: newSelections
+                }
+              }
+            };
+            setTimeout(() => updateSitePanelCount(siteId, updated, setSitePanelCounts), 0);
+            return updated;
+          });
+          
+          totalSelected += panelsToSelect.length;
+        }
+      });
+    });
+    
+    if (totalSelected > 0 && showAlertModal) {
+      showAlertModal('Başarılı', `${totalSelected} panel otomatik olarak seçildi.`, 'success');
+    }
+  };
+
   return {
     handleAddAgreement,
     handleEditAgreement,
@@ -1132,6 +1308,8 @@ const AgreementUIHandlers = ({
     getSelectedBlocksForRange,
     handleSelectAllBlocksForRange,
     handleSelectHalfForAllInRange,
+    handleSelectAllBlocksForAllSitesInRange,
+    handleSelectHalfForAllSitesInRange,
     handlePanelSelection,
     handlePanelSelectionForDateRange,
     handleWeekSelection,

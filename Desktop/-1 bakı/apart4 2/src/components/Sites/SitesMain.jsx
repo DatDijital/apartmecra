@@ -402,6 +402,21 @@ const SitesMain = () => {
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-center">
                       <div>
+                        <h6 className="text-muted mb-1">Toplam Mahalle</h6>
+                        <h3 className="mb-0 fw-bold">{totalNeighborhoods}</h3>
+                      </div>
+                      <div className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
+                        <i className="bi bi-geo-alt text-primary fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-2 col-sm-6">
+                <div className="sites-stats-card border-0 shadow-sm h-100">
+                  <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
                         <h6 className="text-muted mb-1">Siteler</h6>
                         <h3 className="mb-0 fw-bold">{stats.regularSites}</h3>
                       </div>

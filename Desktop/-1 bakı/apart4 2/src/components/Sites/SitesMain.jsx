@@ -383,7 +383,18 @@ const SitesMain = () => {
       {/* Summary Cards */}
       <div className="row g-3 mb-4">
         {(() => {
-          const stats = helpers.calculateSummaryStats(sites, transactions);
+          // Use filteredSites for statistics when filtering is active
+          const sitesForStats = searchTerm.trim() ? filteredSites : sites;
+          const stats = helpers.calculateSummaryStats(sitesForStats, transactions);
+          
+          // Calculate unique neighborhoods count from filtered sites
+          const uniqueNeighborhoods = new Set(
+            sitesForStats
+              .map(site => site.neighborhood)
+              .filter(neighborhood => neighborhood && neighborhood.trim() !== '')
+          );
+          const totalNeighborhoods = uniqueNeighborhoods.size;
+          
           return (
             <>
               <div className="col-md-2 col-sm-6">

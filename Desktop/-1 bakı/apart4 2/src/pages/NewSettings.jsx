@@ -213,28 +213,35 @@ const Settings = () => {
       return;
     }
 
-    // A4 landscape dimensions in mm: 297mm x 210mm (width x height)
-    // Label dimensions: 140mm (width) x 95mm (height) - 2 labels per page, side by side
-    // Each label takes half the page width with margins
+    // A4 portrait dimensions in mm: 210mm x 297mm (width x height)
+    // Label dimensions: 120mm (12cm) width x 20mm (2cm) height
+    // Layout: 2 columns (labels side by side) with gaps
+    // Target: ~30 labels per page
 
-    const pageWidth = 297; // A4 landscape width in mm
-    const pageHeight = 210; // A4 landscape height in mm
-    const labelWidth = 140; // Label width in mm
-    const labelHeight = 95; // Label height in mm
+    const pageWidth = 210; // A4 portrait width in mm
+    const pageHeight = 297; // A4 portrait height in mm
+    const labelWidth = 120; // 12cm in mm
+    const labelHeight = 20; // 2cm in mm
     const labelsPerRow = 2; // 2 labels side by side
-    const marginLeft = 8.5; // Left margin
-    const marginTop = 10; // Top margin
-    const gapBetweenLabels = 10; // Gap between two labels
+    const marginLeft = 5; // Left margin
+    const marginTop = 5; // Top margin
+    const gapBetweenLabels = 5; // Gap between labels horizontally
+    const gapBetweenRows = 3; // Gap between rows vertically
+    
+    // Calculate how many rows fit
+    const availableHeight = pageHeight - (2 * marginTop);
+    const rowHeight = labelHeight + gapBetweenRows;
+    const labelsPerCol = Math.floor(availableHeight / rowHeight);
+    const labelsPerPage = labelsPerRow * labelsPerCol; // ~30 labels per page
 
     const pdf = new jsPDF({
-      orientation: 'landscape',
+      orientation: 'portrait',
       unit: 'mm',
       format: 'a4'
     });
 
     let currentPage = 0;
     let labelIndex = 0;
-    const labelsPerPage = 2; // 2 labels per page
 
     // Helper function to fix Turkish characters for PDF (jsPDF doesn't support Turkish chars well)
     const fixTurkishChars = (text) => {
@@ -261,125 +268,70 @@ const Settings = () => {
       }
 
       const pageLabelIndex = labelIndex % labelsPerPage;
+      const row = Math.floor(pageLabelIndex / labelsPerRow);
       const col = pageLabelIndex % labelsPerRow;
 
       const x = marginLeft + (col * (labelWidth + gapBetweenLabels));
-      const y = marginTop;
+      const y = marginTop + (row * rowHeight);
 
       const label = allLabels[labelIndex];
 
-      // Draw label border with colored background
-      // Red border and light red background
-      pdf.setFillColor(255, 240, 240); // Light red background
-      pdf.setDrawColor(220, 53, 69); // Red border
-      pdf.setLineWidth(0.5);
-      pdf.roundedRect(x, y, labelWidth, labelHeight, 2, 2, 'FD'); // Filled and drawn with rounded corners
+      // Draw label with black background (like the logo image)
+      pdf.setFillColor(0, 0, 0); // Black background
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.1);
+      pdf.rect(x, y, labelWidth, labelHeight, 'F'); // Filled black rectangle
 
-      // Panel ID (left side - bold, large, red color)
-      pdf.setFontSize(10);
+      // Panel ID (left side - white/light color on black background)
+      pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(220, 53, 69); // Red color
-      pdf.text('PANEL', x + 5, y + 10);
+      pdf.setTextColor(255, 255, 255); // White color for visibility on black
+      pdf.text('PANEL', x + 3, y + 6);
       
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(220, 53, 69); // Red color
-      pdf.text(label.panelId, x + 5, y + 22);
-
-      // Logo area (right side of ID) - Create text-based logo
-      const logoX = x + 70; // Start logo after ID
-      const logoY = y + 8;
-      
-      // Draw "apartmecra" logo text with red and black
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      
-      // "apart" in black
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('apart', logoX, logoY + 8);
-      
-      // "mecra" in red
-      pdf.setTextColor(220, 53, 69);
-      const apartWidth = pdf.getTextWidth('apart');
-      pdf.text('mecra', logoX + apartWidth + 1, logoY + 8);
-      
-      // Draw decorative red boxes around "apartmecra"
-      pdf.setDrawColor(220, 53, 69);
-      pdf.setLineWidth(0.5);
-      const logoTextWidth = pdf.getTextWidth('apartmecra');
-      const logoBoxY = logoY + 2;
-      const logoBoxHeight = 10;
-      
-      // Top inverted U
-      pdf.line(logoX - 2, logoBoxY, logoX - 2, logoBoxY + 3);
-      pdf.line(logoX - 2, logoBoxY, logoX + logoTextWidth + 2, logoBoxY);
-      pdf.line(logoX + logoTextWidth + 2, logoBoxY, logoX + logoTextWidth + 2, logoBoxY + 3);
-      
-      // Bottom U
-      pdf.line(logoX - 2, logoBoxY + logoBoxHeight - 3, logoX - 2, logoBoxY + logoBoxHeight);
-      pdf.line(logoX - 2, logoBoxY + logoBoxHeight, logoX + logoTextWidth + 2, logoBoxY + logoBoxHeight);
-      pdf.line(logoX + logoTextWidth + 2, logoBoxY + logoBoxHeight - 3, logoX + logoTextWidth + 2, logoBoxY + logoBoxHeight);
-      
-      // "Markanız Görünür Olsun" slogan
-      pdf.setFontSize(6);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Markaniz Gorunur Olsun', logoX, logoY + 15);
-      
-      // "Dijital" logo on the right
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(13, 110, 253); // Blue color
-      const dijitalX = x + labelWidth - 35;
-      pdf.text('Dijital', dijitalX, logoY + 10);
+      pdf.setTextColor(255, 255, 255); // White color
+      pdf.text(label.panelId, x + 3, y + 14);
+
+      // Logo area (right side) - Create the "mecra" logo with red bracket design
+      const logoX = x + 50; // Start logo after Panel ID
+      const logoY = y + 2;
       
-      // Contact info section (below logo area)
-      const contactY = y + 35;
+      // Draw red bracket frame (like in the logo image)
+      pdf.setDrawColor(220, 53, 69); // Red color
+      pdf.setLineWidth(1);
+      
+      // Left vertical line
+      pdf.line(logoX, logoY, logoX, logoY + 16);
+      
+      // Right vertical line (shorter, creating the bracket effect)
+      const rightLineX = logoX + 18;
+      pdf.line(rightLineX, logoY + 2, rightLineX, logoY + 14);
+      
+      // Top horizontal line
+      pdf.line(logoX, logoY, rightLineX, logoY);
+      
+      // Bottom horizontal line
+      pdf.line(logoX, logoY + 16, rightLineX, logoY + 16);
+      
+      // "mecra" text in red (next to the bracket)
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(220, 53, 69); // Red color
+      pdf.text('mecra', logoX + 20, logoY + 11);
+      
+      // "Bu Alanda" text (top right, red)
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(220, 53, 69); // Red color
+      const buAlandaX = x + labelWidth - 35;
+      pdf.text('Bu Alanda', buAlandaX, y + 6);
       
-      const contactLines = [
-        'BU ALANA REKLAM VERMEK ISTER MISINIZ?',
-        'Istasyon Cad. Elazig Is Merkezi.',
-        'Kat: 5. No: 20 Elazig / Merkez',
-        '0547 365 2323',
-        '0540 365 2323'
-      ];
-
-      contactLines.forEach((line, index) => {
-        const fixedLine = fixTurkishChars(line);
-        const textWidth = pdf.getTextWidth(fixedLine);
-        const textX = x + (labelWidth - textWidth) / 2; // Center text
-        
-        if (index === 0) {
-          // First line - larger and bold
-          pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(220, 53, 69);
-        } else if (index >= 3) {
-          // Phone numbers - blue and larger
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(13, 110, 253);
-        } else {
-          // Address lines - normal
-          pdf.setFontSize(6);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(0, 0, 0);
-        }
-        
-        pdf.text(fixedLine, textX, contactY + (index * 6));
-      });
-
-      // Site name (bottom, small)
-      pdf.setFontSize(5);
-      pdf.setFont('helvetica', 'italic');
-      pdf.setTextColor(100, 100, 100);
-      const siteNameText = fixTurkishChars(label.siteName);
-      const siteNameWidth = pdf.getTextWidth(siteNameText);
-      const siteNameX = x + (labelWidth - siteNameWidth) / 2;
-      pdf.text(siteNameText, siteNameX, y + labelHeight - 3);
+      // "Reklam vermek için" text (below "Bu Alanda", red)
+      pdf.setFontSize(6);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(220, 53, 69); // Red color
+      pdf.text('Reklam vermek icin', buAlandaX, y + 11);
 
       labelIndex++;
     }

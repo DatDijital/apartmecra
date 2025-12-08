@@ -926,9 +926,29 @@ const AgreementHandlers = ({
               };
               
               const savedCompany = await updateCompany(company.id, updatedCompany);
-              if (savedCompany) {
-                // Update companies state
-                setCompanies(companies.map(c => c.id === company.id ? savedCompany : c));
+              if (savedCompany && savedCompany.success !== false) {
+                // Update companies state with duplicate prevention
+                setCompanies(prevCompanies => {
+                  // Remove old company entry
+                  const filtered = prevCompanies.filter(c => 
+                    String(c.id) !== String(company.id) && 
+                    String(c._docId) !== String(company.id) &&
+                    (c._docId ? String(c._docId) !== String(company._docId) : true)
+                  );
+                  
+                  // Check if savedCompany already exists
+                  const companyData = savedCompany.data || savedCompany;
+                  const exists = filtered.some(c => 
+                    String(c.id) === String(companyData.id) || 
+                    (c._docId && companyData._docId && String(c._docId) === String(companyData._docId))
+                  );
+                  
+                  if (!exists) {
+                    return [...filtered, companyData];
+                  }
+                  
+                  return filtered;
+                });
                 
                 console.log(`Firma otomatik olarak aktif yapıldı: ${company.name}`);
                 

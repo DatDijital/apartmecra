@@ -274,9 +274,39 @@ const AgreementsMain = () => {
           )
         );
         
+        // Remove duplicates from companies data (by id or _docId)
+        const seenCompanyIds = new Set();
+        const seenCompanyDocIds = new Set();
+        const uniqueCompanies = companiesData.filter(company => {
+          if (!company) return false;
+          
+          // Check by _docId first (most reliable)
+          if (company._docId) {
+            const docId = String(company._docId);
+            if (seenCompanyDocIds.has(docId)) {
+              return false; // Duplicate
+            }
+            seenCompanyDocIds.add(docId);
+            return true;
+          }
+          
+          // Fallback to id
+          if (company.id) {
+            const id = String(company.id);
+            if (seenCompanyIds.has(id)) {
+              return false; // Duplicate
+            }
+            seenCompanyIds.add(id);
+            return true;
+          }
+          
+          // If no id or _docId, exclude it
+          return false;
+        });
+        
         setAgreements(uniqueAgreements);
         setSites(uniqueSites);
-        setCompanies(companiesData);
+        setCompanies(uniqueCompanies);
       } catch (error) {
         console.error('Error fetching data:', error);
         hasFetchedRef.current = false; // Reset on error to allow retry
@@ -648,7 +678,27 @@ const AgreementsMain = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <h6 className="text-muted mb-1">Toplam Anlaşma</h6>
-                  <h3 className="mb-0 fw-bold">{agreements.length}</h3>
+                  <h3 className="mb-0 fw-bold">{(() => {
+                    // Count unique agreements (by id or _docId)
+                    const seenAgreementIds = new Set();
+                    const seenAgreementDocIds = new Set();
+                    return agreements.filter(agreement => {
+                      if (!agreement) return false;
+                      if (agreement._docId) {
+                        const docId = String(agreement._docId);
+                        if (seenAgreementDocIds.has(docId)) return false;
+                        seenAgreementDocIds.add(docId);
+                        return true;
+                      }
+                      if (agreement.id) {
+                        const id = String(agreement.id);
+                        if (seenAgreementIds.has(id)) return false;
+                        seenAgreementIds.add(id);
+                        return true;
+                      }
+                      return false;
+                    }).length;
+                  })()}</h3>
                 </div>
                 <div className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
                   <i className="bi bi-file-earmark-text text-primary fs-4"></i>

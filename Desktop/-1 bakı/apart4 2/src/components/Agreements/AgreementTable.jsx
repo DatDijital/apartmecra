@@ -148,13 +148,6 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
                         <i className="bi bi-pencil"></i>
                       </button>
                       <button
-                        className="btn btn-sm btn-outline-info"
-                        title="Fotoğraf Yükle"
-                        onClick={() => handleUploadPhoto(agreement)}
-                      >
-                        <i className="bi bi-image"></i>
-                      </button>
-                      <button
                         className="btn btn-sm btn-outline-success"
                         title="Nakit Ödeme Al"
                         onClick={() => handlers.handlePaymentAgreement(agreement)}
@@ -196,14 +189,6 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
                   ) : (
                     // Expired agreements - show only view and archive buttons
                     <>
-                      <button
-                        className="btn btn-sm btn-outline-info"
-                        title="Fotoğraf Görüntüle"
-                        onClick={() => handleUploadPhoto(agreement)}
-                        disabled={!agreement.photoUrl}
-                      >
-                        <i className="bi bi-image"></i>
-                      </button>
                       <button
                         className="btn btn-sm btn-outline-danger"
                         title="Arşivle"

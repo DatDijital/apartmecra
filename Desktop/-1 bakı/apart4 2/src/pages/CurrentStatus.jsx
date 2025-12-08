@@ -28,7 +28,16 @@ const CurrentStatus = () => {
           })
         ]);
         
-        setSites(sitesData);
+        // Remove duplicates from sites data (by id or _docId)
+        const uniqueSites = sitesData.filter((site, index, self) => 
+          index === self.findIndex(s => 
+            (s.id === site.id && s._docId === site._docId) ||
+            (s.id && site.id && s.id === site.id) ||
+            (s._docId && site._docId && s._docId === site._docId)
+          )
+        );
+        
+        setSites(uniqueSites);
         setAgreements(agreementsData);
         setCompanies(companiesData);
         setPanelImages(Array.isArray(panelImagesData) ? panelImagesData : (panelImagesData?.data || []));
@@ -88,11 +97,14 @@ const CurrentStatus = () => {
 
   // Get panel image from personnel uploads
   const getPanelImage = (agreementId, siteId, blockId, panelId) => {
+    if (!panelImages || !Array.isArray(panelImages) || panelImages.length === 0) {
+      return null;
+    }
     return panelImages.find(img =>
-      img.agreementId === agreementId.toString() &&
-      img.siteId === siteId &&
-      img.blockId === blockId &&
-      img.panelId === panelId.toString()
+      String(img.agreementId) === String(agreementId) &&
+      String(img.siteId) === String(siteId) &&
+      String(img.blockId) === String(blockId) &&
+      String(img.panelId) === String(panelId)
     );
   };
 

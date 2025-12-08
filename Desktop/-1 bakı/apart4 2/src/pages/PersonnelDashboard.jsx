@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getAgreements, getSites, getCompanies, getPanelImages, uploadPanelImage, cleanupExpiredImages, resetPanelImages, updateSite } from '../services/api';
 import { getUser } from '../utils/auth';
 import { useNavigate } from 'react-router-dom';
+import { GoogleMap, LoadScript, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 
 // Import helper functions
 const AgreementHelpers = ({
@@ -77,9 +78,21 @@ const PersonnelDashboard = () => {
     janitorPhones: '',
     notes: ''
   });
+  const [showMap, setShowMap] = useState(false);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [route, setRoute] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeSites, setRouteSites] = useState([]);
+  const mapRef = useRef(null);
+  const directionsServiceRef = useRef(null);
   const navigate = useNavigate();
   
   const user = getUser();
+
+  // Elazığ merkez koordinatları
+  const ELAZIG_CENTER = { lat: 38.6748, lng: 39.2233 };
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyAO5-L4SrMA1e5q3ugtjYCI1gVI7KZoD6g';
 
   // Load data function
   const loadData = async () => {
@@ -435,6 +448,247 @@ const PersonnelDashboard = () => {
     }
   };
 
+  // Map yüklendiğinde tüm siteleri gösterecek şekilde ayarla
+  const onMapLoad = useCallback((map) => {
+    mapRef.current = map;
+    
+    // DirectionsService'i başlat
+    if (window.google && window.google.maps) {
+      const service = new window.google.maps.DirectionsService();
+      directionsServiceRef.current = service;
+    }
+    
+    const sitesWithCoordinates = sites.filter(site => 
+      site.locationLat && site.locationLng && 
+      !isNaN(parseFloat(site.locationLat)) && 
+      !isNaN(parseFloat(site.locationLng))
+    );
+    
+    if (sitesWithCoordinates.length > 0 && window.google && window.google.maps) {
+      const bounds = new window.google.maps.LatLngBounds();
+      sitesWithCoordinates.forEach(site => {
+        bounds.extend({
+          lat: parseFloat(site.locationLat),
+          lng: parseFloat(site.locationLng)
+        });
+      });
+      map.fitBounds(bounds);
+      
+      const listener = window.google.maps.event.addListener(map, 'bounds_changed', () => {
+        if (map.getZoom() > 15) {
+          map.setZoom(15);
+        }
+        window.google.maps.event.removeListener(listener);
+      });
+    }
+    setMapLoading(false);
+  }, [sites]);
+
+  // İki nokta arasındaki mesafeyi hesapla (Haversine formülü)
+  const calculateDistance = (point1, point2) => {
+    const R = 6371; // Dünya yarıçapı (km)
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLon = (point2.lng - point1.lng) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // En yakın komşu algoritması ile optimal rota sırasını hesapla
+  const calculateOptimalRoute = (start, destinations) => {
+    if (destinations.length === 0) return [];
+    
+    const route = [];
+    const unvisited = [...destinations];
+    let current = start;
+    
+    while (unvisited.length > 0) {
+      let nearestIndex = 0;
+      let nearestDistance = calculateDistance(current, unvisited[0]);
+      
+      for (let i = 1; i < unvisited.length; i++) {
+        const distance = calculateDistance(current, unvisited[i]);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = i;
+        }
+      }
+      
+      const nearest = unvisited.splice(nearestIndex, 1)[0];
+      route.push(nearest);
+      current = nearest;
+    }
+    
+    return route;
+  };
+
+  // Rota oluştur
+  const createRoute = async () => {
+    if (!directionsServiceRef.current) {
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Harita yüklenmedi. Lütfen bekleyin.', 'error');
+      }
+      return;
+    }
+
+    const sitesWithCoordinates = sites.filter(site => 
+      site.locationLat && site.locationLng && 
+      !isNaN(parseFloat(site.locationLat)) && 
+      !isNaN(parseFloat(site.locationLng))
+    );
+
+    if (sitesWithCoordinates.length === 0) {
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Rota oluşturulamadı. Koordinatı olan site bulunamadı.', 'error');
+      }
+      return;
+    }
+
+    try {
+      setRouteLoading(true);
+      
+      // Kullanıcının konumunu al
+      const location = await getCurrentLocation();
+      setCurrentLocation(location);
+      
+      // Tüm sitelerin koordinatlarını hazırla
+      const destinations = sitesWithCoordinates.map(site => ({
+        lat: parseFloat(site.locationLat),
+        lng: parseFloat(site.locationLng),
+        site: site
+      }));
+      
+      // Optimal rota sırasını hesapla
+      const optimalRoute = calculateOptimalRoute(location, destinations);
+      
+      if (optimalRoute.length === 0) {
+        if (window.showAlert) {
+          window.showAlert('Bilgi', 'Rota oluşturulacak site bulunamadı.', 'info');
+        }
+        setRouteLoading(false);
+        return;
+      }
+      
+      // Waypoints hazırla (son nokta hariç)
+      const waypoints = optimalRoute.slice(0, -1).map(point => ({
+        location: new window.google.maps.LatLng(point.lat, point.lng),
+        stopover: true
+      }));
+      
+      // Son nokta
+      const finalDestination = optimalRoute[optimalRoute.length - 1];
+      
+      // Directions isteği
+      directionsServiceRef.current.route(
+        {
+          origin: new window.google.maps.LatLng(location.lat, location.lng),
+          destination: new window.google.maps.LatLng(finalDestination.lat, finalDestination.lng),
+          waypoints: waypoints,
+          optimizeWaypoints: false,
+          travelMode: window.google.maps.TravelMode.DRIVING
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            setRoute(result);
+            
+            // Rota sırasındaki siteleri kaydet
+            const sitesInOrder = [
+              { ...location, isStart: true, order: 0 },
+              ...optimalRoute.map((point, index) => ({
+                ...point.site,
+                order: index + 1,
+                isStart: false
+              }))
+            ];
+            setRouteSites(sitesInOrder);
+            
+            // Haritayı rotaya göre ayarla
+            if (mapRef.current) {
+              const bounds = new window.google.maps.LatLngBounds();
+              bounds.extend(new window.google.maps.LatLng(location.lat, location.lng));
+              optimalRoute.forEach(point => {
+                bounds.extend(new window.google.maps.LatLng(point.lat, point.lng));
+              });
+              mapRef.current.fitBounds(bounds);
+            }
+            
+            if (window.showAlert) {
+              const totalDistance = result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0) / 1000;
+              const totalDuration = result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0) / 60;
+              window.showAlert(
+                'Başarılı', 
+                `Rota oluşturuldu! Toplam mesafe: ${totalDistance.toFixed(1)} km, Tahmini süre: ${Math.round(totalDuration)} dakika`,
+                'success'
+              );
+            }
+          } else {
+            console.error('Directions request failed:', status);
+            let errorMessage = 'Rota oluşturulurken bir hata oluştu.';
+            
+            if (status === 'REQUEST_DENIED') {
+              errorMessage = 'Directions API aktif değil. Google Cloud Console\'dan "Directions API" ve "Routes API" servislerini aktifleştirmeniz gerekiyor.';
+            } else if (status === 'OVER_QUERY_LIMIT') {
+              errorMessage = 'API kullanım limiti aşıldı. Lütfen daha sonra tekrar deneyin.';
+            } else if (status === 'ZERO_RESULTS') {
+              errorMessage = 'Bu noktalar arasında rota bulunamadı.';
+            }
+            
+            if (window.showAlert) {
+              window.showAlert('Hata', errorMessage, 'error');
+            }
+          }
+          setRouteLoading(false);
+        }
+      );
+    } catch (error) {
+      console.error('Error creating route:', error);
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Konumunuz alınamadı. Lütfen tarayıcınızın konum iznini kontrol edin.', 'error');
+      }
+      setRouteLoading(false);
+    }
+  };
+
+  // Rotayı temizle
+  const clearRoute = () => {
+    setRoute(null);
+    setCurrentLocation(null);
+    setRouteSites([]);
+    if (mapRef.current) {
+      const sitesWithCoordinates = sites.filter(site => 
+        site.locationLat && site.locationLng && 
+        !isNaN(parseFloat(site.locationLat)) && 
+        !isNaN(parseFloat(site.locationLng))
+      );
+      if (sitesWithCoordinates.length > 0) {
+        const bounds = new window.google.maps.LatLngBounds();
+        sitesWithCoordinates.forEach(site => {
+          bounds.extend({
+            lat: parseFloat(site.locationLat),
+            lng: parseFloat(site.locationLng)
+          });
+        });
+        mapRef.current.fitBounds(bounds);
+      }
+    }
+  };
+
+  // Belirli bir siteye yol tarifi aç
+  const openDirectionsToSite = (site) => {
+    if (!site.locationLat || !site.locationLng) {
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Bu site için konum bilgisi bulunmamaktadır.', 'error');
+      }
+      return;
+    }
+    
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${site.locationLat},${site.locationLng}`;
+    window.open(url, '_blank');
+  };
+
   // Get current location using geolocation API
   const getCurrentLocation = () => {
     return new Promise((resolve, reject) => {
@@ -547,8 +801,8 @@ const PersonnelDashboard = () => {
               <div className="d-flex gap-1">
                 <button
                   className="btn btn-sm btn-outline-primary"
-                  onClick={() => navigate('/sites-map')}
-                  title="Haritada Göster"
+                  onClick={() => setShowMap(!showMap)}
+                  title={showMap ? "Haritayı Gizle" : "Haritayı Göster"}
                 >
                   <i className="bi bi-map"></i>
                 </button>
@@ -1271,6 +1525,221 @@ const PersonnelDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Harita Bölümü */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card border-0 shadow-sm" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+            <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+              <div>
+                <h5 className="mb-0 fw-bold text-dark">
+                  <i className="bi bi-map me-2"></i>
+                  Elazığ - Site Haritası
+                </h5>
+                <small className="text-muted">
+                  {sites.filter(site => site.locationLat && site.locationLng).length} site haritada gösteriliyor
+                </small>
+              </div>
+              <div className="d-flex gap-2">
+                {!route ? (
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={createRoute}
+                    disabled={routeLoading || !sites.some(site => site.locationLat && site.locationLng)}
+                  >
+                    {routeLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Rota Hesaplanıyor...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-route me-1"></i>
+                        Rota Oluştur
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={clearRoute}
+                  >
+                    <i className="bi bi-x-circle me-1"></i>
+                    Rotayı Temizle
+                  </button>
+                )}
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setShowMap(!showMap)}
+                >
+                  <i className={`bi ${showMap ? 'bi-chevron-up' : 'bi-chevron-down'} me-1`}></i>
+                  {showMap ? 'Haritayı Gizle' : 'Haritayı Göster'}
+                </button>
+              </div>
+            </div>
+            
+            {showMap && (
+              <>
+                {/* Rota Listesi - Rota oluşturulduğunda göster */}
+                {route && routeSites.length > 0 && (
+                  <div className="card-body border-bottom bg-light">
+                    <h6 className="fw-bold mb-3">
+                      <i className="bi bi-list-ol me-2"></i>
+                      Rota Sırası ({routeSites.length - 1} Site)
+                    </h6>
+                    <div className="row g-2" style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                      {routeSites.map((siteItem, index) => {
+                        if (siteItem.isStart) return null;
+                        return (
+                          <div key={siteItem.id || index} className="col-md-6 col-lg-4">
+                            <div className="card border-0 shadow-sm h-100">
+                              <div className="card-body p-2">
+                                <div className="d-flex justify-content-between align-items-center">
+                                  <div className="flex-grow-1">
+                                    <div className="d-flex align-items-center mb-1">
+                                      <span className="badge bg-primary me-2">{index}</span>
+                                      <strong className="small">{siteItem.name}</strong>
+                                    </div>
+                                    {siteItem.neighborhood && (
+                                      <small className="text-muted d-block">{siteItem.neighborhood}</small>
+                                    )}
+                                  </div>
+                                  <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => openDirectionsToSite(siteItem)}
+                                    title="Yol Tarifi Al"
+                                  >
+                                    <i className="bi bi-navigation"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="card-body p-0" style={{ height: '600px', position: 'relative' }}>
+                  {!mapLoading && GOOGLE_MAPS_API_KEY && (
+                    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                      <GoogleMap
+                        mapContainerStyle={{ width: '100%', height: '100%' }}
+                        center={ELAZIG_CENTER}
+                        zoom={12}
+                        options={{
+                          zoomControl: true,
+                          streetViewControl: false,
+                          mapTypeControl: true,
+                          fullscreenControl: true,
+                        }}
+                        onLoad={onMapLoad}
+                      >
+                        {/* Kullanıcı konumu marker'ı */}
+                        {currentLocation && (
+                          <Marker
+                            position={currentLocation}
+                            icon={window.google && window.google.maps ? {
+                              url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                              scaledSize: new window.google.maps.Size(40, 40)
+                            } : undefined}
+                            title="Başlangıç Noktası (Sizin Konumunuz)"
+                          />
+                        )}
+
+                        {/* Site marker'ları */}
+                        {sites.filter(site => site.locationLat && site.locationLng).map((site) => (
+                          <Marker
+                            key={site.id}
+                            position={{
+                              lat: parseFloat(site.locationLat),
+                              lng: parseFloat(site.locationLng)
+                            }}
+                            onClick={() => setSelectedSite(site)}
+                            icon={window.google && window.google.maps ? {
+                              url: site.siteType === 'business_center' 
+                                ? 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                                : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                              scaledSize: new window.google.maps.Size(32, 32)
+                            } : undefined}
+                          />
+                        ))}
+
+                        {/* Rota çizgisi */}
+                        {route && <DirectionsRenderer directions={route} />}
+
+                        {/* InfoWindow */}
+                        {selectedSite && selectedSite.locationLat && selectedSite.locationLng && (
+                          <InfoWindow
+                            position={{
+                              lat: parseFloat(selectedSite.locationLat),
+                              lng: parseFloat(selectedSite.locationLng)
+                            }}
+                            onCloseClick={() => setSelectedSite(null)}
+                          >
+                            <div style={{ maxWidth: '250px' }}>
+                              <h6 className="fw-bold mb-2">
+                                <i className={`bi ${selectedSite.siteType === 'business_center' ? 'bi-briefcase' : 'bi-building'} me-1`}></i>
+                                {selectedSite.name}
+                              </h6>
+                              {selectedSite.neighborhood && (
+                                <p className="mb-1 small">
+                                  <i className="bi bi-geo-alt me-1"></i>
+                                  <strong>Mahalle:</strong> {selectedSite.neighborhood}
+                                </p>
+                              )}
+                              {selectedSite.manager && (
+                                <p className="mb-1 small">
+                                  <i className="bi bi-person me-1"></i>
+                                  <strong>Yönetici:</strong> {selectedSite.manager}
+                                </p>
+                              )}
+                              {selectedSite.phone && (
+                                <p className="mb-1 small">
+                                  <i className="bi bi-telephone me-1"></i>
+                                  <strong>Telefon:</strong> {selectedSite.phone}
+                                </p>
+                              )}
+                              <div className="d-flex gap-2 mt-2 flex-wrap">
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => openGoogleMaps(selectedSite)}
+                                >
+                                  <i className="bi bi-map me-1"></i>
+                                  Yol Tarifi
+                                </button>
+                                {selectedSite.blocks && (
+                                  <span className="badge bg-info">
+                                    {selectedSite.blocks} Blok
+                                  </span>
+                                )}
+                                {selectedSite.panels && (
+                                  <span className="badge bg-success">
+                                    {selectedSite.panels} Panel
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </InfoWindow>
+                        )}
+                      </GoogleMap>
+                    </LoadScript>
+                  )}
+                  {(!GOOGLE_MAPS_API_KEY || mapLoading) && (
+                    <div className="d-flex align-items-center justify-content-center h-100">
+                      <div className="text-center">
+                        <div className="spinner-border text-primary" role="status"></div>
+                        <p className="mt-3 text-muted">Harita yükleniyor...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Site Edit Modal */}
       {showSiteEditModal && selectedSite && (

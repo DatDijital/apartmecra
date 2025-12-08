@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardSummary, getRecentTransactions, getSites } from '../services/api';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -18,7 +18,12 @@ const Dashboard = () => {
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState(null);
   const [mapLoading, setMapLoading] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [route, setRoute] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [directionsService, setDirectionsService] = useState(null);
   const mapRef = useRef(null);
+  const directionsServiceRef = useRef(null);
 
   // Elazığ merkez koordinatları
   const ELAZIG_CENTER = { lat: 38.6748, lng: 39.2233 };
@@ -58,6 +63,13 @@ const Dashboard = () => {
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
     
+    // DirectionsService'i başlat
+    if (window.google && window.google.maps) {
+      const service = new window.google.maps.DirectionsService();
+      directionsServiceRef.current = service;
+      setDirectionsService(service);
+    }
+    
     if (sites.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       sites.forEach(site => {
@@ -76,6 +88,182 @@ const Dashboard = () => {
       });
     }
   }, [sites]);
+
+  // Kullanıcının mevcut konumunu al
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation desteklenmiyor'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    });
+  };
+
+  // İki nokta arasındaki mesafeyi hesapla (Haversine formülü)
+  const calculateDistance = (point1, point2) => {
+    const R = 6371; // Dünya yarıçapı (km)
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLon = (point2.lng - point1.lng) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // En yakın komşu algoritması ile optimal rota sırasını hesapla
+  const calculateOptimalRoute = (start, destinations) => {
+    if (destinations.length === 0) return [];
+    
+    const route = [];
+    const unvisited = [...destinations];
+    let current = start;
+    
+    while (unvisited.length > 0) {
+      let nearestIndex = 0;
+      let nearestDistance = calculateDistance(current, unvisited[0]);
+      
+      for (let i = 1; i < unvisited.length; i++) {
+        const distance = calculateDistance(current, unvisited[i]);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = i;
+        }
+      }
+      
+      const nearest = unvisited.splice(nearestIndex, 1)[0];
+      route.push(nearest);
+      current = nearest;
+    }
+    
+    return route;
+  };
+
+  // Rota oluştur
+  const createRoute = async () => {
+    if (!directionsServiceRef.current || sites.length === 0) {
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Rota oluşturulamadı. Lütfen sitelerin yüklendiğinden emin olun.', 'error');
+      }
+      return;
+    }
+
+    try {
+      setRouteLoading(true);
+      
+      // Kullanıcının konumunu al
+      const location = await getCurrentLocation();
+      setCurrentLocation(location);
+      
+      // Tüm sitelerin koordinatlarını hazırla
+      const destinations = sites.map(site => ({
+        lat: parseFloat(site.locationLat),
+        lng: parseFloat(site.locationLng),
+        site: site
+      }));
+      
+      // Optimal rota sırasını hesapla
+      const optimalRoute = calculateOptimalRoute(location, destinations);
+      
+      if (optimalRoute.length === 0) {
+        if (window.showAlert) {
+          window.showAlert('Bilgi', 'Rota oluşturulacak site bulunamadı.', 'info');
+        }
+        setRouteLoading(false);
+        return;
+      }
+      
+      // Waypoints hazırla (son nokta hariç)
+      const waypoints = optimalRoute.slice(0, -1).map(point => ({
+        location: new window.google.maps.LatLng(point.lat, point.lng),
+        stopover: true
+      }));
+      
+      // Son nokta
+      const finalDestination = optimalRoute[optimalRoute.length - 1];
+      
+      // Directions isteği
+      directionsServiceRef.current.route(
+        {
+          origin: new window.google.maps.LatLng(location.lat, location.lng),
+          destination: new window.google.maps.LatLng(finalDestination.lat, finalDestination.lng),
+          waypoints: waypoints,
+          optimizeWaypoints: false, // Zaten optimize ettik
+          travelMode: window.google.maps.TravelMode.DRIVING
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            setRoute(result);
+            // Haritayı rotaya göre ayarla
+            if (mapRef.current) {
+              const bounds = new window.google.maps.LatLngBounds();
+              bounds.extend(new window.google.maps.LatLng(location.lat, location.lng));
+              optimalRoute.forEach(point => {
+                bounds.extend(new window.google.maps.LatLng(point.lat, point.lng));
+              });
+              mapRef.current.fitBounds(bounds);
+            }
+            
+            if (window.showAlert) {
+              const totalDistance = result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0) / 1000;
+              const totalDuration = result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0) / 60;
+              window.showAlert(
+                'Başarılı', 
+                `Rota oluşturuldu! Toplam mesafe: ${totalDistance.toFixed(1)} km, Tahmini süre: ${Math.round(totalDuration)} dakika`,
+                'success'
+              );
+            }
+          } else {
+            console.error('Directions request failed:', status);
+            if (window.showAlert) {
+              window.showAlert('Hata', 'Rota oluşturulurken bir hata oluştu.', 'error');
+            }
+          }
+          setRouteLoading(false);
+        }
+      );
+    } catch (error) {
+      console.error('Error creating route:', error);
+      if (window.showAlert) {
+        window.showAlert('Hata', 'Konumunuz alınamadı. Lütfen tarayıcınızın konum iznini kontrol edin.', 'error');
+      }
+      setRouteLoading(false);
+    }
+  };
+
+  // Rotayı temizle
+  const clearRoute = () => {
+    setRoute(null);
+    setCurrentLocation(null);
+    if (mapRef.current && sites.length > 0) {
+      const bounds = new window.google.maps.LatLngBounds();
+      sites.forEach(site => {
+        bounds.extend({
+          lat: parseFloat(site.locationLat),
+          lng: parseFloat(site.locationLng)
+        });
+      });
+      mapRef.current.fitBounds(bounds);
+    }
+  };
 
   const handleMarkerClick = (site) => {
     setSelectedSite(site);
@@ -312,12 +500,43 @@ const Dashboard = () => {
       <div className="row mb-4">
         <div className="col-12">
           <div className="card border-0 shadow-sm" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-            <div className="card-header bg-white border-0 py-3">
-              <h5 className="mb-0 fw-bold text-dark">
-                <i className="bi bi-map me-2"></i>
-                Elazığ - Site Haritası
-              </h5>
-              <small className="text-muted">{sites.length} site haritada gösteriliyor</small>
+            <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+              <div>
+                <h5 className="mb-0 fw-bold text-dark">
+                  <i className="bi bi-map me-2"></i>
+                  Elazığ - Site Haritası
+                </h5>
+                <small className="text-muted">{sites.length} site haritada gösteriliyor</small>
+              </div>
+              <div className="d-flex gap-2">
+                {!route ? (
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={createRoute}
+                    disabled={routeLoading || sites.length === 0}
+                  >
+                    {routeLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Rota Hesaplanıyor...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-route me-1"></i>
+                        Rota Oluştur
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={clearRoute}
+                  >
+                    <i className="bi bi-x-circle me-1"></i>
+                    Rotayı Temizle
+                  </button>
+                )}
+              </div>
             </div>
             <div className="card-body p-0" style={{ height: '600px', position: 'relative' }}>
               {!mapLoading && GOOGLE_MAPS_API_KEY && (
@@ -334,6 +553,19 @@ const Dashboard = () => {
                     }}
                     onLoad={onMapLoad}
                   >
+                    {/* Kullanıcı konumu marker'ı */}
+                    {currentLocation && (
+                      <Marker
+                        position={currentLocation}
+                        icon={window.google && window.google.maps ? {
+                          url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                          scaledSize: new window.google.maps.Size(40, 40)
+                        } : undefined}
+                        title="Başlangıç Noktası (Sizin Konumunuz)"
+                      />
+                    )}
+
+                    {/* Site marker'ları */}
                     {sites.map((site) => (
                       <Marker
                         key={site.id}
@@ -350,6 +582,9 @@ const Dashboard = () => {
                         } : undefined}
                       />
                     ))}
+
+                    {/* Rota çizgisi */}
+                    {route && <DirectionsRenderer directions={route} />}
 
                     {selectedSite && (
                       <InfoWindow

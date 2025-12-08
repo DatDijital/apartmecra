@@ -490,13 +490,12 @@ const AgreementFormModal = ({
                                             data-bs-parent={`#blocks-accordion-${rangeIndex}`}
                                           >
                                             <div className="accordion-body">
-                                    
-                                    {/* Block Selection */}
-                                    <div className="mb-4">
-                                      <label className="form-label fw-medium mb-2">
-                                        {site.siteType === 'business_center' ? 'İş Merkezi' : 'Bloklar'}
-                                      </label>
-                                      <div className="row g-2 mb-3">
+                                              {/* Block Selection */}
+                                              <div className="mb-4">
+                                                <label className="form-label fw-medium mb-2">
+                                                  {site.siteType === 'business_center' ? 'İş Merkezi' : 'Bloklar'}
+                                                </label>
+                                                <div className="row g-2 mb-3">
                                         {site.siteType === 'business_center' ? (
                                           (() => {
                                             const blockKey = `${siteId}-block-A`;
@@ -548,11 +547,11 @@ const AgreementFormModal = ({
                                               </div>
                                             );
                                           })
-                                        )}
-                                      </div>
-                                      
-                                      {/* Panel Selection for Selected Blocks - Accordion */}
-                                      {(() => {
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Panel Selection for Selected Blocks - Accordion */}
+                                                {(() => {
                                         const rangeKey = `range-${rangeIndex}`;
                                         const blocksToShow = site.siteType === 'business_center' 
                                           ? (selectedBlocks.includes(`${siteId}-block-A`) ? [`${siteId}-block-A`] : [])
@@ -666,8 +665,9 @@ const AgreementFormModal = ({
                                               );
                                             })}
                                           </div>
-                                        );
-                                      })()}
+                                                  );
+                                                })()}
+                                              </div>
                                             </div>
                                           </div>
                                         </div>

@@ -777,9 +777,41 @@ const AgreementUIHandlers = ({
   };
 
   // Handle site selection for a specific date range
-  const handleSiteSelectionForRange = (rangeIndex, siteId, sitePanelSelections) => {
+  const handleSiteSelectionForRange = (rangeIndex, siteId, sitePanelSelections, dateRange = null) => {
     const rangeKey = `range-${rangeIndex}`;
     const currentSites = (sitePanelSelections && sitePanelSelections[rangeKey] && sitePanelSelections[rangeKey].sites) || [];
+    
+    // If adding a site, check if it's fully booked
+    if (!currentSites.includes(siteId)) {
+      // Get the date range from formData or provided parameter
+      let rangeToCheck = dateRange;
+      if (!rangeToCheck && formData && formData.dateRanges && formData.dateRanges[rangeIndex]) {
+        rangeToCheck = [formData.dateRanges[rangeIndex]];
+      }
+      
+      if (rangeToCheck && rangeToCheck[0] && rangeToCheck[0].startDate && rangeToCheck[0].endDate) {
+        // Check if site is fully booked for this date range
+        if (helpers && helpers.isSiteFullyBooked) {
+          const isFullyBooked = helpers.isSiteFullyBooked(
+            siteId,
+            rangeToCheck[0].startDate,
+            rangeToCheck[0].endDate,
+            rangeToCheck
+          );
+          
+          if (isFullyBooked) {
+            if (showAlertModal) {
+              showAlertModal(
+                'Site Dolu',
+                'Bu hafta için bu sitede tüm paneller dolu. Lütfen başka bir site seçin veya farklı bir hafta seçin.',
+                'warning'
+              );
+            }
+            return; // Don't add the site
+          }
+        }
+      }
+    }
     
     let newSites;
     if (currentSites.includes(siteId)) {
@@ -815,26 +847,58 @@ const AgreementUIHandlers = ({
   };
 
   // Handle select all sites for a date range
-  const handleSelectAllSitesForRange = (rangeIndex, sites, sitePanelSelections) => {
+  const handleSelectAllSitesForRange = (rangeIndex, sites, sitePanelSelections, dateRange = null) => {
     if (!sites || !Array.isArray(sites)) {
       console.warn('handleSelectAllSitesForRange: sites is not an array', sites);
       return;
     }
     const rangeKey = `range-${rangeIndex}`;
     const currentSites = (sitePanelSelections && sitePanelSelections[rangeKey] && sitePanelSelections[rangeKey].sites) || [];
-    const allSiteIds = sites.map(s => s && s.id).filter(id => id != null);
-    const allSelected = allSiteIds.length > 0 && allSiteIds.every(id => currentSites.includes(id));
+    
+    // Get the date range from formData or provided parameter
+    let rangeToCheck = dateRange;
+    if (!rangeToCheck && formData && formData.dateRanges && formData.dateRanges[rangeIndex]) {
+      rangeToCheck = [formData.dateRanges[rangeIndex]];
+    }
+    
+    // Filter out fully booked sites
+    const availableSiteIds = sites
+      .map(s => s && s.id)
+      .filter(id => {
+        if (!id) return false;
+        // If already selected, keep it
+        if (currentSites.includes(id)) return true;
+        // Check if site is fully booked
+        if (rangeToCheck && rangeToCheck[0] && rangeToCheck[0].startDate && rangeToCheck[0].endDate) {
+          if (helpers && helpers.isSiteFullyBooked) {
+            return !helpers.isSiteFullyBooked(id, rangeToCheck[0].startDate, rangeToCheck[0].endDate, rangeToCheck);
+          }
+        }
+        return true; // If no date range, assume available
+      });
+    
+    const allSelected = availableSiteIds.length > 0 && availableSiteIds.every(id => currentSites.includes(id));
     
     setSitePanelSelections(prev => {
       const updated = {
         ...prev,
         [rangeKey]: {
           ...(prev[rangeKey] || {}),
-          sites: allSelected ? [] : allSiteIds
+          sites: allSelected ? [] : availableSiteIds
         }
       };
       return updated;
     });
+    
+    // Show warning if some sites were skipped
+    const skippedSites = sites.filter(s => s && s.id && !availableSiteIds.includes(s.id) && !currentSites.includes(s.id));
+    if (skippedSites.length > 0 && showAlertModal) {
+      showAlertModal(
+        'Bilgi',
+        `${skippedSites.length} site tüm panelleri dolu olduğu için seçilemedi.`,
+        'info'
+      );
+    }
   };
 
   // Handle select all sites in a neighborhood for a date range

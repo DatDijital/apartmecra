@@ -218,7 +218,7 @@ const AgreementFormModal = ({
                                   <button
                                     type="button"
                                     className="btn btn-sm btn-success"
-                                    onClick={() => uiHandlers.handleSelectAllSitesForRange(rangeIndex, sites, sitePanelSelections)}
+                                    onClick={() => uiHandlers.handleSelectAllSitesForRange(rangeIndex, sites, sitePanelSelections, [range])}
                                     title="Tüm siteleri seç"
                                   >
                                     <i className="bi bi-check-all me-1"></i>
@@ -282,20 +282,24 @@ const AgreementFormModal = ({
                                           <div className="row g-3">
                                             {(neighborhoodSites || []).map(site => {
                                               const isSelected = selectedSitesInRange.includes(site.id);
+                                              const isFullyBooked = helpers && helpers.isSiteFullyBooked && hasValidDates
+                                                ? helpers.isSiteFullyBooked(site.id, range.startDate, range.endDate, [range])
+                                                : false;
                                               return (
                                                 <div key={site.id} className="col-md-6 col-sm-12">
-                                                  <div className={`form-check-card h-100 ${isSelected ? 'border-primary' : ''}`}>
+                                                  <div className={`form-check-card h-100 ${isSelected ? 'border-primary' : isFullyBooked ? 'border-warning bg-warning bg-opacity-10' : ''}`}>
                                                     <input
                                                       type="checkbox"
                                                       id={`site-${site.id}-range-${rangeIndex}`}
                                                       checked={isSelected}
-                                                      onChange={() => uiHandlers.handleSiteSelectionForRange(rangeIndex, site.id, sitePanelSelections)}
+                                                      onChange={() => uiHandlers.handleSiteSelectionForRange(rangeIndex, site.id, sitePanelSelections, [range])}
                                                       className="form-check-input"
+                                                      disabled={isFullyBooked && !isSelected}
                                                     />
-                                                    <label htmlFor={`site-${site.id}-range-${rangeIndex}`} className="form-check-label h-100 d-flex align-items-center p-3">
+                                                    <label htmlFor={`site-${site.id}-range-${rangeIndex}`} className={`form-check-label h-100 d-flex align-items-center p-3 ${isFullyBooked && !isSelected ? 'text-muted' : ''}`}>
                                                       <div className="me-3">
-                                                        <div className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                                          <i className="bi bi-building text-primary"></i>
+                                                        <div className={`${isFullyBooked && !isSelected ? 'bg-warning' : 'bg-primary'} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center`} style={{ width: '40px', height: '40px' }}>
+                                                          <i className={`bi bi-building ${isFullyBooked && !isSelected ? 'text-warning' : 'text-primary'}`}></i>
                                                         </div>
                                                       </div>
                                                       <div className="flex-grow-1">
@@ -303,6 +307,12 @@ const AgreementFormModal = ({
                                                         <div className="small text-muted mt-1">
                                                           <i className="bi bi-grid me-1"></i>
                                                           {site.blocks} Blok, {site.panels} Panel
+                                                          {isFullyBooked && (
+                                                            <span className="badge bg-warning text-dark ms-2">
+                                                              <i className="bi bi-exclamation-triangle me-1"></i>
+                                                              Tüm Paneller Dolu
+                                                            </span>
+                                                          )}
                                                         </div>
                                                       </div>
                                                     </label>
@@ -354,17 +364,21 @@ const AgreementFormModal = ({
                                             {(businessCenters || []).map(site => {
                                               const selectedSitesInRange = (uiHandlers.getSelectedSitesForRange && uiHandlers.getSelectedSitesForRange(rangeIndex, sitePanelSelections)) || [];
                                               const isSelected = selectedSitesInRange.includes(site.id);
+                                              const isFullyBooked = helpers && helpers.isSiteFullyBooked && hasValidDates
+                                                ? helpers.isSiteFullyBooked(site.id, range.startDate, range.endDate, [range])
+                                                : false;
                                               return (
                                                 <div key={site.id} className="col-md-6 col-sm-12">
-                                                  <div className={`form-check-card h-100 border-warning ${isSelected ? 'border-primary' : ''}`}>
+                                                  <div className={`form-check-card h-100 border-warning ${isSelected ? 'border-primary' : isFullyBooked ? 'bg-warning bg-opacity-10' : ''}`}>
                                                     <input
                                                       type="checkbox"
                                                       id={`site-${site.id}-range-${rangeIndex}`}
                                                       checked={isSelected}
-                                                      onChange={() => uiHandlers.handleSiteSelectionForRange(rangeIndex, site.id, sitePanelSelections)}
+                                                      onChange={() => uiHandlers.handleSiteSelectionForRange(rangeIndex, site.id, sitePanelSelections, [range])}
                                                       className="form-check-input"
+                                                      disabled={isFullyBooked && !isSelected}
                                                     />
-                                                    <label htmlFor={`site-${site.id}-range-${rangeIndex}`} className="form-check-label h-100 d-flex align-items-center p-3">
+                                                    <label htmlFor={`site-${site.id}-range-${rangeIndex}`} className={`form-check-label h-100 d-flex align-items-center p-3 ${isFullyBooked && !isSelected ? 'text-muted' : ''}`}>
                                                       <div className="me-3">
                                                         <div className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
                                                           <i className="bi bi-briefcase text-warning"></i>
@@ -372,6 +386,12 @@ const AgreementFormModal = ({
                                                       </div>
                                                       <div className="flex-grow-1">
                                                         <span className="fw-medium">{site.name}</span>
+                                                        {isFullyBooked && (
+                                                          <span className="badge bg-warning text-dark ms-2">
+                                                            <i className="bi bi-exclamation-triangle me-1"></i>
+                                                            Tüm Paneller Dolu
+                                                          </span>
+                                                        )}
                                                         <div className="small text-muted mt-1">
                                                           <i className="bi bi-grid me-1"></i>
                                                           {parseInt(site.manualPanels) || parseInt(site.panels) || 0} Panel

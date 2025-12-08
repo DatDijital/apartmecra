@@ -262,6 +262,47 @@ const AgreementHelpers = ({
     return true; // Panel is available
   };
 
+  // Check if a site is fully booked (all panels are unavailable) for a given date range
+  const isSiteFullyBooked = (siteId, startDate, endDate, dateRanges = null) => {
+    const site = sites.find(s => String(s.id) === String(siteId));
+    if (!site) return false;
+
+    // Use dateRanges if provided, otherwise fall back to startDate/endDate
+    let rangesToCheck = [];
+    if (dateRanges && dateRanges.length > 0) {
+      rangesToCheck = dateRanges.filter(r => r.startDate && r.endDate);
+    } else if (startDate && endDate) {
+      rangesToCheck = [{ startDate, endDate }];
+    } else {
+      return false; // No date range specified, assume not fully booked
+    }
+
+    if (rangesToCheck.length === 0) return false;
+
+    // Check each date range
+    for (const range of rangesToCheck) {
+      // Check all blocks in the site
+      const blockLabels = generateBlockLabels(site.blocks || 0);
+      
+      for (const blockLabel of blockLabels) {
+        const blockKey = `${siteId}-block-${blockLabel}`;
+        const totalPanels = site.panels || 0;
+        
+        // Check each panel in this block
+        for (let i = 1; i <= totalPanels; i++) {
+          const panelKey = `panel-${i}`;
+          // If at least one panel is available, site is not fully booked
+          if (isPanelAvailable(siteId, blockKey, panelKey, range.startDate, range.endDate, [range])) {
+            return false; // At least one panel is available
+          }
+        }
+      }
+    }
+
+    // All panels are unavailable for all date ranges
+    return true;
+  };
+
   // Get information about which agreement is using a specific panel - Updated for new system
   const getPanelUsageInfo = (siteId, blockKey, panelKey, startDate, endDate) => {
     if (!startDate || !endDate) return null;
@@ -1006,6 +1047,7 @@ const AgreementHelpers = ({
     calculateTotalWeeksFromRanges,
     calculateTotalAmount,
     isPanelAvailable,
+    isSiteFullyBooked,
     getPanelUsageInfo,
     generateAgreementPDF,
     generateContractPDF

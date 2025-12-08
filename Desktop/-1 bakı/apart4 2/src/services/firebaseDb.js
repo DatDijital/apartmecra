@@ -893,12 +893,31 @@ export const deleteAgreement = async (agreementId) => {
 
 export const archiveAgreement = async (agreementId) => {
   try {
+    // First try to get by document ID
+    let docId = agreementId;
+    let agreement = null;
     const agreementResult = await getDocument(COLLECTIONS.AGREEMENTS, agreementId);
-    if (!agreementResult.success) {
+    
+    if (!agreementResult.success || !agreementResult.data) {
+      // Fallback: search by custom 'id' field
+      const queryRef = collection(db, COLLECTIONS.AGREEMENTS);
+      const q = query(queryRef, where('id', '==', agreementId));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docSnap = querySnapshot.docs[0];
+        docId = docSnap.id; // This is the actual Firestore document ID
+        agreement = docSnap.data();
+      } else {
+        return { success: false, error: 'Agreement not found' };
+      }
+    } else {
+      agreement = agreementResult.data;
+    }
+    
+    if (!agreement) {
       return { success: false, error: 'Agreement not found' };
     }
     
-    const agreement = agreementResult.data;
     const archivedAgreement = {
       ...agreement,
       status: 'archived',
@@ -908,7 +927,7 @@ export const archiveAgreement = async (agreementId) => {
     const archiveResult = await createDocument(COLLECTIONS.ARCHIVED_AGREEMENTS, archivedAgreement);
     
     if (archiveResult.success) {
-      await deleteAgreement(agreementId);
+      await deleteAgreement(docId);
       return { success: true };
     }
     

@@ -166,24 +166,32 @@ const AgreementsMain = () => {
         // Create an array of promises for archiving all agreements
         const archivePromises = (agreements || []).map(async (agreement) => {
           try {
-            const result = await archiveAgreement(agreement.id);
+            // Use _docId if available (Firestore document ID), otherwise use id (custom ID)
+            const agreementIdToUse = agreement._docId || agreement.id;
+            if (!agreementIdToUse) {
+              errorCount++;
+              console.error('Agreement has no ID or _docId:', agreement);
+              return { success: false, agreementId: null, error: 'Agreement has no ID' };
+            }
+            
+            const result = await archiveAgreement(agreementIdToUse);
             if (result && result.success) {
               successCount++;
               // Log the action
               await createLog({
                 user: 'Admin',
-                action: `Anlaşma arşivlendi: ${helpers.getCompanyName(agreement.companyId)} (${agreement.id})`
+                action: `Anlaşma arşivlendi: ${helpers.getCompanyName(agreement.companyId)} (${agreementIdToUse})`
               });
-              return { success: true, agreementId: agreement.id };
+              return { success: true, agreementId: agreementIdToUse };
             } else {
               errorCount++;
-              console.error('Failed to archive agreement:', agreement.id, result);
-              return { success: false, agreementId: agreement.id, error: result?.error || 'Unknown error' };
+              console.error('Failed to archive agreement:', agreementIdToUse, result);
+              return { success: false, agreementId: agreementIdToUse, error: result?.error || 'Unknown error' };
             }
           } catch (error) {
-            console.error('Error archiving agreement:', agreement.id, error);
+            console.error('Error archiving agreement:', agreement.id || agreement._docId, error);
             errorCount++;
-            return { success: false, agreementId: agreement.id, error: error.message };
+            return { success: false, agreementId: agreement._docId || agreement.id, error: error.message };
           }
         });
         

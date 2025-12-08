@@ -248,7 +248,8 @@ const AgreementsMain = () => {
     createLog, // Add createLog function
     setShowModal, // Add setShowModal function
     setCurrentAgreement, // Add setCurrentAgreement function
-    archiveAgreement // Add archiveAgreement function
+    archiveAgreement, // Add archiveAgreement function
+    getAgreements // Add getAgreements function to reload agreements after creation
   });
 
   const uiHandlers = AgreementUIHandlers({

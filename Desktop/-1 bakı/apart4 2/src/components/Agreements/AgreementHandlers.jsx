@@ -22,7 +22,8 @@ const AgreementHandlers = ({
   createLog, // Add createLog function
   setShowModal, // Add setShowModal function
   setCurrentAgreement, // Add setCurrentAgreement function
-  archiveAgreement // Add archiveAgreement function
+  archiveAgreement, // Add archiveAgreement function
+  getAgreements // Add getAgreements function to reload agreements after creation
 }) => {
   // Function to show custom alert modals
   const showAlertModal = (title, message, type = 'info') => {
@@ -882,6 +883,30 @@ const AgreementHandlers = ({
           });
           
           console.log('Agreement created successfully');
+          
+          // Reload agreements from server to ensure we have the latest data
+          // Note: setAgreements is actually setAgreementsUnique from AgreementsMain
+          if (getAgreements) {
+            try {
+              const reloadedAgreements = await getAgreements();
+              // setAgreementsUnique will handle duplicate removal automatically
+              setAgreements(reloadedAgreements);
+              console.log('Agreements reloaded from server:', reloadedAgreements.length);
+            } catch (reloadError) {
+              console.error('Error reloading agreements:', reloadError);
+            }
+          }
+          
+          // Show success message
+          if (typeof window.showAlert === 'function') {
+            await window.showAlert('Başarılı', 'Anlaşma başarıyla oluşturuldu!', 'success');
+          }
+        } else {
+          // Show error message if creation failed
+          console.error('Failed to create agreement - createAgreement returned null or undefined');
+          if (typeof window.showAlert === 'function') {
+            await window.showAlert('Hata', 'Anlaşma oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.', 'error');
+          }
         }
       }
       

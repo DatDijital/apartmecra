@@ -54,8 +54,7 @@ const DashboardRoute = () => {
   if (user && user.role === 'personnel') {
     return <PersonnelDashboard />;
   }
-  // Ana sayfada harita göster
-  return <SitesMap />;
+  return <Dashboard />;
 };
 
 function App() {

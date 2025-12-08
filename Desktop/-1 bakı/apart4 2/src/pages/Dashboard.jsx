@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardSummary, getRecentTransactions } from '../services/api';
+import { getDashboardSummary, getRecentTransactions, getSites } from '../services/api';
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -14,26 +15,80 @@ const Dashboard = () => {
   });
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sites, setSites] = useState([]);
+  const [selectedSite, setSelectedSite] = useState(null);
+  const [mapLoading, setMapLoading] = useState(true);
+  const mapRef = useRef(null);
+
+  // Elazığ merkez koordinatları
+  const ELAZIG_CENTER = { lat: 38.6748, lng: 39.2233 };
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyAO5-L4SrMA1e5q3ugtjYCI1gVI7KZoD6g';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summaryData, transactionsData] = await Promise.all([
+        const [summaryData, transactionsData, sitesData] = await Promise.all([
           getDashboardSummary(),
-          getRecentTransactions()
+          getRecentTransactions(),
+          getSites()
         ]);
         
         setSummary(summaryData);
         setTransactions(transactionsData);
+        
+        // Sadece koordinatları olan siteleri filtrele
+        const sitesWithCoordinates = sitesData.filter(site => 
+          site.locationLat && site.locationLng && 
+          !isNaN(parseFloat(site.locationLat)) && 
+          !isNaN(parseFloat(site.locationLng))
+        );
+        setSites(sitesWithCoordinates);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
+        setMapLoading(false);
       }
     };
 
     fetchData();
   }, []);
+
+  // Map yüklendiğinde tüm siteleri gösterecek şekilde ayarla
+  const onMapLoad = useCallback((map) => {
+    mapRef.current = map;
+    
+    if (sites.length > 0 && window.google && window.google.maps) {
+      const bounds = new window.google.maps.LatLngBounds();
+      sites.forEach(site => {
+        bounds.extend({
+          lat: parseFloat(site.locationLat),
+          lng: parseFloat(site.locationLng)
+        });
+      });
+      map.fitBounds(bounds);
+      
+      const listener = window.google.maps.event.addListener(map, 'bounds_changed', () => {
+        if (map.getZoom() > 15) {
+          map.setZoom(15);
+        }
+        window.google.maps.event.removeListener(listener);
+      });
+    }
+  }, [sites]);
+
+  const handleMarkerClick = (site) => {
+    setSelectedSite(site);
+  };
+
+  const handleInfoWindowClose = () => {
+    setSelectedSite(null);
+  };
+
+  const openInGoogleMaps = (site) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${site.locationLat},${site.locationLng}`;
+    window.open(url, '_blank');
+  };
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -248,6 +303,102 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Harita Bölümü */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card border-0 shadow-sm" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+            <div className="card-header bg-white border-0 py-3">
+              <h5 className="mb-0 fw-bold text-dark">
+                <i className="bi bi-map me-2"></i>
+                Elazığ - Site Haritası
+              </h5>
+              <small className="text-muted">{sites.length} site haritada gösteriliyor</small>
+            </div>
+            <div className="card-body p-0" style={{ height: '600px', position: 'relative' }}>
+              {!mapLoading && GOOGLE_MAPS_API_KEY && (
+                <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                  <GoogleMap
+                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                    center={ELAZIG_CENTER}
+                    zoom={12}
+                    options={{
+                      zoomControl: true,
+                      streetViewControl: false,
+                      mapTypeControl: true,
+                      fullscreenControl: true,
+                    }}
+                    onLoad={onMapLoad}
+                  >
+                    {sites.map((site) => (
+                      <Marker
+                        key={site.id}
+                        position={{
+                          lat: parseFloat(site.locationLat),
+                          lng: parseFloat(site.locationLng)
+                        }}
+                        onClick={() => handleMarkerClick(site)}
+                        icon={window.google && window.google.maps ? {
+                          url: site.siteType === 'business_center' 
+                            ? 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                            : 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                          scaledSize: new window.google.maps.Size(32, 32)
+                        } : undefined}
+                      />
+                    ))}
+
+                    {selectedSite && (
+                      <InfoWindow
+                        position={{
+                          lat: parseFloat(selectedSite.locationLat),
+                          lng: parseFloat(selectedSite.locationLng)
+                        }}
+                        onCloseClick={handleInfoWindowClose}
+                      >
+                        <div style={{ maxWidth: '250px' }}>
+                          <h6 className="fw-bold mb-2">
+                            <i className={`bi ${selectedSite.siteType === 'business_center' ? 'bi-briefcase' : 'bi-building'} me-1`}></i>
+                            {selectedSite.name}
+                          </h6>
+                          {selectedSite.neighborhood && (
+                            <p className="mb-1 small">
+                              <i className="bi bi-geo-alt me-1"></i>
+                              <strong>Mahalle:</strong> {selectedSite.neighborhood}
+                            </p>
+                          )}
+                          {selectedSite.manager && (
+                            <p className="mb-1 small">
+                              <i className="bi bi-person me-1"></i>
+                              <strong>Yönetici:</strong> {selectedSite.manager}
+                            </p>
+                          )}
+                          <div className="d-flex gap-2 mt-2">
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => openInGoogleMaps(selectedSite)}
+                            >
+                              <i className="bi bi-map me-1"></i>
+                              Yol Tarifi
+                            </button>
+                          </div>
+                        </div>
+                      </InfoWindow>
+                    )}
+                  </GoogleMap>
+                </LoadScript>
+              )}
+              {(!GOOGLE_MAPS_API_KEY || mapLoading) && (
+                <div className="d-flex align-items-center justify-content-center h-100">
+                  <div className="text-center">
+                    <div className="spinner-border text-primary" role="status"></div>
+                    <p className="mt-3 text-muted">Harita yükleniyor...</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

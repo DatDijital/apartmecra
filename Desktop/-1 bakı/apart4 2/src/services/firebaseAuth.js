@@ -7,6 +7,7 @@ import {
   deleteUser
 } from 'firebase/auth';
 import { auth } from '../config/firebase.js';
+import logger from '../utils/logger';
 
 // User roles
 export const USER_ROLES = {
@@ -18,18 +19,23 @@ export const USER_ROLES = {
 };
 
 // Simple login function
-export const loginWithEmail = async (email, password) => {
+// silentMode: true is used when trying multiple login attempts (don't log expected failures)
+export const loginWithEmail = async (email, password, silentMode = false) => {
   try {
-    console.log('🔐 Attempting login with:', email);
+    if (!silentMode) {
+      logger.log('🔐 Attempting login with:', email);
+    }
     
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    console.log('✅ Login successful:', user.uid);
+    logger.log('✅ Login successful:', user.uid);
     
     // Get ID token
     const token = await user.getIdToken();
-    console.log('🎫 Token obtained:', token ? 'Yes' : 'No');
+    if (!silentMode) {
+      logger.log('🎫 Token obtained:', token ? 'Yes' : 'No');
+    }
     
     // Determine role and IDs based on email
     let role = USER_ROLES.ADMIN;
@@ -68,21 +74,20 @@ export const loginWithEmail = async (email, password) => {
     };
     
   } catch (error) {
-    // Log error details for debugging
-    console.error('❌ Login error:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
+    // auth/invalid-credential is expected during multi-attempt login, don't log it in silent mode
+    if (error.code === 'auth/invalid-credential' && silentMode) {
+      // Silent - this is expected when trying different login types
+      return {
+        success: false,
+        error: getErrorMessage(error.code)
+      };
+    }
     
-    // Handle 400 Bad Request specifically
-    if (error.code === 'auth/invalid-credential' || 
-        error.message?.includes('400') || 
-        error.message?.includes('Bad Request')) {
-      // Don't log invalid credentials during multi-attempt login (expected)
-      if (error.code === 'auth/invalid-credential') {
-        // Silent for multi-attempt scenarios
-      } else {
-        console.error('Bad Request error - possible causes: invalid email format, empty password, or API key issue');
-      }
+    // Only log errors that are not expected or when not in silent mode
+    if (!silentMode || error.code !== 'auth/invalid-credential') {
+      logger.error('❌ Login error:', error);
+      logger.error('Error code:', error.code);
+      logger.error('Error message:', error.message);
     }
     
     return {
@@ -96,10 +101,10 @@ export const loginWithEmail = async (email, password) => {
 export const logoutUser = async () => {
   try {
     await signOut(auth);
-    console.log('✅ Logout successful');
+    logger.log('✅ Logout successful');
     return { success: true };
   } catch (error) {
-    console.error('❌ Logout error:', error);
+    logger.error('❌ Logout error:', error);
     return { success: false, error: error.message };
   }
 };
@@ -137,12 +142,12 @@ export const canAccessCompany = (user, companyId) => {
 // Create user with email and password
 export const createUserWithEmail = async (email, password, userData = {}) => {
   try {
-    console.log('Creating user with email:', email);
+    logger.log('Creating user with email:', email);
     
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    console.log('User created successfully:', user.uid);
+    logger.log('User created successfully:', user.uid);
     
     return {
       success: true,
@@ -154,7 +159,7 @@ export const createUserWithEmail = async (email, password, userData = {}) => {
     };
     
   } catch (error) {
-    console.error('User creation error:', error);
+    logger.error('User creation error:', error);
     return {
       success: false,
       error: getErrorMessage(error.code)
@@ -165,10 +170,10 @@ export const createUserWithEmail = async (email, password, userData = {}) => {
 // Initialize admin user
 export const initializeAdminUser = async () => {
   try {
-    console.log('🔧 Initializing admin user...');
+    logger.log('🔧 Initializing admin user...');
     return true;
   } catch (error) {
-    console.error('❌ Error initializing admin user:', error);
+    logger.error('❌ Error initializing admin user:', error);
     return false;
   }
 };
@@ -201,17 +206,17 @@ const getErrorMessage = (errorCode) => {
 // Delete user from Firebase Auth
 export const deleteUserFromAuth = async (email) => {
   try {
-    console.log('🗑️ Deleting user from Firebase Auth:', email);
+    logger.log('🗑️ Deleting user from Firebase Auth:', email);
     
     // Note: This function requires Firebase Admin SDK for server-side deletion
     // For client-side, we can only delete the currently signed-in user
-    console.log('⚠️ User deletion requires Firebase Admin SDK');
-    console.log('Please delete user manually from Firebase Console:');
-    console.log('https://console.firebase.google.com/project/apartmecraelazig/authentication/users');
+    logger.warn('⚠️ User deletion requires Firebase Admin SDK');
+    logger.log('Please delete user manually from Firebase Console:');
+    logger.log('https://console.firebase.google.com/project/apartmecraelazig/authentication/users');
     
     return { success: false, error: 'Admin SDK required for user deletion' };
   } catch (error) {
-    console.error('Error deleting user from Auth:', error);
+    logger.error('Error deleting user from Auth:', error);
     return { success: false, error: error.message };
   }
 };

@@ -12,6 +12,7 @@ import {
   initializeAdminUser,
   createUserWithEmail
 } from './firebaseAuth.js';
+import logger from '../utils/logger';
 
 import {
   // Sites
@@ -79,7 +80,7 @@ const initializeFirebase = async () => {
   const { auth } = await import('../config/firebase.js');
   
   if (!auth) {
-    console.log('🚫 Firebase is disabled - using local mode');
+    logger.log('🚫 Firebase is disabled - using local mode');
     return false;
   }
   
@@ -88,7 +89,7 @@ const initializeFirebase = async () => {
       await initializeAdminUser();
       isInitialized = true;
     } catch (error) {
-      console.error('Firebase initialization error:', error);
+      logger.error('Firebase initialization error:', error);
       isInitialized = true; // Continue anyway
     }
   }
@@ -99,7 +100,7 @@ const initializeFirebase = async () => {
 // Auth endpoints
 export const login = async (username, password) => {
   try {
-    console.log('API login called with:', username);
+    logger.log('API login called with:', username);
     
     // Import getDocument for archive checking
     const { getDocument } = await import('./firebaseDb.js');
@@ -156,9 +157,9 @@ export const login = async (username, password) => {
     // Try each login attempt
     const loginErrors = [];
     for (const attempt of loginAttempts) {
-      // Only log if it's the first attempt or if we're debugging
+      // Only log first attempt in development
       if (loginAttempts.indexOf(attempt) === 0) {
-      console.log('Attempting login with email:', attempt.email, 'role:', attempt.role);
+        logger.log('Attempting login with email:', attempt.email, 'role:', attempt.role);
       }
       
       try {
@@ -187,7 +188,7 @@ export const login = async (username, password) => {
           
           if (siteResult.success) {
             if (siteResult.data.status === 'archived') {
-            console.log('Site user is archived, login denied:', siteId);
+            logger.warn('Site user is archived, login denied:', siteId);
             return { error: 'Bu site arşivlenmiş, giriş yapılamaz' };
             }
             siteData = siteResult.data;
@@ -218,17 +219,20 @@ export const login = async (username, password) => {
           
           if (companyResult.success) {
             if (companyResult.data.status === 'archived') {
-            console.log('Company user is archived, login denied:', companyId);
+            logger.warn('Company user is archived, login denied:', companyId);
             return { error: 'Bu firma arşivlenmiş, giriş yapılamaz' };
             }
             companyData = companyResult.data;
           }
         }
         
-        const result = await loginWithEmail(attempt.email, password);
+        // Use silent mode for all attempts except the first one
+        // This prevents logging expected auth/invalid-credential errors
+        const isFirstAttempt = loginAttempts.indexOf(attempt) === 0;
+        const result = await loginWithEmail(attempt.email, password, !isFirstAttempt);
         
         if (result.success) {
-          console.log('API login successful with role:', attempt.role);
+          logger.log('API login successful with role:', attempt.role);
           
           // Build user object with name for company and site users
           const userObj = {
@@ -258,22 +262,27 @@ export const login = async (username, password) => {
         }
       } catch (error) {
         // Store error for final reporting, but don't log each failed attempt
-        loginErrors.push({ email: attempt.email, error: error.message });
+        // auth/invalid-credential is expected when trying different login types
+        if (error.code !== 'auth/invalid-credential') {
+          loginErrors.push({ email: attempt.email, error: error.message });
+        }
         continue; // Try next attempt
       }
     }
     
-    // If all attempts failed, log the errors
-    if (loginErrors.length > 0 && loginAttempts.length === loginErrors.length) {
-      console.error('All login attempts failed:', loginErrors);
+    // If all attempts failed, log the errors (only unexpected ones)
+    if (loginErrors.length > 0) {
+      logger.error('Login attempts failed with unexpected errors:', loginErrors);
+    } else if (loginAttempts.length > 0) {
+      // All attempts failed with expected auth/invalid-credential
+      logger.warn('All login attempts failed - invalid credentials');
     }
     
     // All attempts failed
-    console.error('All login attempts failed');
     return { error: 'Geçersiz kimlik bilgileri' };
     
   } catch (error) {
-    console.error('API login error:', error);
+    logger.error('API login error:', error);
     return { error: 'Bağlantı hatası: Sunucuya ulaşılamıyor' };
   }
 };

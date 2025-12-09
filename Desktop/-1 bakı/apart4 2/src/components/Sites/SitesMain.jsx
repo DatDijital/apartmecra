@@ -9,6 +9,7 @@ import SitesForms from './SitesForms';
 import SitesModals from './SitesModals';
 import SitesExcelHandlers from './SitesExcelHandlers';
 import logger from '../../utils/logger';
+import { isObserver } from '../../utils/auth';
 
 const SitesMain = () => {
   const [sites, setSites] = useState([]);
@@ -338,6 +339,7 @@ const SitesMain = () => {
               className="btn btn-sites-outline"
               onClick={handlers.handleDeleteAllSites}
               title="Tüm Siteleri Sil"
+              disabled={isObserver()}
             >
               <i className="bi bi-trash me-1"></i>
               <span className="d-none d-md-inline">Tümünü Sil</span>

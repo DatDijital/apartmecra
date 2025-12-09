@@ -1,4 +1,5 @@
 import React from 'react';
+import { isObserver } from '../../utils/auth';
 
 const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploadPhoto, activeTab }) => {
   // Format date for display
@@ -175,6 +176,7 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
                         className="btn btn-sm btn-outline-danger"
                         title="Arşivle"
                         onClick={() => handlers.handleArchiveAgreement(agreement.id)}
+                        disabled={isObserver()}
                       >
                         <i className="bi bi-archive"></i>
                       </button>
@@ -182,6 +184,7 @@ const AgreementTable = ({ agreements, handlers, uiHandlers, helpers, handleUploa
                         className="btn btn-sm btn-outline-danger"
                         title="Kalıcı Sil"
                         onClick={() => handlers.handleDeleteAgreement(agreement.id)}
+                        disabled={isObserver()}
                       >
                         <i className="bi bi-trash"></i>
                       </button>

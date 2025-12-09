@@ -810,6 +810,7 @@ const PartnerShares = () => {
         <button 
           onClick={handleDistributePayments}
           className="btn btn-primary-gradient btn-icon"
+          disabled={isObserver()}
         >
           <i className="bi bi-currency-dollar me-1"></i>
           Ödeme Yap
@@ -826,6 +827,7 @@ const PartnerShares = () => {
                 <button 
                   onClick={handleAddPartner}
                   className="btn btn-primary btn-sm btn-icon"
+                  disabled={isObserver()}
                 >
                   <i className="bi bi-plus-lg"></i>
                   Ortak Ekle
@@ -874,6 +876,7 @@ const PartnerShares = () => {
                                 onClick={() => handleShowWithdrawalForm(partner)}
                                 className="btn btn-sm btn-outline-success"
                                 title="Para Çek"
+                                disabled={isObserver()}
                               >
                                 <i className="bi bi-cash-coin"></i>
                               </button>
@@ -882,6 +885,7 @@ const PartnerShares = () => {
                               onClick={() => handleShowAdvanceForm(partner)}
                               className="btn btn-sm btn-outline-warning"
                               title="Avans Al"
+                              disabled={isObserver()}
                             >
                               <i className="bi bi-arrow-up-circle"></i>
                             </button>
@@ -896,6 +900,7 @@ const PartnerShares = () => {
                               onClick={() => handleEditPartner(partner)}
                               className="btn btn-sm btn-outline-secondary"
                               title="Düzenle"
+                              disabled={isObserver()}
                             >
                               <i className="bi bi-pencil"></i>
                             </button>
@@ -903,6 +908,7 @@ const PartnerShares = () => {
                               onClick={() => handleDeletePartner(partner.id)}
                               className="btn btn-sm btn-outline-danger"
                               title="Sil"
+                              disabled={isObserver()}
                             >
                               <i className="bi bi-trash"></i>
                             </button>
@@ -1000,6 +1006,7 @@ const PartnerShares = () => {
                           handleCloseForms();
                         }, 100);
                       }}
+                      disabled={isObserver()}
                     >
                       {editingPartner ? 'Güncelle' : 'Ekle'}
                     </button>
@@ -1132,7 +1139,7 @@ const PartnerShares = () => {
                       handleDistribute();
                       handleCloseForms();
                     }}
-                    disabled={isDistributing}
+                    disabled={isObserver() || isDistributing}
                   >
                     {isDistributing ? (
                       <>
@@ -1455,6 +1462,7 @@ const PartnerShares = () => {
                     type="button"
                     className="btn btn-success"
                     onClick={handleWithdrawal}
+                    disabled={isObserver()}
                   >
                     <i className="bi bi-cash-coin me-1"></i>
                     Para Çek
@@ -1540,6 +1548,7 @@ const PartnerShares = () => {
                     type="button"
                     className="btn btn-warning"
                     onClick={handleAdvancePayment}
+                    disabled={isObserver()}
                   >
                     <i className="bi bi-arrow-up-circle me-1"></i>
                     Avans Al

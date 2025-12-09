@@ -879,6 +879,7 @@ const Companies = () => {
             <button 
               onClick={handleAddCompany}
               className="btn btn-companies-primary btn-icon d-flex align-items-center"
+              disabled={isObserver()}
             >
               <i className="bi bi-plus-lg me-2"></i>
               <span>Firma Ekle</span>
@@ -1140,6 +1141,7 @@ const Companies = () => {
                           onClick={() => handleEditCompany(company)}
                           className="btn btn-sm btn-outline-secondary"
                           title="Düzenle"
+                          disabled={isObserver()}
                         >
                           <i className="bi bi-pencil"></i>
                         </button>
@@ -1147,6 +1149,7 @@ const Companies = () => {
                           onClick={() => handleBuyCredit(company)}
                           className="btn btn-sm btn-outline-success"
                           title="Kredi Al"
+                          disabled={isObserver()}
                         >
                           <i className="bi bi-credit-card"></i>
                         </button>
@@ -1154,6 +1157,7 @@ const Companies = () => {
                           onClick={() => handleArchiveCompany(company.id)}
                           className="btn btn-sm btn-outline-warning"
                           title="Arşivle"
+                          disabled={isObserver()}
                         >
                           <i className="bi bi-archive"></i>
                         </button>
@@ -1161,6 +1165,7 @@ const Companies = () => {
                           onClick={() => handleDeleteCompany(company.id)}
                           className="btn btn-sm btn-outline-danger"
                           title="Kalıcı Sil"
+                          disabled={isObserver()}
                         >
                           <i className="bi bi-trash"></i>
                         </button>
@@ -1177,6 +1182,7 @@ const Companies = () => {
                         <button 
                           onClick={handleAddCompany}
                           className="btn btn-companies-primary"
+                          disabled={isObserver()}
                         >
                           Firma Ekle
                         </button>
@@ -1197,6 +1203,7 @@ const Companies = () => {
             onClick={handleDeleteAllCompanies}
             className="btn btn-outline-danger"
             title="Tüm Firmaları Sil"
+            disabled={isObserver()}
           >
             <i className="bi bi-trash me-1"></i>
             Tüm Firmaları Sil
@@ -1589,6 +1596,7 @@ const Companies = () => {
                   type="submit"
                   className="btn btn-primary"
                   onClick={handleFormSubmit}
+                  disabled={isObserver()}
                 >
                   <i className="bi bi-check-lg me-1"></i> {currentCompany ? 'Güncelle' : 'Kaydet'}
                 </button>

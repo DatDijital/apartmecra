@@ -1,6 +1,7 @@
 import React from 'react';
 import useResponsive from '../../hooks/useResponsive';
 import SiteHelpers from './SiteHelpers';
+import { isObserver } from '../../utils/auth';
 
 const SitesForms = ({ 
   showAddForm, 
@@ -335,6 +336,7 @@ const SitesForms = ({
                 <button
                   type="submit"
                   className="btn btn-primary"
+                  disabled={isObserver()}
                 >
                   <i className="bi bi-check-lg me-1"></i> {currentSite ? 'Güncelle' : 'Kaydet'}
                 </button>

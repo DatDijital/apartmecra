@@ -1,4 +1,5 @@
 import React from 'react';
+import { isObserver } from '../../utils/auth';
 import SiteHelpers from './SiteHelpers';
 
 const SitesTable = ({ 
@@ -99,6 +100,7 @@ const SitesTable = ({
                         onClick={() => uiHandlers.handleEditSite(site)}
                         className="btn btn-xs btn-outline-secondary"
                         title="Düzenle"
+                        disabled={isObserver()}
                         style={{padding: '2px 6px', fontSize: '10px'}}
                       >
                         <i className="bi bi-pencil" style={{fontSize: '10px'}}></i>
@@ -120,6 +122,7 @@ const SitesTable = ({
                         onClick={() => handlers.handleArchiveSite(site.id)}
                         className="btn btn-xs btn-outline-warning me-1"
                         title="Arşiv"
+                        disabled={isObserver()}
                         style={{padding: '2px 6px', fontSize: '10px'}}
                       >
                         <i className="bi bi-archive" style={{fontSize: '10px'}}></i>
@@ -128,6 +131,7 @@ const SitesTable = ({
                         onClick={() => handlers.handleDeleteSite(site.id)}
                         className="btn btn-xs btn-outline-danger"
                         title="Kalıcı Sil"
+                        disabled={isObserver()}
                         style={{padding: '2px 6px', fontSize: '10px'}}
                       >
                         <i className="bi bi-trash" style={{fontSize: '10px'}}></i>

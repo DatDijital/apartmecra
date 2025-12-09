@@ -594,6 +594,7 @@ const AgreementsMain = () => {
             <button 
               onClick={uiHandlers.handleAddAgreement}
               className="btn btn-page-primary btn-icon d-flex align-items-center"
+              disabled={isObserver()}
             >
               <i className="bi bi-plus-lg me-2"></i>
               <span>Yeni Anlaşma</span>
@@ -791,6 +792,7 @@ const AgreementsMain = () => {
             onClick={handleDeleteAllAgreements}
             className="btn btn-outline-danger btn-sm d-flex align-items-center"
             title="Tüm Aktif Anlaşmaları Sil"
+            disabled={isObserver()}
           >
             <i className="bi bi-trash me-1"></i>
             <span>Tüm Aktif Anlaşmaları Sil</span>

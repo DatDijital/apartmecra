@@ -133,6 +133,10 @@ export const isAdmin = () => {
 
 export const canModify = () => {
   const user = getUser();
+  // Observer rolü hiçbir değişiklik yapamaz
+  if (user && user.role === 'observer') {
+    return false;
+  }
   return user && (user.role === 'administrator' || user.role === 'admin');
 };
 

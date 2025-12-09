@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import useResponsive from '../../hooks/useResponsive';
+import { isObserver } from '../../utils/auth';
 
 const SitesModals = ({ 
   showModal, 

@@ -994,6 +994,7 @@ const Cashier = () => {
             <button 
               onClick={handleAddIncome}
               className="btn btn-page-primary d-flex align-items-center"
+              disabled={isObserver()}
             >
               <i className="bi bi-plus-circle me-2"></i>
               Gelir Ekle
@@ -1001,6 +1002,7 @@ const Cashier = () => {
             <button 
               onClick={handleAddExpense}
               className="btn btn-page-outline d-flex align-items-center"
+              disabled={isObserver()}
             >
               <i className="bi bi-dash-circle me-2"></i>
               Gider Ekle
@@ -1607,6 +1609,7 @@ const Cashier = () => {
                               onClick={() => handleEditTransaction(transaction)}
                               className="btn btn-sm btn-outline-primary rounded-pill py-1 px-2"
                               title="Düzenle"
+                              disabled={isObserver()}
                             >
                               <i className="bi bi-pencil"></i>
                             </button>
@@ -1615,6 +1618,7 @@ const Cashier = () => {
                                 onClick={() => handleCancelTransaction(transaction)}
                                 className="btn btn-sm btn-outline-danger rounded-pill py-1 px-2"
                                 title="Vazgeç"
+                                disabled={isObserver()}
                               >
                                 <i className="bi bi-x-circle"></i>
                               </button>
@@ -1765,6 +1769,7 @@ const Cashier = () => {
                     <button
                       type="submit"
                       className="btn btn-danger"
+                      disabled={isObserver()}
                     >
                       {editingTransaction ? 'Güncelle' : 'Ekle'}
                     </button>
@@ -1885,6 +1890,7 @@ const Cashier = () => {
                     <button
                       type="submit"
                       className="btn btn-danger"
+                      disabled={isObserver()}
                     >
                       {editingTransaction ? 'Güncelle' : 'Ekle'}
                     </button>

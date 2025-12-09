@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import AgreementSummary from './AgreementSummary';
 import useResponsive from '../../hooks/useResponsive';
 import { safeFilter, safeMap } from '../../utils/safeAccess';
+import { isObserver } from '../../utils/auth';
 
 // Helper function to generate panel name
 const generatePanelName = (siteId, blockLabel, panelNumber) => {
@@ -811,6 +812,7 @@ const AgreementFormModal = ({
                     type="submit"
                     className="btn btn-agreement-primary px-4 py-2"
                     disabled={
+                      isObserver() ||
                       !formData.companyId || 
                       !formData.weeklyRatePerPanel || 
                       !formData.dateRanges || 

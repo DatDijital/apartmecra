@@ -713,6 +713,39 @@ export const getSiteData = async (siteId) => {
     
     if (!siteRecord) {
       console.error('getSiteData: Site not found for siteId:', siteId);
+      
+      // Debug: List all available sites to help identify the issue
+      if (allSitesResult.success && allSitesResult.data && allSitesResult.data.length > 0) {
+        console.error('getSiteData: Available sites in database:', allSitesResult.data.map(s => ({
+          id: s.id,
+          siteId: s.siteId,
+          _docId: s._docId,
+          name: s.name,
+          email: s.email || `${s.siteId || s.id}@site.local`
+        })));
+        
+        // Try to find similar IDs (partial match)
+        const similarSites = allSitesResult.data.filter(site => {
+          const siteIdStr = String(site.id || '').toLowerCase();
+          const siteSiteIdStr = String(site.siteId || '').toLowerCase();
+          const searchIdLower = String(siteId).toLowerCase();
+          return siteIdStr.includes(searchIdLower) || 
+                 siteSiteIdStr.includes(searchIdLower) ||
+                 searchIdLower.includes(siteIdStr) ||
+                 searchIdLower.includes(siteSiteIdStr);
+        });
+        
+        if (similarSites.length > 0) {
+          console.warn('getSiteData: Found similar sites (partial match):', similarSites.map(s => ({
+            id: s.id,
+            siteId: s.siteId,
+            name: s.name
+          })));
+        }
+      } else {
+        console.error('getSiteData: No sites found in database at all!');
+      }
+      
       return { site: null, agreements: [], transactions: [] };
     }
     

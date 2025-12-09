@@ -405,6 +405,62 @@ const SiteDashboard = () => {
     );
   }
 
+  // Show error if site not found
+  if (!siteData.site) {
+    return (
+      <div className="container-fluid">
+        <div className="row justify-content-center">
+          <div className="col-md-8 col-lg-6">
+            <div className="card border-danger shadow-sm mt-5">
+              <div className="card-header bg-danger text-white">
+                <h5 className="mb-0">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Site Bulunamadı
+                </h5>
+              </div>
+              <div className="card-body">
+                <div className="alert alert-danger">
+                  <h6 className="alert-heading">Site bilgileri yüklenemedi</h6>
+                  <p className="mb-2">
+                    <strong>Site ID:</strong> {siteId || 'Belirtilmemiş'}
+                  </p>
+                  <p className="mb-0 small">
+                    Bu site ID'si ile kayıtlı bir site bulunamadı. Lütfen:
+                  </p>
+                  <ul className="mb-0 mt-2 small">
+                    <li>Site ID'nizin doğru olduğundan emin olun</li>
+                    <li>Site'in Firebase'de kayıtlı olduğunu kontrol edin</li>
+                    <li>Yönetici ile iletişime geçin</li>
+                  </ul>
+                </div>
+                <div className="d-flex justify-content-end gap-2">
+                  <button
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('user');
+                      window.location.href = '/';
+                    }}
+                  >
+                    <i className="bi bi-arrow-left me-1"></i>
+                    Ana Sayfaya Dön
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => window.location.reload()}
+                  >
+                    <i className="bi bi-arrow-clockwise me-1"></i>
+                    Sayfayı Yenile
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container-fluid">
       <div className="row">
@@ -450,8 +506,8 @@ const SiteDashboard = () => {
       {/* Site Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="h3 fw-bold">{siteData.site?.name} - Site Panosu</h2>
-          <p className="text-muted mb-0">Site ID: {siteData.site?.id}</p>
+          <h2 className="h3 fw-bold">{siteData.site?.name || 'Site Panosu'}</h2>
+          <p className="text-muted mb-0">Site ID: {siteData.site?.id || siteId}</p>
         </div>
         <div className="text-end">
           <button 

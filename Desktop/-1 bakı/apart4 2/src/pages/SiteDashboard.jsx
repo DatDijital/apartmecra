@@ -104,20 +104,42 @@ const SiteDashboard = () => {
             transactions: allTransactions
           });
           const calculatedFuturePayments = helpers.calculatePendingPayments(data.site, allAgreements, companiesData, allTransactions);
-          const totalFutureAmount = calculatedFuturePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          const totalFutureAmount = calculatedFuturePayments.reduce((sum, payment) => {
+            const amount = parseFloat(payment.amount) || 0;
+            return sum + (isNaN(amount) ? 0 : amount);
+          }, 0);
 
           setFuturePayments(calculatedFuturePayments);
           setStats({
             totalPanels,
             usedPanels,
             activeAgreements,
-            totalRevenue,
+            totalRevenue: totalRevenue || 0,
             futurePayments: calculatedFuturePayments.length,
-            totalFutureAmount
+            totalFutureAmount: isNaN(totalFutureAmount) ? 0 : totalFutureAmount
+          });
+        } else {
+          // Site not found - show error message
+          console.error('Site not found for siteId:', siteId);
+          setStats({
+            totalPanels: 0,
+            usedPanels: 0,
+            activeAgreements: 0,
+            totalRevenue: 0,
+            futurePayments: 0,
+            totalFutureAmount: 0
           });
         }
       } catch (error) {
         console.error('Error fetching site data:', error);
+        setStats({
+          totalPanels: 0,
+          usedPanels: 0,
+          activeAgreements: 0,
+          totalRevenue: 0,
+          futurePayments: 0,
+          totalFutureAmount: 0
+        });
       } finally {
         setLoading(false);
       }

@@ -660,70 +660,102 @@ export const getSiteData = async (siteId) => {
     
     const { getDocument, getCollection } = await import('./firebaseDb.js');
     
-    const [siteDocResult, agreements, transactions] = await Promise.all([
-      getDocument('sites', siteId),
+    // Fetch all data in parallel
+    const [siteDocResult, allSitesResult, agreements, transactions] = await Promise.all([
+      getDocument('sites', siteId), // Try document ID first (fastest)
+      getCollection('sites'), // Get all sites for comprehensive search
       getAgreementsFromDb(),
       getTransactionsFromDb()
     ]);
     
     let siteRecord = null;
 
+    // Strategy 1: Check if found by document ID
     if (siteDocResult.success && siteDocResult.data) {
-      // Found by document ID
       siteRecord = siteDocResult.data;
-    } else {
-      // Fallback 1: search by 'id' field
-      const fallbackById = await getCollection('sites', [
-        { field: 'id', operator: '==', value: siteId }
-      ]);
-
-      if (fallbackById.success && fallbackById.data && fallbackById.data.length > 0) {
-        siteRecord = fallbackById.data[0];
-      } else {
-        // Fallback 2: search by 'siteId' field (used for login)
-        const fallbackBySiteId = await getCollection('sites', [
-          { field: 'siteId', operator: '==', value: siteId }
-        ]);
-
-        if (fallbackBySiteId.success && fallbackBySiteId.data && fallbackBySiteId.data.length > 0) {
-          siteRecord = fallbackBySiteId.data[0];
-        } else {
-          // Fallback 3: get all sites and search manually (for edge cases)
-          const allSitesResult = await getCollection('sites');
-          if (allSitesResult.success && allSitesResult.data) {
-            siteRecord = allSitesResult.data.find(site => 
-              site.id === siteId || 
-              site.siteId === siteId || 
-              site._docId === siteId ||
-              String(site.id) === String(siteId) ||
-              String(site.siteId) === String(siteId) ||
-              String(site._docId) === String(siteId)
-            );
-          }
-          
-          if (!siteRecord) {
-            console.error('getSiteData: Site not found for siteId (tried docId, id, siteId fields):', siteId);
-            return { site: null, agreements: [], transactions: [] };
-          }
+    } else if (allSitesResult.success && allSitesResult.data) {
+      // Strategy 2: Search through all sites with comprehensive matching
+      // This handles all possible ID formats and variations
+      const searchId = String(siteId).trim();
+      
+      siteRecord = allSitesResult.data.find(site => {
+        // Check all possible ID fields with various formats
+        const siteIdStr = site.id ? String(site.id).trim() : '';
+        const siteSiteIdStr = site.siteId ? String(site.siteId).trim() : '';
+        const siteDocIdStr = site._docId ? String(site._docId).trim() : '';
+        
+        // Exact matches (case-sensitive)
+        if (siteIdStr === searchId || siteSiteIdStr === searchId || siteDocIdStr === searchId) {
+          return true;
         }
-      }
+        
+        // Case-insensitive matches
+        if (siteIdStr.toLowerCase() === searchId.toLowerCase() ||
+            siteSiteIdStr.toLowerCase() === searchId.toLowerCase() ||
+            siteDocIdStr.toLowerCase() === searchId.toLowerCase()) {
+          return true;
+        }
+        
+        // Numeric matches (if both are numeric)
+        const searchIdNum = Number(searchId);
+        if (!isNaN(searchIdNum)) {
+          const siteIdNum = Number(site.id);
+          const siteSiteIdNum = Number(site.siteId);
+          if (!isNaN(siteIdNum) && siteIdNum === searchIdNum) return true;
+          if (!isNaN(siteSiteIdNum) && siteSiteIdNum === searchIdNum) return true;
+        }
+        
+        return false;
+      });
+      
+      // Site found - no need to log in production
+    }
+    
+    if (!siteRecord) {
+      console.error('getSiteData: Site not found for siteId:', siteId);
+      return { site: null, agreements: [], transactions: [] };
     }
     
     // Get all possible IDs for this site to match against agreements
-    const possibleSiteIds = [
-      siteId, // Original search ID
-      siteRecord.id,
-      siteRecord.siteId,
-      siteRecord._docId,
-      String(siteRecord.id),
-      String(siteRecord.siteId),
-      String(siteRecord._docId)
-    ].filter(id => id != null && id !== undefined); // Remove null/undefined values
+    // Include all variations: original, string, number, case variations
+    const possibleSiteIds = new Set();
+    
+    // Add all variations
+    [siteId, siteRecord.id, siteRecord.siteId, siteRecord._docId].forEach(id => {
+      if (id != null && id !== undefined) {
+        possibleSiteIds.add(id);
+        possibleSiteIds.add(String(id));
+        possibleSiteIds.add(String(id).toLowerCase());
+        possibleSiteIds.add(String(id).toUpperCase());
+        const numId = Number(id);
+        if (!isNaN(numId)) {
+          possibleSiteIds.add(numId);
+        }
+      }
+    });
+    
+    const possibleSiteIdsArray = Array.from(possibleSiteIds);
     
     // Filter agreements that include any of the possible site IDs
     const siteAgreements = agreements.filter(agreement => {
       if (!agreement.siteIds || !Array.isArray(agreement.siteIds)) return false;
-      return possibleSiteIds.some(id => agreement.siteIds.includes(id) || agreement.siteIds.includes(String(id)));
+      
+      // Check if any agreement siteId matches any of our possible IDs
+      return agreement.siteIds.some(agreementSiteId => {
+        const agreementSiteIdStr = String(agreementSiteId);
+        return possibleSiteIdsArray.some(possibleId => {
+          const possibleIdStr = String(possibleId);
+          // Exact match
+          if (agreementSiteIdStr === possibleIdStr) return true;
+          // Case-insensitive match
+          if (agreementSiteIdStr.toLowerCase() === possibleIdStr.toLowerCase()) return true;
+          // Numeric match
+          const agreementNum = Number(agreementSiteId);
+          const possibleNum = Number(possibleId);
+          if (!isNaN(agreementNum) && !isNaN(possibleNum) && agreementNum === possibleNum) return true;
+          return false;
+        });
+      });
     });
     
     const siteTransactions = transactions.filter(transaction => 

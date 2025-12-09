@@ -338,9 +338,10 @@ const Cashier = () => {
     const startDate = new Date(sitePaymentFilter.dateFrom);
     const endDate = new Date(sitePaymentFilter.dateTo);
 
-    // Find active agreements that overlap with the selected date range
+    // Find agreements that overlap with the selected date range (including expired ones, excluding archived)
     const relevantAgreements = agreements.filter(agreement => {
-      if (agreement.status !== 'active') return false;
+      // Exclude only archived agreements
+      if (agreement.status === 'archived') return false;
       
       // Check if agreement has dateRanges or use startDate/endDate
       if (agreement.dateRanges && agreement.dateRanges.length > 0) {

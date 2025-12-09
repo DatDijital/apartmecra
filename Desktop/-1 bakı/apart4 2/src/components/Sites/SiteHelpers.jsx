@@ -185,14 +185,16 @@ const SiteHelpers = ({
       String(site._docId)
     ].filter(id => id != null && id !== undefined);
     
-    // Find all active agreements that include this site
+    // Find all agreements that include this site (not just active ones, but also expired ones with pending payments)
+    // Exclude only archived or deleted agreements
     const siteAgreements = agreements.filter(agreement => {
       if (!agreement.siteIds || !Array.isArray(agreement.siteIds)) return false;
-      if (agreement.status !== 'active') return false;
       if (agreement.isDeleted || agreement.isArchived) return false;
+      // Include active, expired, completed agreements - any that might have pending payments
+      // Exclude only if status is explicitly 'archived' or 'terminated' (but even terminated might have pending payments)
       
       // Check if any site ID matches
-      return agreement.siteIds.some(agreementSiteId => {
+      const siteMatches = agreement.siteIds.some(agreementSiteId => {
         const agreementSiteIdStr = String(agreementSiteId);
         return possibleSiteIds.some(possibleId => {
           const possibleIdStr = String(possibleId);
@@ -200,7 +202,16 @@ const SiteHelpers = ({
                  agreementSiteIdStr.toLowerCase() === possibleIdStr.toLowerCase();
         });
       });
+      
+      return siteMatches;
     });
+    
+    console.log('calculatePendingPayments - Site:', site.id, 'Found agreements:', siteAgreements.length, siteAgreements.map(a => ({
+      id: a.id,
+      status: a.status,
+      siteIds: a.siteIds,
+      companyId: a.companyId
+    })));
     
     // Calculate pending payments for site
     
@@ -211,12 +222,18 @@ const SiteHelpers = ({
       // Get panel count for this site in this agreement
       // Try all possible site IDs
       let panelCount = 0;
+      let matchedSiteId = null;
       for (const possibleId of possibleSiteIds) {
         if (agreement.sitePanelCounts && agreement.sitePanelCounts[possibleId]) {
           panelCount = parseInt(agreement.sitePanelCounts[possibleId]) || 0;
-          if (panelCount > 0) break;
+          if (panelCount > 0) {
+            matchedSiteId = possibleId;
+            break;
+          }
         }
       }
+      
+      console.log('calculatePendingPayments - Agreement:', agreement.id, 'Site:', site.id, 'PanelCount:', panelCount, 'MatchedSiteId:', matchedSiteId);
       
       if (panelCount > 0) {
         // Calculate weekly rate per panel
@@ -293,6 +310,17 @@ const SiteHelpers = ({
         
         // Calculate pending amount (if any)
         const pendingAmount = Math.max(0, siteTotalAmount - totalPaid);
+        
+        console.log('calculatePendingPayments - Agreement:', agreement.id, {
+          panelCount,
+          weeklyRatePerPanel,
+          weeklyTotalAmount,
+          sitePercentage,
+          totalWeeks,
+          siteTotalAmount,
+          totalPaid,
+          pendingAmount
+        });
         
         if (pendingAmount > 0) {
           pendingPayments.push({

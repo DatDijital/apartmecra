@@ -672,22 +672,59 @@ export const getSiteData = async (siteId) => {
       // Found by document ID
       siteRecord = siteDocResult.data;
     } else {
-      // Fallback: some records may have custom ID stored in 'id' field instead of document ID
-      const fallback = await getCollection('sites', [
+      // Fallback 1: search by 'id' field
+      const fallbackById = await getCollection('sites', [
         { field: 'id', operator: '==', value: siteId }
       ]);
 
-      if (fallback.success && fallback.data && fallback.data.length > 0) {
-        siteRecord = fallback.data[0];
+      if (fallbackById.success && fallbackById.data && fallbackById.data.length > 0) {
+        siteRecord = fallbackById.data[0];
       } else {
-        console.error('getSiteData: Site not found for siteId (docId or field id):', siteId);
-      return { site: null, agreements: [], transactions: [] };
+        // Fallback 2: search by 'siteId' field (used for login)
+        const fallbackBySiteId = await getCollection('sites', [
+          { field: 'siteId', operator: '==', value: siteId }
+        ]);
+
+        if (fallbackBySiteId.success && fallbackBySiteId.data && fallbackBySiteId.data.length > 0) {
+          siteRecord = fallbackBySiteId.data[0];
+        } else {
+          // Fallback 3: get all sites and search manually (for edge cases)
+          const allSitesResult = await getCollection('sites');
+          if (allSitesResult.success && allSitesResult.data) {
+            siteRecord = allSitesResult.data.find(site => 
+              site.id === siteId || 
+              site.siteId === siteId || 
+              site._docId === siteId ||
+              String(site.id) === String(siteId) ||
+              String(site.siteId) === String(siteId) ||
+              String(site._docId) === String(siteId)
+            );
+          }
+          
+          if (!siteRecord) {
+            console.error('getSiteData: Site not found for siteId (tried docId, id, siteId fields):', siteId);
+            return { site: null, agreements: [], transactions: [] };
+          }
+        }
       }
     }
     
-    const siteAgreements = agreements.filter(agreement => 
-      agreement.siteIds && agreement.siteIds.includes(siteId)
-    );
+    // Get all possible IDs for this site to match against agreements
+    const possibleSiteIds = [
+      siteId, // Original search ID
+      siteRecord.id,
+      siteRecord.siteId,
+      siteRecord._docId,
+      String(siteRecord.id),
+      String(siteRecord.siteId),
+      String(siteRecord._docId)
+    ].filter(id => id != null && id !== undefined); // Remove null/undefined values
+    
+    // Filter agreements that include any of the possible site IDs
+    const siteAgreements = agreements.filter(agreement => {
+      if (!agreement.siteIds || !Array.isArray(agreement.siteIds)) return false;
+      return possibleSiteIds.some(id => agreement.siteIds.includes(id) || agreement.siteIds.includes(String(id)));
+    });
     
     const siteTransactions = transactions.filter(transaction => 
       (transaction.type === 'expense' && transaction.source?.includes('Site Ödemesi') && transaction.source?.includes(siteRecord.name)) ||

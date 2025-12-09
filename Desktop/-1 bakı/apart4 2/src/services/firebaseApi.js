@@ -716,31 +716,51 @@ export const getSiteData = async (siteId) => {
       
       // Debug: List all available sites to help identify the issue
       if (allSitesResult.success && allSitesResult.data && allSitesResult.data.length > 0) {
-        console.error('getSiteData: Available sites in database:', allSitesResult.data.map(s => ({
-          id: s.id,
-          siteId: s.siteId,
-          _docId: s._docId,
-          name: s.name,
-          email: s.email || `${s.siteId || s.id}@site.local`
-        })));
-        
-        // Try to find similar IDs (partial match)
-        const similarSites = allSitesResult.data.filter(site => {
-          const siteIdStr = String(site.id || '').toLowerCase();
-          const siteSiteIdStr = String(site.siteId || '').toLowerCase();
-          const searchIdLower = String(siteId).toLowerCase();
-          return siteIdStr.includes(searchIdLower) || 
-                 siteSiteIdStr.includes(searchIdLower) ||
-                 searchIdLower.includes(siteIdStr) ||
-                 searchIdLower.includes(siteSiteIdStr);
+        console.error('getSiteData: Available sites in database (total:', allSitesResult.data.length, '):');
+        allSitesResult.data.forEach((s, index) => {
+          console.error(`  [${index}] id: "${s.id}", siteId: "${s.siteId}", _docId: "${s._docId}", name: "${s.name}"`);
         });
         
-        if (similarSites.length > 0) {
-          console.warn('getSiteData: Found similar sites (partial match):', similarSites.map(s => ({
+        // Check if any site has yak34 in any field
+        const yak34Sites = allSitesResult.data.filter(site => {
+          const idStr = String(site.id || '');
+          const siteIdStr = String(site.siteId || '');
+          const docIdStr = String(site._docId || '');
+          const searchStr = String(siteId);
+          return idStr === searchStr || siteIdStr === searchStr || docIdStr === searchStr ||
+                 idStr.toLowerCase() === searchStr.toLowerCase() ||
+                 siteIdStr.toLowerCase() === searchStr.toLowerCase() ||
+                 docIdStr.toLowerCase() === searchStr.toLowerCase();
+        });
+        
+        if (yak34Sites.length > 0) {
+          console.warn('getSiteData: Found exact or case-insensitive matches:', yak34Sites.map(s => ({
             id: s.id,
             siteId: s.siteId,
+            _docId: s._docId,
             name: s.name
           })));
+        } else {
+          console.warn('getSiteData: No exact match found. Searching for sites containing "yak34"...');
+          const partialMatches = allSitesResult.data.filter(site => {
+            const idStr = String(site.id || '').toLowerCase();
+            const siteIdStr = String(site.siteId || '').toLowerCase();
+            const searchStr = String(siteId).toLowerCase();
+            // Only match if one contains the other (not just any substring)
+            return (idStr.includes(searchStr) && searchStr.length >= 3) || 
+                   (siteIdStr.includes(searchStr) && searchStr.length >= 3) ||
+                   (searchStr.includes(idStr) && idStr.length >= 3) ||
+                   (searchStr.includes(siteIdStr) && siteIdStr.length >= 3);
+          });
+          
+          if (partialMatches.length > 0 && partialMatches.length <= 5) {
+            console.warn('getSiteData: Found partial matches (showing max 5):', partialMatches.map(s => ({
+              id: s.id,
+              siteId: s.siteId,
+              _docId: s._docId,
+              name: s.name
+            })));
+          }
         }
       } else {
         console.error('getSiteData: No sites found in database at all!');

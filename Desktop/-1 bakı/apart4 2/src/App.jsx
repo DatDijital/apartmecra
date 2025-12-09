@@ -1,25 +1,39 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useRef } from 'react';
+import { useRef, lazy, Suspense } from 'react';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import SiteDashboard from './pages/SiteDashboard';
-import CompanyDashboard from './pages/CompanyDashboard';
-import CompanyOrders from './pages/CompanyOrders';
-import ObserverDashboard from './pages/ObserverDashboard';
-import PersonnelDashboard from './pages/PersonnelDashboard';
-import Sites from './pages/Sites';
-import Companies from './pages/Companies';
-import Agreements from './pages/Agreements';
-import Cashier from './pages/Cashier';
-import PartnerShares from './pages/NewPartnerShares';
-import Settings from './pages/NewSettings';
-import CurrentStatus from './pages/CurrentStatus';
-import SitesMap from './pages/SitesMap';
 import PrivateRoute from './components/PrivateRoute';
 import BootstrapLayout from './components/BootstrapLayout';
 import withObserverRestrictions from './components/withObserverRestrictions';
 import ErrorBoundary from './components/ErrorBoundary';
 import { getUser } from './utils/auth';
+
+// Lazy load pages for code splitting - reduces initial bundle size
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const SiteDashboard = lazy(() => import('./pages/SiteDashboard'));
+const CompanyDashboard = lazy(() => import('./pages/CompanyDashboard'));
+const CompanyOrders = lazy(() => import('./pages/CompanyOrders'));
+const ObserverDashboard = lazy(() => import('./pages/ObserverDashboard'));
+const PersonnelDashboard = lazy(() => import('./pages/PersonnelDashboard'));
+const Sites = lazy(() => import('./pages/Sites'));
+const Companies = lazy(() => import('./pages/Companies'));
+const Agreements = lazy(() => import('./pages/Agreements'));
+const Cashier = lazy(() => import('./pages/Cashier'));
+const PartnerShares = lazy(() => import('./pages/NewPartnerShares'));
+const Settings = lazy(() => import('./pages/NewSettings'));
+const CurrentStatus = lazy(() => import('./pages/CurrentStatus'));
+const SitesMap = lazy(() => import('./pages/SitesMap'));
+
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+    <div className="text-center">
+      <div className="spinner-border text-primary" role="status">
+        <span className="visually-hidden">Yükleniyor...</span>
+      </div>
+      <p className="mt-3 text-muted">Sayfa yükleniyor...</p>
+    </div>
+  </div>
+);
 
 // Apply observer restrictions to pages that need them
 const ObserverRestrictedSites = withObserverRestrictions(Sites);
@@ -39,23 +53,47 @@ const DashboardRoute = () => {
   const user = userRef.current;
   
   if (user && user.role === 'site_user') {
-    return <SiteDashboard />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <SiteDashboard />
+      </Suspense>
+    );
   }
   if (user && user.role === 'observer') {
     // Check if observer has a specific site assigned
     if (user.siteId) {
-      return <ObserverRestrictedSiteDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <ObserverRestrictedSiteDashboard />
+        </Suspense>
+      );
     }
     // If no specific site, show general observer dashboard
-    return <ObserverDashboard />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <ObserverDashboard />
+      </Suspense>
+    );
   }
   if (user && user.role === 'company') {
-    return <CompanyDashboard />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <CompanyDashboard />
+      </Suspense>
+    );
   }
   if (user && user.role === 'personnel') {
-    return <PersonnelDashboard />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PersonnelDashboard />
+      </Suspense>
+    );
   }
-  return <Dashboard />;
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Dashboard />
+    </Suspense>
+  );
 };
 
 function App() {
@@ -77,69 +115,89 @@ function App() {
           <Route path="/company-dashboard" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <CompanyDashboard />
+                <Suspense fallback={<PageLoader />}>
+                  <CompanyDashboard />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/company-orders" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <CompanyOrders />
+                <Suspense fallback={<PageLoader />}>
+                  <CompanyOrders />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/sites" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <ObserverRestrictedSites />
+                <Suspense fallback={<PageLoader />}>
+                  <ObserverRestrictedSites />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/companies" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <ObserverRestrictedCompanies />
+                <Suspense fallback={<PageLoader />}>
+                  <ObserverRestrictedCompanies />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/agreements" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <ObserverRestrictedAgreements />
+                <Suspense fallback={<PageLoader />}>
+                  <ObserverRestrictedAgreements />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/cashier" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <ObserverRestrictedCashier />
+                <Suspense fallback={<PageLoader />}>
+                  <ObserverRestrictedCashier />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/partner-shares" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <ObserverRestrictedPartnerShares />
+                <Suspense fallback={<PageLoader />}>
+                  <ObserverRestrictedPartnerShares />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/settings" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <Settings />
+                <Suspense fallback={<PageLoader />}>
+                  <Settings />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/current-status" element={
             <PrivateRoute>
               <BootstrapLayout>
-                <ObserverRestrictedCurrentStatus />
+                <Suspense fallback={<PageLoader />}>
+                  <ObserverRestrictedCurrentStatus />
+                </Suspense>
               </BootstrapLayout>
             </PrivateRoute>
           } />
           <Route path="/sites-map" element={
             <PrivateRoute>
-              <SitesMap />
+              <Suspense fallback={<PageLoader />}>
+                <SitesMap />
+              </Suspense>
             </PrivateRoute>
           } />
           </Routes>

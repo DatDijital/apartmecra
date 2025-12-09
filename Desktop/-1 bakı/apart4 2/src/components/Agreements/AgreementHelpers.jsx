@@ -1,4 +1,6 @@
 import jsPDF from 'jspdf';
+import logger from '../../utils/logger';
+import { safeFind, safeFilter, safeMap, safeIncludes, safeGet } from '../../utils/safeAccess';
 
 const AgreementHelpers = ({
   companies = [],
@@ -11,14 +13,14 @@ const AgreementHelpers = ({
   // Get company name by ID
   const getCompanyName = (companyId) => {
     // Handle both string and number IDs by converting to string for comparison
-    const company = companies.find(c => String(c.id) === String(companyId));
+    const company = safeFind(companies, c => String(c.id) === String(companyId));
     return company ? company.name : 'Bilinmeyen Firma';
   };
 
   // Get company by ID
   const getCompany = (companyId) => {
     // Handle both string and number IDs by converting to string for comparison
-    const company = companies.find(c => String(c.id) === String(companyId));
+    const company = safeFind(companies, c => String(c.id) === String(companyId));
     return company;
   };
 
@@ -774,7 +776,7 @@ const AgreementHelpers = ({
 
       return true;
     } catch (error) {
-      console.error('Error generating agreement PDF:', error);
+      logger.error('Error generating agreement PDF:', error);
       return false;
     }
   };
@@ -1126,7 +1128,7 @@ const AgreementHelpers = ({
 
       return true;
     } catch (error) {
-      console.error('Error generating contract PDF:', error);
+      logger.error('Error generating contract PDF:', error);
       return false;
     }
   };

@@ -4,6 +4,8 @@ import { getSites, updateSite } from '../../services/api';
 import { getCompanies, updateCompany } from '../../services/api';
 import { createTransaction } from '../../services/api';
 import { createLog, getUsers, createUser, updateUser } from '../../services/api';
+import logger from '../../utils/logger';
+import { safeFilter, safeMap, safeFind } from '../../utils/safeAccess';
 import AgreementHandlers from './AgreementHandlers';
 import AgreementUIHandlers from './AgreementUIHandlers';
 import AgreementHelpers from './AgreementHelpers';
@@ -21,7 +23,7 @@ const AgreementsMain = () => {
   // Helper function to remove duplicates from agreements array
   const removeDuplicateAgreements = (agreementsList) => {
     if (!Array.isArray(agreementsList)) {
-      console.warn('removeDuplicateAgreements: agreementsList is not an array', agreementsList);
+      logger.warn('removeDuplicateAgreements: agreementsList is not an array', agreementsList);
       return [];
     }
     
@@ -41,13 +43,13 @@ const AgreementsMain = () => {
       
       // If no unique key, skip this agreement (but log it)
       if (!uniqueKey) {
-        console.warn('Agreement has no _docId or id:', agreement);
+        logger.warn('Agreement has no _docId or id:', agreement);
         continue;
       }
       
       // Check if we've seen this key before
       if (seenKeys.has(uniqueKey)) {
-        console.log('Duplicate agreement found:', uniqueKey);
+        logger.log('Duplicate agreement found:', uniqueKey);
         continue; // Skip duplicate
       }
       
@@ -105,22 +107,22 @@ const AgreementsMain = () => {
   // Validate that required API functions are available
   useEffect(() => {
     if (typeof createTransaction !== 'function') {
-      console.error('createTransaction is not a function or is undefined');
+      logger.error('createTransaction is not a function or is undefined');
     }
     if (typeof updateAgreement !== 'function') {
-      console.error('updateAgreement is not a function or is undefined');
+      logger.error('updateAgreement is not a function or is undefined');
     }
     if (typeof updateSite !== 'function') {
-      console.error('updateSite is not a function or is undefined');
+      logger.error('updateSite is not a function or is undefined');
     }
     if (typeof createLog !== 'function') {
-      console.error('createLog is not a function or is undefined');
+      logger.error('createLog is not a function or is undefined');
     }
     if (typeof window.showAlert !== 'function') {
-      console.warn('window.showAlert is not available, custom alerts may not work');
+      logger.warn('window.showAlert is not available, custom alerts may not work');
     }
     if (typeof window.showConfirm !== 'function') {
-      console.warn('window.showConfirm is not available, custom confirms may not work');
+      logger.warn('window.showConfirm is not available, custom confirms may not work');
     }
   }, []);
 
@@ -162,7 +164,7 @@ const AgreementsMain = () => {
             const agreementIdToUse = agreement._docId || agreement.id;
             if (!agreementIdToUse) {
               errorCount++;
-              console.error('Agreement has no ID or _docId:', agreement);
+              logger.error('Agreement has no ID or _docId:', agreement);
               return { success: false, agreementId: null, error: 'Agreement has no ID' };
             }
             
@@ -177,11 +179,11 @@ const AgreementsMain = () => {
               return { success: true, agreementId: agreementIdToUse };
             } else {
               errorCount++;
-              console.error('Failed to archive agreement:', agreementIdToUse, result);
+              logger.error('Failed to archive agreement:', agreementIdToUse, result);
               return { success: false, agreementId: agreementIdToUse, error: result?.error || 'Unknown error' };
             }
           } catch (error) {
-            console.error('Error archiving agreement:', agreement.id || agreement._docId, error);
+            logger.error('Error archiving agreement:', agreement.id || agreement._docId, error);
             errorCount++;
             return { success: false, agreementId: agreement._docId || agreement.id, error: error.message };
           }
@@ -201,7 +203,7 @@ const AgreementsMain = () => {
           'info'
         );
       } catch (error) {
-        console.error('Error deleting all agreements:', error);
+        logger.error('Error deleting all agreements:', error);
         await window.showAlert(
           'Hata',
           'Anlaşmalar arşivlenirken bir hata oluştu: ' + error.message,
@@ -271,22 +273,22 @@ const AgreementsMain = () => {
         hasFetchedRef.current = true;
         setLoading(true);
         
-        console.log('Starting to fetch data...');
+        logger.log('Starting to fetch data...');
         const [agreementsData, sitesData, companiesData] = await Promise.all([
           getAgreements(),
           getSites(),
           getCompanies()
         ]);
         
-        console.log('Fetched agreements data:', agreementsData);
-        console.log('Agreements count:', agreementsData?.length || 0);
-        console.log('Agreements data type:', Array.isArray(agreementsData) ? 'array' : typeof agreementsData);
+        logger.log('Fetched agreements data:', agreementsData);
+        logger.log('Agreements count:', agreementsData?.length || 0);
+        logger.log('Agreements data type:', Array.isArray(agreementsData) ? 'array' : typeof agreementsData);
         if (agreementsData && agreementsData.length > 0) {
-          console.log('First agreement sample:', agreementsData[0]);
+          logger.log('First agreement sample:', agreementsData[0]);
         }
         
         // Initialize sites with payment properties
-        const initializedSites = sitesData.map(site => ({
+        const initializedSites = safeMap(sitesData, site => ({
           ...site,
           pendingPayments: site.pendingPayments || [],
           hasPendingPayment: (site.pendingPayments && site.pendingPayments.length > 0) || false
@@ -294,10 +296,10 @@ const AgreementsMain = () => {
         
         // Remove duplicates from agreements data using helper function
         const uniqueAgreements = removeDuplicateAgreements(agreementsData || []);
-        console.log('Unique agreements after filtering:', uniqueAgreements.length);
+        logger.log('Unique agreements after filtering:', uniqueAgreements.length);
         
         // Remove duplicates from sites data (by id or _docId)
-        const uniqueSites = initializedSites.filter((site, index, self) => 
+        const uniqueSites = safeFilter(initializedSites, (site, index, self) => 
           index === self.findIndex(s => 
             (s.id === site.id && s._docId === site._docId) ||
             (s.id && site.id && s.id === site.id) ||
@@ -308,7 +310,7 @@ const AgreementsMain = () => {
         // Remove duplicates from companies data (by id or _docId)
         const seenCompanyIds = new Set();
         const seenCompanyDocIds = new Set();
-        const uniqueCompanies = companiesData.filter(company => {
+        const uniqueCompanies = safeFilter(companiesData, company => {
           if (!company) return false;
           
           // Check by _docId first (most reliable)
@@ -335,13 +337,13 @@ const AgreementsMain = () => {
           return false;
         });
         
-        console.log('Setting agreements:', uniqueAgreements.length);
+        logger.log('Setting agreements:', uniqueAgreements.length);
         setAgreementsUnique(uniqueAgreements);
         setSites(uniqueSites);
         setCompanies(uniqueCompanies);
-        console.log('Data fetch completed. Agreements state will be updated.');
+        logger.log('Data fetch completed. Agreements state will be updated.');
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logger.error('Error fetching data:', error);
         hasFetchedRef.current = false; // Reset on error to allow retry
       } finally {
         setLoading(false);

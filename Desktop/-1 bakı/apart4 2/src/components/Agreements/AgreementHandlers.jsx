@@ -1,4 +1,6 @@
 import { deleteAgreement } from '../../services/api.js';
+import logger from '../../utils/logger';
+import { safeFind, safeFilter, safeMap, safeIncludes } from '../../utils/safeAccess';
 
 const AgreementHandlers = ({
   agreements, setAgreements,
@@ -28,7 +30,7 @@ const AgreementHandlers = ({
   // Function to show custom alert modals
   const showAlertModal = (title, message, type = 'info') => {
     // This would typically update state in the parent component
-    console.log('Alert:', title, message, type);
+    logger.log('Alert:', title, message, type);
   };
 
   // Function to close alert modal
@@ -60,13 +62,13 @@ const AgreementHandlers = ({
           
           if (savedAgreement) {
             // Update the agreements state
-            setAgreements(agreements.map(a => a.id === agreement.id ? savedAgreement : a));
+            setAgreements(safeMap(agreements, a => a.id === agreement.id ? savedAgreement : a));
             
             // Log the action
-            console.log(`Anlaşma tamamlandı: ${getCompanyName(agreement.companyId)} (ID: ${agreement.id})`);
+            logger.log(`Anlaşma tamamlandı: ${getCompanyName(agreement.companyId)} (ID: ${agreement.id})`);
             
             // Check if the company associated with this agreement has any other active agreements
-            const companyAgreements = agreements.filter(a => 
+            const companyAgreements = safeFilter(agreements, a => 
               String(a.companyId) === String(agreement.companyId) && 
               a.status === 'active' && 
               a.id !== agreement.id
@@ -74,23 +76,23 @@ const AgreementHandlers = ({
             
             // If the company has no other active agreements, mark the company as inactive
             if (companyAgreements.length === 0) {
-              const company = companies.find(c => String(c.id) === String(agreement.companyId));
+              const company = safeFind(companies, c => String(c.id) === String(agreement.companyId));
               if (company && company.status === 'active') {
                 const updatedCompany = { ...company, status: 'inactive' };
                 const savedCompany = await updateCompany(company.id, updatedCompany);
                 
                 if (savedCompany) {
                   // Update the companies state
-                  setCompanies(companies.map(c => c.id === company.id ? savedCompany : c));
+                  setCompanies(safeMap(companies, c => c.id === company.id ? savedCompany : c));
                   
                   // Log the action
-                  console.log(`Firma otomatik olarak pasif yapıldı: ${company.name} (ID: ${company.id})`);
+                  logger.log(`Firma otomatik olarak pasif yapıldı: ${company.name} (ID: ${company.id})`);
                 }
               }
             }
           }
         } catch (error) {
-          console.error('Error updating agreement status:', error);
+          logger.error('Error updating agreement status:', error);
         }
       }
     }
@@ -104,7 +106,7 @@ const AgreementHandlers = ({
 
   const handleArchiveAgreement = async (agreementId) => {
     // Find the agreement to archive
-    const agreement = agreements.find(a => a.id === agreementId);
+    const agreement = safeFind(agreements, a => a.id === agreementId);
     if (!agreement) {
       // Check if window.showAlert is available, if not use console.log as fallback
       if (typeof window.showAlert === 'function') {
@@ -140,7 +142,7 @@ const AgreementHandlers = ({
         
         if (isArchived) {
           // Remove agreement from state
-          setAgreements(agreements.filter(a => a.id !== agreementId));
+          setAgreements(safeFilter(agreements, a => a.id !== agreementId));
           
           // Log the action
           try {
@@ -149,7 +151,7 @@ const AgreementHandlers = ({
               action: `Anlaşma arşivlendi: ${getCompanyName(agreement.companyId)} (${agreement.id})`
             });
           } catch (error) {
-            console.error('Error creating log:', error);
+            logger.error('Error creating log:', error);
           }
           
           // Trigger agreement change event to refresh other pages
@@ -163,14 +165,14 @@ const AgreementHandlers = ({
               'success'
             );
           } else {
-            console.log('Başarılı: Anlaşma başarıyla arşivlendi.');
+            logger.log('Başarılı: Anlaşma başarıyla arşivlendi.');
             alert('Başarılı: Anlaşma başarıyla arşivlendi.');
           }
         } else {
           throw new Error('Failed to archive agreement');
         }
       } catch (error) {
-        console.error('Error archiving agreement:', error);
+        logger.error('Error archiving agreement:', error);
         // Show error message - check if window.showAlert is available
         if (typeof window.showAlert === 'function') {
           await window.showAlert(
@@ -179,7 +181,7 @@ const AgreementHandlers = ({
             'error'
           );
         } else {
-          console.error('Hata: Anlaşma arşivlenirken bir hata oluştu:', error.message || 'Bilinmeyen hata');
+          logger.error('Hata: Anlaşma arşivlenirken bir hata oluştu:', error.message || 'Bilinmeyen hata');
           alert('Hata: Anlaşma arşivlenirken bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
         }
       }
@@ -188,7 +190,7 @@ const AgreementHandlers = ({
 
   const handleDeleteAgreement = async (agreementId) => {
     // Find the agreement to delete
-    const agreement = agreements.find(a => a.id === agreementId);
+    const agreement = safeFind(agreements, a => a.id === agreementId);
     if (!agreement) {
       if (typeof window.showAlert === 'function') {
         await window.showAlert(
@@ -222,7 +224,7 @@ const AgreementHandlers = ({
         
         if (isDeleted) {
           // Remove agreement from state
-          setAgreements(agreements.filter(a => a.id !== agreementId));
+          setAgreements(safeFilter(agreements, a => a.id !== agreementId));
           
           // Log the action
           try {
@@ -231,7 +233,7 @@ const AgreementHandlers = ({
               action: `Anlaşma silindi: ${getCompanyName(agreement.companyId)} (${agreement.id})`
             });
           } catch (error) {
-            console.error('Error creating log:', error);
+            logger.error('Error creating log:', error);
           }
           
           // Trigger agreement change event to refresh other pages
@@ -245,14 +247,14 @@ const AgreementHandlers = ({
               'success'
             );
           } else {
-            console.log('Başarılı: Anlaşma başarıyla silindi.');
+            logger.log('Başarılı: Anlaşma başarıyla silindi.');
             alert('Başarılı: Anlaşma başarıyla silindi.');
           }
         } else {
           throw new Error('Failed to delete agreement');
         }
       } catch (error) {
-        console.error('Error deleting agreement:', error);
+        logger.error('Error deleting agreement:', error);
         if (typeof window.showAlert === 'function') {
           await window.showAlert(
             'Hata',
@@ -260,7 +262,7 @@ const AgreementHandlers = ({
             'error'
           );
         } else {
-          console.error('Hata: Anlaşma silinirken bir hata oluştu.');
+          logger.error('Hata: Anlaşma silinirken bir hata oluştu.');
           alert('Hata: Anlaşma silinirken bir hata oluştu.');
         }
       }
@@ -269,7 +271,7 @@ const AgreementHandlers = ({
 
   const handleRenewAgreement = async (agreement) => {
     // In a real implementation, you would show a confirmation dialog and call the API
-    console.log('Renew agreement:', agreement);
+    logger.log('Renew agreement:', agreement);
   };
 
   const handlePaymentAgreement = async (agreement) => {
@@ -324,8 +326,9 @@ const AgreementHandlers = ({
           const sitePayments = [];
           
           // For each site in the agreement
-          for (const siteId of agreement.siteIds) {
-            const site = sites.find(s => s.id === siteId);
+          const siteIdsArray = Array.isArray(agreement.siteIds) ? agreement.siteIds : [];
+          for (const siteId of siteIdsArray) {
+            const site = safeFind(sites, s => s.id === siteId);
             if (site) {
               // Get panel count for this site in the agreement
               const panelCount = agreement.sitePanelCounts?.[siteId] || 0;
@@ -371,7 +374,7 @@ const AgreementHandlers = ({
               try {
                 await updateSite(site.id, updatedSites[siteIndex]);
               } catch (error) {
-                console.error('Error updating site with pending payment:', error);
+                logger.error('Error updating site with pending payment:', error);
               }
             }
           }
@@ -389,9 +392,9 @@ const AgreementHandlers = ({
           // Update agreement in backend
           try {
             await updateAgreement(agreement.id, updatedAgreement);
-            setAgreements(agreements.map(a => a.id === agreement.id ? updatedAgreement : a));
+            setAgreements(safeMap(agreements, a => a.id === agreement.id ? updatedAgreement : a));
           } catch (error) {
-            console.error('Error updating agreement payment status:', error);
+            logger.error('Error updating agreement payment status:', error);
           }
           
           // Log the action
@@ -401,7 +404,7 @@ const AgreementHandlers = ({
               action: `Anlaşma ödemesi alındı: ${getCompanyName(agreement.companyId)} (${formatCurrency(agreement.totalAmount)})`
             });
           } catch (error) {
-            console.error('Error creating log:', error);
+            logger.error('Error creating log:', error);
           }
           
           // Show success message
@@ -445,7 +448,7 @@ const AgreementHandlers = ({
     const isAlreadyCreditBased = agreement.creditPaymentReceived;
     
     // Find the company for this agreement
-    const company = companies.find(c => c.id === agreement.companyId);
+    const company = safeFind(companies, c => c.id === agreement.companyId);
     if (!company) {
       await window.showAlert(
         'Hata',
@@ -508,16 +511,16 @@ const AgreementHandlers = ({
           // Update company in backend
           try {
             await updateCompany(company.id, updatedCompany);
-            setCompanies(companies.map(c => c.id === company.id ? updatedCompany : c));
+            setCompanies(safeMap(companies, c => c.id === company.id ? updatedCompany : c));
           } catch (error) {
-            console.error('Error updating company credit:', error);
+            logger.error('Error updating company credit:', error);
             throw new Error('Firma kredisi güncellenirken hata oluştu');
           }
         }
         
         // 2. For credit payments, we don't create a transaction that adds to the cashier
         // Instead, we only log the credit payment for record keeping
-        console.log(`Kredi ile ödeme alındı: ${getCompanyName(agreement.companyId)} (${formatCurrency(expectedAmount)})${isAlreadyCreditBased ? ' (önceden ödenmiş)' : ''}`);
+        logger.log(`Kredi ile ödeme alındı: ${getCompanyName(agreement.companyId)} (${formatCurrency(expectedAmount)})${isAlreadyCreditBased ? ' (önceden ödenmiş)' : ''}`);
         
         // 3. Calculate and distribute payments to sites
         const sitePayments = [];
@@ -587,9 +590,9 @@ const AgreementHandlers = ({
         // Update agreement in backend
         try {
           await updateAgreement(agreement.id, updatedAgreement);
-          setAgreements(agreements.map(a => a.id === agreement.id ? updatedAgreement : a));
+          setAgreements(safeMap(agreements, a => a.id === agreement.id ? updatedAgreement : a));
         } catch (error) {
-          console.error('Error updating agreement credit payment status:', error);
+          logger.error('Error updating agreement credit payment status:', error);
         }
         
         // 5. Log the action
@@ -652,7 +655,7 @@ const AgreementHandlers = ({
         
         if (savedAgreement) {
           // Update agreement in state
-          setAgreements(agreements.map(a => a.id === agreement.id ? savedAgreement : a));
+          setAgreements(safeMap(agreements, a => a.id === agreement.id ? savedAgreement : a));
           
           // Log the action
           try {
@@ -661,7 +664,7 @@ const AgreementHandlers = ({
               action: `Anlaşma erken sonlandırıldı: ${getCompanyName(agreement.companyId)} (${agreement.id})`
             });
           } catch (error) {
-            console.error('Error creating log:', error);
+            logger.error('Error creating log:', error);
           }
           
           // Show success message
@@ -718,24 +721,24 @@ const AgreementHandlers = ({
       const selectedSitesInRange = (sitePanelSelections[rangeKey] && sitePanelSelections[rangeKey].sites) || [];
       
       for (const siteId of selectedSitesInRange) {
-        const siteSelections = sitePanelSelections[siteId];
-        console.log('Site selections for site', siteId, ':', siteSelections);
-        if (siteSelections) {
-          for (const blockKey in siteSelections) {
-            console.log('Block', blockKey, 'has panels:', siteSelections[blockKey]);
+      const siteSelections = sitePanelSelections[siteId];
+      console.log('Site selections for site', siteId, ':', siteSelections);
+      if (siteSelections) {
+        for (const blockKey in siteSelections) {
+          console.log('Block', blockKey, 'has panels:', siteSelections[blockKey]);
             const blockSelections = siteSelections[blockKey];
             if (Array.isArray(blockSelections)) {
               // Old format: array of panel keys
               if (blockSelections.length > 0) {
-                hasPanelSelections = true;
-                break;
-              }
+            hasPanelSelections = true;
+            break;
+          }
             } else if (typeof blockSelections === 'object') {
               // New format: object with date range keys
               if (blockSelections[rangeKey] && Array.isArray(blockSelections[rangeKey]) && blockSelections[rangeKey].length > 0) {
                 hasPanelSelections = true;
                 break;
-              }
+        }
             }
             if (hasPanelSelections) break;
           }
@@ -754,7 +757,7 @@ const AgreementHandlers = ({
     
     try {
       // Calculate agreement details
-      console.log('Calculating agreement details');
+      logger.log('Calculating agreement details');
       // Birden fazla tarih aralığı için toplam hafta hesapla
       const totalWeeks = helpers.calculateTotalWeeksFromRanges(dateRanges);
       const totalPanels = Object.values(sitePanelCounts || {}).reduce(
@@ -783,7 +786,7 @@ const AgreementHandlers = ({
       }
 
       if (!weeklyRate || !totalAmount) {
-        console.log('Weekly rate or total amount is invalid');
+        logger.log('Weekly rate or total amount is invalid');
         return;
       }
       
@@ -816,7 +819,7 @@ const AgreementHandlers = ({
       }
       // Don't add isOrder field if it's undefined (new agreement, not an order)
       
-      console.log('Agreement data to be sent:', agreementData);
+      logger.log('Agreement data to be sent:', agreementData);
       
       let newAgreement = null;
       
@@ -824,7 +827,7 @@ const AgreementHandlers = ({
         // Update existing agreement
         const updatedAgreement = await updateAgreement(currentAgreement.id, agreementData);
         if (updatedAgreement) {
-          setAgreements(agreements.map(a => a.id === currentAgreement.id ? updatedAgreement : a));
+          setAgreements(safeMap(agreements, a => a.id === currentAgreement.id ? updatedAgreement : a));
           setShowAddForm(false);
           newAgreement = updatedAgreement;
           
@@ -919,7 +922,7 @@ const AgreementHandlers = ({
           if (company) {
             // Check if a user already exists for this company
             const existingUsers = await getUsers();
-            const existingCompanyUser = existingUsers.find(user => 
+            const existingCompanyUser = safeFind(existingUsers, user => 
               (user.role === 'company' || user.role === 'company_user') && String(user.companyId) === String(company.id)
             );
             
@@ -933,7 +936,7 @@ const AgreementHandlers = ({
               
               const savedUser = await updateUser(existingCompanyUser.id, updatedUser);
               if (savedUser) {
-                console.log(`Firma kullanıcısı otomatik olarak aktif yapıldı: ${company.name}`);
+                logger.log(`Firma kullanıcısı otomatik olarak aktif yapıldı: ${company.name}`);
                 
                 // Log the action
                 await createLog({
@@ -955,7 +958,7 @@ const AgreementHandlers = ({
                 // Update companies state with duplicate prevention
                 setCompanies(prevCompanies => {
                   // Remove old company entry
-                  const filtered = prevCompanies.filter(c => 
+                  const filtered = safeFilter(prevCompanies, c => 
                     String(c.id) !== String(company.id) && 
                     String(c._docId) !== String(company.id) &&
                     (c._docId ? String(c._docId) !== String(company._docId) : true)

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import AgreementSummary from './AgreementSummary';
+import useResponsive from '../../hooks/useResponsive';
+import { safeFilter, safeMap } from '../../utils/safeAccess';
 
 // Helper function to generate panel name
 const generatePanelName = (siteId, blockLabel, panelNumber) => {
@@ -29,26 +31,36 @@ const AgreementFormModal = ({
   setSiteBlockSelections,
   setSitePanelSelections
 }) => {
+  const { isMobile, isTablet } = useResponsive();
+
   if (!showAddForm) return null;
 
   const dateRanges = formData.dateRanges || [{ startDate: '', endDate: '' }];
 
-  // Group sites by neighborhood
-  const regularSites = (sites || []).filter(site => site.siteType !== 'business_center');
-  const businessCenters = (sites || []).filter(site => site.siteType === 'business_center');
-  const sitesByNeighborhood = (regularSites || []).reduce((acc, site) => {
-    const neighborhood = site.neighborhood || 'Diğer';
-    if (!acc[neighborhood]) {
-      acc[neighborhood] = [];
-    }
-    acc[neighborhood].push(site);
-    return acc;
-  }, {});
-  const sortedNeighborhoods = Object.keys(sitesByNeighborhood || {}).sort();
+  // Memoize expensive calculations
+  const { regularSites, businessCenters, sitesByNeighborhood, sortedNeighborhoods } = useMemo(() => {
+    const regular = safeFilter(sites, site => site.siteType !== 'business_center');
+    const business = safeFilter(sites, site => site.siteType === 'business_center');
+    const byNeighborhood = regular.reduce((acc, site) => {
+      const neighborhood = site.neighborhood || 'Diğer';
+      if (!acc[neighborhood]) {
+        acc[neighborhood] = [];
+      }
+      acc[neighborhood].push(site);
+      return acc;
+    }, {});
+    const sorted = Object.keys(byNeighborhood).sort();
+    return {
+      regularSites: regular,
+      businessCenters: business,
+      sitesByNeighborhood: byNeighborhood,
+      sortedNeighborhoods: sorted
+    };
+  }, [sites]);
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-      <div className="modal-dialog modal-xl">
+      <div className={`modal-dialog ${isMobile ? 'modal-fullscreen' : isTablet ? 'modal-lg' : 'modal-xl'}`}>
         <div className="modal-content agreement-modal-content">
           <div className="modal-header bg-primary text-white rounded-top">
             <h5 className="modal-title d-flex align-items-center">

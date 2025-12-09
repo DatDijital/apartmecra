@@ -627,14 +627,14 @@ export const createUser = async (userData) => {
   await initializeFirebase();
   
   // Kullanıcı oluşturma tamamen backend/Functions'a devredildi.
-  // Frontend üzerinden sadece personel kullanıcıları oluşturulabilir.
-  if (userData.role === 'personnel' && userData.username && userData.password) {
+  // Frontend üzerinden personel ve observer kullanıcıları oluşturulabilir.
+  if ((userData.role === 'personnel' || userData.role === 'observer') && userData.username && userData.password) {
     const created = await createPersonnelUser(userData.username, userData.password, userData);
     return created;
   }
 
-  console.error('createUser: Only personnel users can be created from frontend. Requested role:', userData.role);
-  throw new Error('Sadece personel kullanıcıları bu ekrandan oluşturulabilir. Firma ve Site kullanıcıları otomatik olarak eklenir.');
+  console.error('createUser: Only personnel and observer users can be created from frontend. Requested role:', userData.role);
+  throw new Error('Sadece personel ve gözlemci kullanıcıları bu ekrandan oluşturulabilir. Firma ve Site kullanıcıları otomatik olarak eklenir.');
 };
 
 export const updateUser = async (userId, userData) => {

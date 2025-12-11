@@ -653,14 +653,7 @@ const PartnerShares = () => {
     }
 
     // Check if there's enough money in the cashier
-    if (amount > totalCashBalance) {
-      await window.showAlert(
-        'Yetersiz Bakiye',
-        `Kasada yeterli para bulunmamaktadır. Kasadaki tutar: ${formatCurrency(totalCashBalance)}, Dağıtım miktarı: ${formatCurrency(amount)}`,
-        'warning'
-      );
-      return;
-    }
+    // Kasa bakiyesi kontrolü kaldırıldı - kasa eksiye düşebilir
 
     // Set distributing state to prevent multiple clicks
     setIsDistributing(true);

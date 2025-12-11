@@ -50,28 +50,7 @@ const SitesPaymentHandlers = ({
         throw new Error('Missing required payment data: site ID, agreement ID, or amount');
       }
       
-      // Calculate total cash balance
-      const totalCashBalance = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-      
-      // Check if there's enough cash in the cashier
-      if (totalCashBalance < payment.amount) {
-        const errorMessage = `Kasada yeterli bakiye bulunmamaktadır. Gerekli tutar: ${formatCurrency ? formatCurrency(payment.amount) : payment.amount + '₺'}, Kasa bakiyesi: ${formatCurrency ? formatCurrency(totalCashBalance) : totalCashBalance + '₺'}`;
-        // Check if window.showAlert is available, if not use a fallback
-        if (typeof window.showAlert === 'function') {
-          await window.showAlert(
-            'Yetersiz Bakiye',
-            errorMessage,
-            'warning'
-          );
-        } else {
-          alert(errorMessage);
-        }
-        // Close payment selection modal if it was open
-        setShowPaymentSelection(false);
-        setSelectedSiteForPayment(null);
-        setPendingPayments([]);
-        return;
-      }
+      // Kasa bakiyesi kontrolü kaldırıldı - kasa eksiye düşebilir
 
       // Create expense transaction for the site payment
       const expenseData = {

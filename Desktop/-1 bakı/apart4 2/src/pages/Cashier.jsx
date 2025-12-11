@@ -465,17 +465,7 @@ const Cashier = () => {
         return;
       }
 
-      // Check cash balance
-      const totalCashBalance = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-      
-      if (totalCashBalance < result.totalAmount) {
-        await window.showAlert?.(
-          'Yetersiz Bakiye',
-          `Kasada yeterli bakiye bulunmamaktadır. Gerekli tutar: ${formatCurrency(result.totalAmount)}, Kasa bakiyesi: ${formatCurrency(totalCashBalance)}`,
-          'warning'
-        );
-        return;
-      }
+      // Kasa bakiyesi kontrolü kaldırıldı - kasa eksiye düşebilir
 
       // Find the site
       const site = sites.find(s => String(s.id) === String(result.siteId));

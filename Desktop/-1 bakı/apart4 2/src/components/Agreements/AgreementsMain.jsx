@@ -6,6 +6,7 @@ import { createTransaction } from '../../services/api';
 import { createLog, getUsers, createUser, updateUser } from '../../services/api';
 import logger from '../../utils/logger';
 import { safeFilter, safeMap, safeFind } from '../../utils/safeAccess';
+import { isObserver } from '../../utils/auth';
 import AgreementHandlers from './AgreementHandlers';
 import AgreementUIHandlers from './AgreementUIHandlers';
 import AgreementHelpers from './AgreementHelpers';

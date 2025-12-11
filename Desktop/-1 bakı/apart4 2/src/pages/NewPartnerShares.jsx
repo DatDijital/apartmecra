@@ -3,6 +3,7 @@ import { getPartners, createPartner, updatePartner, deletePartner } from '../ser
 import { getTransactions, createTransaction } from '../services/api';
 import { createLog } from '../services/api';
 import { createAccountingRecord } from '../services/api';
+import { isObserver } from '../utils/auth';
 
 const PartnerShares = () => {
   const [partners, setPartners] = useState([]);

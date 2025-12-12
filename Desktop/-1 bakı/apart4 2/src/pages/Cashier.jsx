@@ -104,12 +104,15 @@ const Cashier = () => {
   };
 
   const handleEditTransaction = (transaction) => {
+    // Ortak giderlerinde originalAmount varsa onu kullan, yoksa amount'u kullan
+    const displayAmount = transaction.originalAmount || Math.abs(transaction.amount) || '';
+    
     setFormData({
       date: transaction.date || '',
       type: transaction.type || 'income',
       source: transaction.source || '',
       description: transaction.description || '',
-      amount: Math.abs(transaction.amount) || '',
+      amount: displayAmount,
       partnerId: transaction.partnerId || ''
     });
     setEditingTransaction(transaction);
@@ -1649,9 +1652,17 @@ const Cashier = () => {
                         <td className="fw-medium">{transaction.source}</td>
                         <td className="text-muted small">{transaction.description}</td>
                         <td>
-                          <span className={`fw-medium ${transaction.type === 'income' ? 'text-success' : 'text-danger'}`}>
-                            {transaction.type === 'income' ? '+' : ''}{formatCurrency(transaction.amount)}
-                          </span>
+                          <div className="d-flex flex-column">
+                            <span className={`fw-medium ${transaction.type === 'income' ? 'text-success' : 'text-danger'}`}>
+                              {transaction.type === 'income' ? '+' : ''}{formatCurrency(transaction.amount)}
+                            </span>
+                            {/* Ortak giderlerinde originalAmount göster */}
+                            {transaction.type === 'expense' && transaction.originalAmount && transaction.amount === 0 && (
+                              <span className="text-info small fw-medium" style={{ fontSize: '0.85rem' }}>
+                                Ortak Harcaması: {formatCurrency(transaction.originalAmount)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="text-end">
                           <div className="d-flex gap-1 justify-content-end">

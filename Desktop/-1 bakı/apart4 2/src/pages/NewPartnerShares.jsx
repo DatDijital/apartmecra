@@ -627,6 +627,71 @@ const PartnerShares = () => {
     }).format(amount);
   };
 
+  // Calculate current status for all partners
+  const calculateCurrentStatus = () => {
+    // Calculate total cash balance
+    const totalCashBalance = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    
+    // Calculate total partner expenses (ortakların harcadığı toplam_net_gider)
+    // Bu, ortakların kendi cebinden yaptığı harcamaların toplamı (originalAmount ile işaretlenmiş)
+    const totalPartnerExpenses = transactions
+      .filter(transaction => 
+        transaction.type === 'expense' && 
+        transaction.amount === 0 && 
+        transaction.originalAmount
+      )
+      .reduce((sum, transaction) => sum + (transaction.originalAmount || 0), 0);
+    
+    // Calculate net expenses (ortakların harcadığı toplam_net_gider − kasa)
+    const netExpenses = totalPartnerExpenses - totalCashBalance;
+    
+    // Calculate status for each partner
+    const partnerStatuses = partners.map(partner => {
+      // 1. Yaptığı harcama (yaptığı_harcama)
+      const partnerExpenses = transactions
+        .filter(transaction => 
+          transaction.partnerId === partner.id.toString() &&
+          transaction.type === 'expense' &&
+          transaction.amount === 0 &&
+          transaction.originalAmount
+        )
+        .reduce((sum, transaction) => sum + (transaction.originalAmount || 0), 0);
+      
+      // 2. Aldığı avans (aldığı_avans)
+      const partnerAdvances = transactions
+        .filter(transaction => 
+          transaction.source?.includes(`Ortak Avans Ödemesi - ${partner.name}`) ||
+          (transaction.partnerId === partner.id.toString() && 
+           transaction.source?.includes('Ortak Avans Ödemesi'))
+        )
+        .reduce((sum, transaction) => sum + Math.abs(transaction.amount || 0), 0);
+      
+      // 3. Ortaklık oranı
+      const sharePercentage = parseFloat(partner.sharePercentage) || 0;
+      
+      // 4. Net durum hesaplama
+      // ortak hesabı net durum = yaptığı_harcama − aldığı_avans − ( (ortakların harcadığı toplam_net_gider − kasa) × ortaklık_oranı )
+      const netStatus = partnerExpenses - partnerAdvances - (netExpenses * sharePercentage / 100);
+      
+      return {
+        partnerId: partner.id,
+        partnerName: partner.name,
+        sharePercentage: sharePercentage,
+        expenses: partnerExpenses,
+        advances: partnerAdvances,
+        netExpensesShare: netExpenses * sharePercentage / 100,
+        netStatus: netStatus
+      };
+    });
+    
+    setCurrentStatusResults({
+      totalCashBalance,
+      totalPartnerExpenses,
+      netExpenses,
+      partnerStatuses
+    });
+  };
+
   // Handle distribution of payments
   const handleDistribute = async () => {
     // Prevent multiple clicks

@@ -1908,7 +1908,7 @@ const PartnerShares = () => {
               <div className="card-body">
                 {/* Summary Information */}
                 <div className="row mb-4 g-3">
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <div className="card border-0 bg-light">
                       <div className="card-body">
                         <h6 className="text-muted mb-2">Kasa Bakiyesi</h6>
@@ -1918,14 +1918,34 @@ const PartnerShares = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-3">
                     <div className="card border-0 bg-light">
                       <div className="card-body">
-                        <h6 className="text-muted mb-2">Net Gider (Toplam Ortak Harcaması)</h6>
+                        <h6 className="text-muted mb-2">Toplam Avanslar</h6>
+                        <h4 className="mb-0 fw-bold text-danger">
+                          {formatCurrency(currentStatusResults.totalAdvances)}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="card border-0 bg-light">
+                      <div className="card-body">
+                        <h6 className="text-muted mb-2">Dağıtılacak Toplam</h6>
+                        <h4 className="mb-0 fw-bold text-success">
+                          {formatCurrency(currentStatusResults.distributableAmount)}
+                        </h4>
+                        <small className="text-muted">(Kasa + Avanslar)</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="card border-0 bg-light">
+                      <div className="card-body">
+                        <h6 className="text-muted mb-2">Net Gider</h6>
                         <h4 className="mb-0 fw-bold text-warning">
                           {formatCurrency(currentStatusResults.netGider)}
                         </h4>
-                        <small className="text-muted">(Kasa dahil edilmedi)</small>
                       </div>
                     </div>
                   </div>

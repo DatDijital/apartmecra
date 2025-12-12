@@ -1898,23 +1898,14 @@ const PartnerShares = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-6">
                     <div className="card border-0 bg-light">
                       <div className="card-body">
-                        <h6 className="text-muted mb-2">Toplam Ortak Harcaması</h6>
+                        <h6 className="text-muted mb-2">Net Gider (Toplam Ortak Harcaması)</h6>
                         <h4 className="mb-0 fw-bold text-warning">
-                          {formatCurrency(currentStatusResults.totalPartnerExpenses)}
+                          {formatCurrency(currentStatusResults.netGider)}
                         </h4>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-md-4">
-                    <div className="card border-0 bg-light">
-                      <div className="card-body">
-                        <h6 className="text-muted mb-2">Net Gider (Harcama - Kasa)</h6>
-                        <h4 className={`mb-0 fw-bold ${currentStatusResults.netExpenses >= 0 ? 'text-danger' : 'text-success'}`}>
-                          {formatCurrency(currentStatusResults.netExpenses)}
-                        </h4>
+                        <small className="text-muted">(Kasa dahil edilmedi)</small>
                       </div>
                     </div>
                   </div>

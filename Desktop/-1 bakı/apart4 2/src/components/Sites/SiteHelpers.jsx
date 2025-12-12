@@ -280,6 +280,7 @@ const SiteHelpers = ({
         
         // Check if there are any transactions for this agreement and site
         // Transaction'lar genellikle 'source' field'ında site ve anlaşma bilgisi içerir
+        // ÖNEMLİ: Tarih aralığına göre spesifik matching yapıyoruz
         const existingTransactions = transactions.filter(transaction => {
           if (transaction.type !== 'expense') return false;
           
@@ -287,7 +288,7 @@ const SiteHelpers = ({
           const isForSite = transaction.source && (
             transaction.source.includes('Site Ödemesi') &&
             transaction.source.includes(site.name)
-          );
+          ) || (transaction.siteId && possibleSiteIds.some(id => String(transaction.siteId) === String(id)));
           
           // Check if transaction is for this agreement
           const isForAgreement = (transaction.source && (
@@ -302,7 +303,36 @@ const SiteHelpers = ({
             String(transaction.agreementId) === String(agreement.id) &&
             possibleSiteIds.some(id => String(transaction.siteId) === String(id));
           
-          return (isForSite && isForAgreement) || directMatch;
+          // Check if transaction is for the same date range (paymentPeriod kontrolü)
+          // Eğer transaction'da paymentPeriod varsa, anlaşmanın tarih aralığı ile eşleşmeli
+          let isForDateRange = true;
+          if (transaction.paymentPeriod) {
+            const transactionDateFrom = new Date(transaction.paymentPeriod.dateFrom);
+            const transactionDateTo = new Date(transaction.paymentPeriod.dateTo);
+            
+            // Anlaşmanın tarih aralığını belirle
+            let agreementDateFrom, agreementDateTo;
+            if (agreement.dateRanges && Array.isArray(agreement.dateRanges) && agreement.dateRanges.length > 0) {
+              // Yeni format: dateRanges array'i
+              agreementDateFrom = new Date(Math.min(...agreement.dateRanges.map(r => new Date(r.startDate))));
+              agreementDateTo = new Date(Math.max(...agreement.dateRanges.map(r => new Date(r.endDate))));
+            } else {
+              // Eski format: startDate/endDate
+              agreementDateFrom = new Date(agreement.startDate);
+              agreementDateTo = new Date(agreement.endDate);
+            }
+            
+            // Tarih aralıkları örtüşmeli (transaction'ın tarih aralığı anlaşmanın tarih aralığı içinde olmalı)
+            isForDateRange = (
+              transactionDateFrom >= agreementDateFrom && transactionDateFrom <= agreementDateTo
+            ) || (
+              transactionDateTo >= agreementDateFrom && transactionDateTo <= agreementDateTo
+            ) || (
+              transactionDateFrom <= agreementDateFrom && transactionDateTo >= agreementDateTo
+            );
+          }
+          
+          return ((isForSite && isForAgreement) || directMatch) && isForDateRange;
         });
         
         // Calculate total paid amount for this agreement and site

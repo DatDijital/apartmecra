@@ -522,7 +522,11 @@ const Cashier = () => {
         description: `${result.siteName} için hesaplanan site ödemesi (${result.payments.length} anlaşma) - Anlaşmalar: ${result.payments.map(p => p.agreementId).join(', ')}`,
         amount: -Math.abs(result.totalAmount),
         siteId: result.siteId,
-        agreementIds: result.payments.map(p => p.agreementId) // Store all agreement IDs for tracking
+        agreementIds: result.payments.map(p => p.agreementId), // Store all agreement IDs for tracking
+        paymentPeriod: {
+          dateFrom: sitePaymentFilter.dateFrom, // Tarih aralığı bilgisi
+          dateTo: sitePaymentFilter.dateTo
+        }
       };
 
       const newTransaction = await createTransaction(expenseData);

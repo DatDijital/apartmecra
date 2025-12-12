@@ -802,14 +802,23 @@ const PartnerShares = () => {
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="h3 fw-bold">Ortak Payları</h2>
-        <button 
-          onClick={handleDistributePayments}
-          className="btn btn-primary-gradient btn-icon"
-          disabled={isObserver()}
-        >
-          <i className="bi bi-currency-dollar me-1"></i>
-          Ödeme Yap
-        </button>
+        <div className="d-flex gap-2">
+          <button 
+            onClick={calculateCurrentStatus}
+            className="btn btn-info btn-icon"
+          >
+            <i className="bi bi-calculator me-1"></i>
+            Güncel Durum Hesapla
+          </button>
+          <button 
+            onClick={handleDistributePayments}
+            className="btn btn-primary-gradient btn-icon"
+            disabled={isObserver()}
+          >
+            <i className="bi bi-currency-dollar me-1"></i>
+            Ödeme Yap
+          </button>
+        </div>
       </div>
 
       <div className="row">
@@ -1789,6 +1798,123 @@ const PartnerShares = () => {
                   <i className="bi bi-x-circle me-1"></i>
                   Kapat
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Current Status Results */}
+      {currentStatusResults && (
+        <div className="row mt-4">
+          <div className="col-12">
+            <div className="card custom-card shadow-sm">
+              <div className="card-header bg-info bg-opacity-10">
+                <div className="d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0 fw-bold">
+                    <i className="bi bi-calculator me-2"></i>
+                    Güncel Durum Hesaplama Sonuçları
+                  </h5>
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => setCurrentStatusResults(null)}
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+              <div className="card-body">
+                {/* Summary Information */}
+                <div className="row mb-4 g-3">
+                  <div className="col-md-4">
+                    <div className="card border-0 bg-light">
+                      <div className="card-body">
+                        <h6 className="text-muted mb-2">Kasa Bakiyesi</h6>
+                        <h4 className="mb-0 fw-bold text-primary">
+                          {formatCurrency(currentStatusResults.totalCashBalance)}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card border-0 bg-light">
+                      <div className="card-body">
+                        <h6 className="text-muted mb-2">Toplam Ortak Harcaması</h6>
+                        <h4 className="mb-0 fw-bold text-warning">
+                          {formatCurrency(currentStatusResults.totalPartnerExpenses)}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card border-0 bg-light">
+                      <div className="card-body">
+                        <h6 className="text-muted mb-2">Net Gider (Harcama - Kasa)</h6>
+                        <h4 className={`mb-0 fw-bold ${currentStatusResults.netExpenses >= 0 ? 'text-danger' : 'text-success'}`}>
+                          {formatCurrency(currentStatusResults.netExpenses)}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Partners Status Table */}
+                <div className="table-responsive">
+                  <table className="table table-hover">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Ortak Adı</th>
+                        <th className="text-end">Pay (%)</th>
+                        <th className="text-end">Yaptığı Harcama</th>
+                        <th className="text-end">Aldığı Avans</th>
+                        <th className="text-end">Net Gider Payı</th>
+                        <th className="text-end">Net Durum</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentStatusResults.partnerStatuses.map((status) => (
+                        <tr key={status.partnerId}>
+                          <td className="fw-medium">{status.partnerName}</td>
+                          <td className="text-end">{status.sharePercentage}%</td>
+                          <td className="text-end text-warning fw-medium">
+                            {formatCurrency(status.expenses)}
+                          </td>
+                          <td className="text-end text-danger fw-medium">
+                            {formatCurrency(status.advances)}
+                          </td>
+                          <td className="text-end text-info fw-medium">
+                            {formatCurrency(status.netExpensesShare)}
+                          </td>
+                          <td className="text-end">
+                            <span className={`fw-bold fs-5 ${status.netStatus >= 0 ? 'text-success' : 'text-danger'}`}>
+                              {formatCurrency(status.netStatus)}
+                            </span>
+                            <div className="small text-muted">
+                              {status.netStatus >= 0 ? 'Alacaklı' : 'Borçlu'}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="table-light">
+                      <tr>
+                        <td colSpan="2" className="fw-bold">TOPLAM</td>
+                        <td className="text-end fw-bold text-warning">
+                          {formatCurrency(currentStatusResults.partnerStatuses.reduce((sum, s) => sum + s.expenses, 0))}
+                        </td>
+                        <td className="text-end fw-bold text-danger">
+                          {formatCurrency(currentStatusResults.partnerStatuses.reduce((sum, s) => sum + s.advances, 0))}
+                        </td>
+                        <td className="text-end fw-bold text-info">
+                          {formatCurrency(currentStatusResults.partnerStatuses.reduce((sum, s) => sum + s.netExpensesShare, 0))}
+                        </td>
+                        <td className="text-end fw-bold">
+                          {formatCurrency(currentStatusResults.partnerStatuses.reduce((sum, s) => sum + s.netStatus, 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

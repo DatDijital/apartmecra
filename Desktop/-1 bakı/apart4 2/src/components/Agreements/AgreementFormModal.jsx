@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import AgreementSummary from './AgreementSummary';
 import useResponsive from '../../hooks/useResponsive';
 import { safeFilter, safeMap } from '../../utils/safeAccess';
@@ -38,26 +38,18 @@ const AgreementFormModal = ({
 
   const dateRanges = formData.dateRanges || [{ startDate: '', endDate: '' }];
 
-  // Memoize expensive calculations
-  const { regularSites, businessCenters, sitesByNeighborhood, sortedNeighborhoods } = useMemo(() => {
-    const regular = safeFilter(sites, site => site.siteType !== 'business_center');
-    const business = safeFilter(sites, site => site.siteType === 'business_center');
-    const byNeighborhood = regular.reduce((acc, site) => {
-      const neighborhood = site.neighborhood || 'Diğer';
-      if (!acc[neighborhood]) {
-        acc[neighborhood] = [];
-      }
-      acc[neighborhood].push(site);
-      return acc;
-    }, {});
-    const sorted = Object.keys(byNeighborhood).sort();
-    return {
-      regularSites: regular,
-      businessCenters: business,
-      sitesByNeighborhood: byNeighborhood,
-      sortedNeighborhoods: sorted
-    };
-  }, [sites]);
+  // Derived site collections (hesaplama basit, her render'da güvenle çalışabilir)
+  const regularSites = safeFilter(sites, site => site.siteType !== 'business_center');
+  const businessCenters = safeFilter(sites, site => site.siteType === 'business_center');
+  const sitesByNeighborhood = regularSites.reduce((acc, site) => {
+    const neighborhood = site.neighborhood || 'Diğer';
+    if (!acc[neighborhood]) {
+      acc[neighborhood] = [];
+    }
+    acc[neighborhood].push(site);
+    return acc;
+  }, {});
+  const sortedNeighborhoods = Object.keys(sitesByNeighborhood).sort();
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>

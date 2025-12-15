@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getAgreements, createAgreement, updateAgreement, deleteAgreement, archiveAgreement } from '../../services/api';
 import { getSites, updateSite } from '../../services/api';
 import { getCompanies, updateCompany } from '../../services/api';
@@ -127,11 +127,15 @@ const AgreementsMain = () => {
     }
   }, []);
 
-  // Memoize helper object to prevent infinite loops
-  const helpers = useMemo(() => AgreementHelpers({
-    companies, sites, agreements,
-    sitePanelSelections, selectedWeeks, formData
-  }), [companies, sites, agreements, sitePanelSelections, selectedWeeks, formData]);
+  // Helper object (no React hooks inside AgreementHelpers, safe to call directly)
+  const helpers = AgreementHelpers({
+    companies,
+    sites,
+    agreements,
+    sitePanelSelections,
+    selectedWeeks,
+    formData
+  });
   
   // Use ref to prevent multiple fetches
   const hasFetchedRef = useRef(false);

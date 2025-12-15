@@ -42,6 +42,12 @@ import {
   updateTransaction as updateTransactionInDb,
   deleteTransaction as deleteTransactionFromDb,
   
+  // Debts
+  getDebts as getDebtsFromDb,
+  createDebt as createDebtInDb,
+  updateDebt as updateDebtFromDb,
+  deleteDebt as deleteDebtFromDb,
+  
   // Partners
   getPartners as getPartnersFromDb,
   createPartner as createPartnerInDb,
@@ -492,6 +498,30 @@ export const deleteTransaction = async (transactionId) => {
   await initializeFirebase();
   
   const result = await deleteTransactionFromDb(transactionId);
+  return result.success;
+};
+
+// Debts endpoints
+export const getDebts = async () => {
+  await initializeFirebase();
+  return await getDebtsFromDb();
+};
+
+export const createDebt = async (debtData) => {
+  await initializeFirebase();
+  const result = await createDebtInDb(debtData);
+  return result.success ? result.data : null;
+};
+
+export const updateDebt = async (debtId, debtData) => {
+  await initializeFirebase();
+  const result = await updateDebtFromDb(debtId, debtData);
+  return result.success ? result.data : null;
+};
+
+export const deleteDebt = async (debtId) => {
+  await initializeFirebase();
+  const result = await deleteDebtFromDb(debtId);
   return result.success;
 };
 

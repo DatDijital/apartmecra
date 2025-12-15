@@ -26,6 +26,7 @@ export const COLLECTIONS = {
   COMPANIES: 'companies',
   AGREEMENTS: 'agreements',
   TRANSACTIONS: 'transactions',
+  DEBTS: 'debts',
   PARTNERS: 'partners',
   ARCHIVED_SITES: 'archivedSites',
   ACCOUNTING_RECORDS: 'accountingRecords',
@@ -48,7 +49,7 @@ export const createDocument = async (collectionName, data) => {
     // Always expose the Firestore document ID separately as _docId.
     const docId = docRef.id;
     const customId = data && data.id ? data.id : docId;
-
+    
     const result = {
       success: true,
       id: docId,
@@ -287,14 +288,14 @@ export const updateSite = async (siteId, siteData) => {
     if (siteData.blocks !== undefined || siteData.elevatorsPerBlock !== undefined) {
       const blocks = parseInt(siteData.blocks) || parseInt(oldSiteData?.blocks) || 0;
       const elevatorsPerBlock = parseInt(siteData.elevatorsPerBlock) || parseInt(oldSiteData?.elevatorsPerBlock) || 0;
-      const elevators = blocks * elevatorsPerBlock;
-      const panels = elevators * 2;
-      
+  const elevators = blocks * elevatorsPerBlock;
+  const panels = elevators * 2;
+  
       updatedSiteData = {
         ...updatedSiteData,
-        elevators: elevators,
-        panels: panels
-      };
+    elevators: elevators,
+    panels: panels
+  };
     } else {
       // Keep existing elevators and panels if not updating blocks/elevatorsPerBlock
       updatedSiteData = {
@@ -391,11 +392,11 @@ export const deleteSite = async (siteId) => {
     // Get logical site ID for email (could be siteId field or the custom id field)
     const logicalSiteId = siteRecord.siteId || siteRecord.id || siteId;
     const siteEmail = `${logicalSiteId}@site.local`;
-
+      
     // Delete from Firestore using the actual document ID
     const deleteResult = await deleteDocument(COLLECTIONS.SITES, docId);
-    
-    if (deleteResult.success) {
+      
+      if (deleteResult.success) {
       console.log(`✅ Site ${logicalSiteId} (doc: ${docId}) deleted from Firestore`);
       
       // Delete associated user from users collection first
@@ -434,11 +435,11 @@ export const deleteSite = async (siteId) => {
           }
         } else {
           console.error(`⚠️ Failed to delete Auth user ${siteEmail}: HTTP ${response.status}`);
-        }
+      }
       } catch (err) {
         console.error(`⚠️ Failed to delete Auth user ${siteEmail}:`, err.message || err);
-      }
-
+    }
+    
       return { success: true, message: `Site and associated user ${siteEmail} deleted.` };
     }
     
@@ -463,9 +464,9 @@ export const archiveSite = async (siteId) => {
 
       if (querySnapshot.empty) {
         console.error('archiveSite: Site not found for id:', siteId);
-        return { success: false, error: 'Site not found' };
-      }
-
+      return { success: false, error: 'Site not found' };
+    }
+    
       const docSnap = querySnapshot.docs[0];
       docId = docSnap.id;
       siteResult = { success: true, data: { id: docSnap.id, ...docSnap.data() } };
@@ -489,8 +490,8 @@ export const archiveSite = async (siteId) => {
     await deleteDoc(siteDocRef);
     
     console.log(`✅ Site ${siteId} (doc: ${docId}) archived successfully to archivedSites`);
-    console.log(`⚠️ Site user ${siteId}@site.local login is now disabled`);
-    return { success: true, message: `Site archived. User login disabled.` };
+      console.log(`⚠️ Site user ${siteId}@site.local login is now disabled`);
+      return { success: true, message: `Site archived. User login disabled.` };
   } catch (error) {
     console.error('Error archiving site:', error);
     return { success: false, error: error.message };
@@ -714,11 +715,11 @@ export const deleteCompany = async (companyId) => {
     // Get logical company ID for email
     const logicalCompanyId = companyRecord.companyId || companyRecord.id || companyId;
     const companyEmail = `${logicalCompanyId}@company.local`;
-    
+      
     // Delete from Firestore using the actual document ID
     const deleteResult = await deleteDocument(COLLECTIONS.COMPANIES, docId);
-    
-    if (deleteResult.success) {
+      
+      if (deleteResult.success) {
       console.log(`✅ Company ${logicalCompanyId} (doc: ${docId}) deleted from Firestore`);
       
       // Delete associated user from users collection first
@@ -757,11 +758,11 @@ export const deleteCompany = async (companyId) => {
           }
         } else {
           console.error(`⚠️ Failed to delete Auth user ${companyEmail}: HTTP ${response.status}`);
-        }
+      }
       } catch (err) {
         console.error(`⚠️ Failed to delete Auth user ${companyEmail}:`, err.message || err);
-      }
-
+    }
+    
       return { success: true, message: `Company and associated user ${companyEmail} deleted.` };
     }
     
@@ -798,8 +799,8 @@ export const archiveCompany = async (companyId) => {
     await deleteDoc(companyDocRef);
     
     console.log(`✅ Company ${companyId} (doc: ${docId}) archived successfully to archivedCompanies`);
-    console.log(`⚠️ Company user ${companyId}@company.local login is now disabled`);
-    return { success: true, message: `Company archived. User login disabled.` };
+      console.log(`⚠️ Company user ${companyId}@company.local login is now disabled`);
+      return { success: true, message: `Company archived. User login disabled.` };
   } catch (error) {
     console.error('Error archiving company:', error);
     return { success: false, error: error.message };
@@ -875,16 +876,16 @@ export const deleteAgreement = async (agreementId) => {
         return { success: false, error: 'Agreement not found' };
       }
     }
-    
+      
     // Delete from Firestore using the actual document ID
     const deleteResult = await deleteDocument(COLLECTIONS.AGREEMENTS, docId);
-    
-    if (deleteResult.success) {
+      
+      if (deleteResult.success) {
       console.log(`✅ Agreement ${agreementId} (doc: ${docId}) deleted from Firestore`);
-      return { success: true, message: `Agreement deleted successfully.` };
-    }
-    
-    return deleteResult;
+        return { success: true, message: `Agreement deleted successfully.` };
+      }
+      
+      return deleteResult;
   } catch (error) {
     console.error('Error deleting agreement:', error);
     return { success: false, error: error.message };
@@ -908,7 +909,7 @@ export const archiveAgreement = async (agreementId) => {
         docId = docSnap.id; // This is the actual Firestore document ID
         agreement = docSnap.data();
       } else {
-        return { success: false, error: 'Agreement not found' };
+      return { success: false, error: 'Agreement not found' };
       }
     } else {
       agreement = agreementResult.data;
@@ -954,6 +955,24 @@ export const updateTransaction = async (transactionId, transactionData) => {
 
 export const deleteTransaction = async (transactionId) => {
   return await deleteDocument(COLLECTIONS.TRANSACTIONS, transactionId);
+};
+
+// Debts operations
+export const getDebts = async () => {
+  const result = await getCollection(COLLECTIONS.DEBTS, [], 'dueDate', 'asc');
+  return result.data || [];
+};
+
+export const createDebt = async (debtData) => {
+  return await createDocument(COLLECTIONS.DEBTS, debtData);
+};
+
+export const updateDebt = async (debtId, debtData) => {
+  return await updateDocument(COLLECTIONS.DEBTS, debtId, debtData);
+};
+
+export const deleteDebt = async (debtId) => {
+  return await deleteDocument(COLLECTIONS.DEBTS, debtId);
 };
 
 // Partners operations
@@ -1200,8 +1219,8 @@ export const createSiteUser = async (siteId, siteData, forceRecreate = false) =>
         } catch (updateError) {
           console.error('Failed to update site user password:', updateError);
         }
-      } else {
-        console.error('Failed to create site user in Firebase Auth:', authResult.error);
+    } else {
+      console.error('Failed to create site user in Firebase Auth:', authResult.error);
         throw new Error(authResult.error);
       }
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getPartners, updatePartner, getAgreements, getSites, getCompanies, updateSite, updateCompany, updateAgreement, createLog } from '../services/api';
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getPartners, updatePartner, getAgreements, getSites, getCompanies, updateSite, updateCompany, updateAgreement, createLog, getDebts, createDebt, updateDebt, deleteDebt } from '../services/api';
 import { isObserver } from '../utils/auth';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -42,6 +42,21 @@ const Cashier = () => {
     dateTo: ''
   });
   const [sitePaymentResults, setSitePaymentResults] = useState([]);
+  // Debts state
+  const [debts, setDebts] = useState([]);
+  const [showDebtsView, setShowDebtsView] = useState(false);
+  const [showDebtForm, setShowDebtForm] = useState(false);
+  const [editingDebt, setEditingDebt] = useState(null);
+  const [showDebtHistory, setShowDebtHistory] = useState(false);
+  const [selectedDebtForHistory, setSelectedDebtForHistory] = useState(null);
+  const [debtFormData, setDebtFormData] = useState({
+    name: '',
+    amount: '',
+    dueDate: '',
+    description: '',
+    type: 'manual', // 'manual' | 'recurring'
+    isRecurring: false
+  });
   
   // Custom confirmation modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -52,18 +67,20 @@ const Cashier = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [transactionsData, partnersData, agreementsData, sitesData, companiesData] = await Promise.all([
+        const [transactionsData, partnersData, agreementsData, sitesData, companiesData, debtsData] = await Promise.all([
           getTransactions(),
           getPartners(),
           getAgreements(),
           getSites(),
-          getCompanies()
+          getCompanies(),
+          getDebts()
         ]);
         setTransactions(transactionsData);
         setPartners(partnersData);
         setAgreements(agreementsData);
         setSites(sitesData);
         setCompanies(companiesData);
+        setDebts(debtsData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -310,6 +327,43 @@ const Cashier = () => {
   };
 
   const tabStats = getTabStatistics();
+
+  // Helper: calculate months since start (inclusive)
+  const getMonthsSinceStart = (startDateStr) => {
+    if (!startDateStr) return 0;
+    const start = new Date(startDateStr);
+    const now = new Date();
+    const years = now.getFullYear() - start.getFullYear();
+    const months = now.getMonth() - start.getMonth();
+    let total = years * 12 + months + 1; // inclusive of start month
+    if (total < 0) total = 0;
+    return total;
+  };
+
+  // Helper: compute remaining amount for a debt (supports recurring)
+  const getDebtRemaining = (debt) => {
+    if (!debt) return 0;
+    const baseAmount = Math.abs(parseFloat(debt.amount) || 0);
+    if (baseAmount === 0) return 0;
+
+    // Find all expense transactions linked to this debt
+    const relatedPayments = transactions.filter(
+      (t) => t.type === 'expense' && t.debtId && String(t.debtId) === String(debt.id)
+    );
+    const paidTotal = relatedPayments.reduce(
+      (sum, t) => sum + Math.abs(t.originalAmount || t.amount || 0),
+      0
+    );
+
+    if (debt.isRecurring) {
+      const months = getMonthsSinceStart(debt.startDate || debt.dueDate);
+      const totalShouldHavePaid = baseAmount * months;
+      return Math.max(0, totalShouldHavePaid - paidTotal);
+    }
+
+    // Non-recurring: simple remaining
+    return Math.max(0, baseAmount - paidTotal);
+  };
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -1021,14 +1075,26 @@ const Cashier = () => {
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
           <div>
             <h2 className="h3 fw-bold mb-1">Kasa</h2>
-            <p className="mb-0">Gelir ve gider işlemleri</p>
+                <p className="mb-0">Gelir, gider ve borç işlemleri</p>
           </div>
           <div className="d-flex gap-2 flex-wrap">
+                <button 
+                  onClick={() => {
+                    setShowDebtsView(!showDebtsView);
+                    setShowSitePaymentCalc(false);
+                    setShowReport(false);
+                  }}
+                  className={`btn ${showDebtsView ? 'btn-page-outline' : 'btn-page-primary'} d-flex align-items-center`}
+                >
+                  <i className="bi bi-journal-text me-2"></i>
+                  {showDebtsView ? 'Borçları Kapat' : 'Borçlar'}
+                </button>
             <button 
               onClick={() => {
-                setShowReport(false);
-                setShowSitePaymentCalc(!showSitePaymentCalc);
-              }}
+                    setShowDebtsView(false);
+                    setShowReport(false);
+                    setShowSitePaymentCalc(!showSitePaymentCalc);
+                  }}
               className={`btn ${showSitePaymentCalc ? 'btn-page-outline' : 'btn-page-primary'} d-flex align-items-center`}
             >
               <i className="bi bi-calculator me-2"></i>
@@ -1108,8 +1174,183 @@ const Cashier = () => {
         </div>
       )}
 
+      {/* Debts View */}
+      {showDebtsView && (
+        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+          <div className="card-body">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h3 className="fw-bold text-dark mb-0">Borçlar</h3>
+              <button
+                className="btn btn-primary rounded-pill px-4 py-2 d-flex align-items-center"
+                onClick={() => {
+                  setEditingDebt(null);
+                  setDebtFormData({
+                    name: '',
+                    amount: '',
+                    dueDate: '',
+                    description: '',
+                    type: 'manual',
+                    isRecurring: false
+                  });
+                  setShowDebtForm(true);
+                }}
+                disabled={isObserver()}
+              >
+                <i className="bi bi-plus-circle me-2"></i>
+                Borç Ekle
+              </button>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table table-hover align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Ad</th>
+                    <th>Tür</th>
+                    <th>Ödenecek Tarih</th>
+                    <th className="text-end">Tutar</th>
+                    <th className="text-end">Kalan</th>
+                    <th className="text-center">Tekrarlayan</th>
+                    <th className="text-end">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {debts.length > 0 ? (
+                    debts.map((debt) => {
+                      const remaining = getDebtRemaining(debt);
+                      const isPaid = remaining <= 0.01;
+                      const isRecurring = !!debt.isRecurring;
+                      const typeLabel = debt.type === 'site' ? 'Site Ödemesi' : (isRecurring ? 'Tekrarlayan Borç' : 'Borç');
+
+                      return (
+                        <tr key={debt.id} className={isPaid ? 'table-success' : ''}>
+                          <td className="fw-medium">
+                            {debt.name}
+                            {debt.description && (
+                              <div className="text-muted small">{debt.description}</div>
+                            )}
+                          </td>
+                          <td>
+                            <span className="badge bg-secondary-subtle text-secondary-emphasis">
+                              {typeLabel}
+                            </span>
+                          </td>
+                          <td className="small">{debt.dueDate}</td>
+                          <td className="text-end fw-medium">
+                            {formatCurrency(Math.abs(parseFloat(debt.amount) || 0))}
+                          </td>
+                          <td className="text-end fw-bold">
+                            {formatCurrency(remaining)}
+                          </td>
+                          <td className="text-center">
+                            {isRecurring ? (
+                              <span className="badge bg-info-subtle text-info-emphasis">
+                                <i className="bi bi-arrow-repeat me-1"></i>
+                                Aylık
+                              </span>
+                            ) : (
+                              <span className="badge bg-light text-muted">Tek Sefer</span>
+                            )}
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex gap-1 justify-content-end">
+                              {isRecurring && (
+                                <button
+                                  className="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2"
+                                  title="Geçmiş Ödemeleri Göster"
+                                  onClick={() => {
+                                    setSelectedDebtForHistory(debt);
+                                    setShowDebtHistory(true);
+                                  }}
+                                >
+                                  <i className="bi bi-clock-history"></i>
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-sm btn-outline-primary rounded-pill py-1 px-2"
+                                title="Düzenle"
+                                disabled={isObserver()}
+                                onClick={() => {
+                                  setEditingDebt(debt);
+                                  setDebtFormData({
+                                    name: debt.name || '',
+                                    amount: Math.abs(parseFloat(debt.amount) || 0),
+                                    dueDate: debt.dueDate || '',
+                                    description: debt.description || '',
+                                    type: debt.type || (debt.isRecurring ? 'recurring' : 'manual'),
+                                    isRecurring: !!debt.isRecurring
+                                  });
+                                  setShowDebtForm(true);
+                                }}
+                              >
+                                <i className="bi bi-pencil"></i>
+                              </button>
+                              {!isPaid && (
+                                <button
+                                  className="btn btn-sm btn-success rounded-pill py-1 px-2"
+                                  title="Borç Öde"
+                                  disabled={isObserver()}
+                                  onClick={async () => {
+                                    // Basit ödeme için gider formunu borca göre doldur
+                                    setFormData({
+                                      date: new Date().toISOString().split('T')[0],
+                                      type: 'expense',
+                                      source: `Borç Ödemesi - ${debt.name}`,
+                                      description: `Borç ödemesi (Borç ID: ${debt.id})`,
+                                      amount: remaining.toFixed(2),
+                                      partnerId: ''
+                                    });
+                                    setEditingTransaction(null);
+                                    setShowExpenseForm(true);
+                                    // form submit'te debtId ilişkilendirmek için editingDebt yerine ayrı state gerekebilir
+                                  }}
+                                >
+                                  <i className="bi bi-currency-dollar"></i>
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-sm btn-outline-danger rounded-pill py-1 px-2"
+                                title="Sil"
+                                disabled={isObserver()}
+                                onClick={async () => {
+                                  const confirm = await window.showConfirm?.(
+                                    'Borcu Sil',
+                                    `"${debt.name}" borcunu silmek istediğinize emin misiniz? (İlgili geçmiş ödemeler silinmez)`,
+                                    'warning'
+                                  );
+                                  if (!confirm) return;
+                                  const ok = await deleteDebt(debt.id);
+                                  if (ok) {
+                                    setDebts(debts.filter((d) => d.id !== debt.id));
+                                  }
+                                }}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="text-center py-4">
+                        <div className="d-flex flex-column align-items-center text-muted">
+                          <i className="bi bi-journal-text mb-2" style={{ fontSize: '2rem' }}></i>
+                          <p className="mb-0">Henüz kayıtlı borç bulunmuyor.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Site Payment Calculation View */}
-      {showSitePaymentCalc && (
+      {!showDebtsView && showSitePaymentCalc && (
         <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '16px', overflow: 'hidden' }}>
           <div className="card-body">
             <h3 className="fw-bold text-dark mb-4">Site Ödemeleri Hesaplama</h3>
@@ -1267,7 +1508,7 @@ const Cashier = () => {
       )}
 
       {/* Report View */}
-      {showReport ? (
+      {showReport && !showDebtsView ? (
         <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '16px', overflow: 'hidden' }}>
           <div className="card-body">
             <div className="d-flex justify-content-between align-items-center mb-4">

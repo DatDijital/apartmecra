@@ -114,11 +114,38 @@ const PersonnelDashboard = () => {
         getCompanies()
       ]);
 
-      // Remove duplicate sites (based on id / _docId)
-      const uniqueSites = (allSites || []).filter((site, index, self) => {
+      // Helper to normalize strings (for name/neighborhood comparison)
+      const normalize = (value) =>
+        (value || '')
+          .toString()
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ' ');
+
+      // Remove duplicate sites
+      // 1) First by technical id fields (_docId / id / siteId)
+      const uniqueById = (allSites || []).filter((site, index, self) => {
         const key = String(site._docId || site.id || site.siteId || '');
         if (!key) return true;
-        return index === self.findIndex(s => String(s._docId || s.id || s.siteId || '') === key);
+        return index === self.findIndex(
+          (s) => String(s._docId || s.id || s.siteId || '') === key
+        );
+      });
+
+      // 2) Then by business identity (name + neighborhood)
+      const uniqueSites = uniqueById.filter((site, index, self) => {
+        const nameKey = normalize(site.name);
+        const neighborhoodKey = normalize(site.neighborhood);
+        const compositeKey = `${nameKey}::${neighborhoodKey}`;
+
+        return (
+          index ===
+          self.findIndex((s) => {
+            const nName = normalize(s.name);
+            const nNeighborhood = normalize(s.neighborhood);
+            return `${nName}::${nNeighborhood}` === compositeKey;
+          })
+        );
       });
       
       setAgreements(allAgreements);

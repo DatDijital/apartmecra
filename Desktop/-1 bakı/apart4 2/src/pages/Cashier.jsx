@@ -1840,7 +1840,7 @@ const Cashier = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : showDebtsView ? null : (
         <>
           {/* Statistics Cards */}
           <div className="row mb-4 g-3">
